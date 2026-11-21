@@ -1,0 +1,18 @@
+### Problem Description:
+
+Running aem enter fails with: error retrieving current directory: getcwd: cannot access parent directories: no such file or directory
+
+![](images/start_container_mount_failed1.png)
+
+### Cause:
+
+The user deleted the mount folder on the host machine without running aem remove to clear the old container, which caused the container to fail.
+
+### Solution:
+
+Run aem remove to delete the old container, then start a new container.
+
+### Related Documents:
+
+- [Step 6: Delete the project](https://apollo.baidu.com/docs/apollo/latest/md_docs_2_xE5_xAE_x89_xE8_xA3_x85_xE6_x8C_x87_xE5_x8D_x97_2_xE5_x8C_x85_xE7_xAE_xA1_xE7_x90_x86_410bb1324792103828eeacd86377c551.html)
+- [aem Quick Start](https://apollo.baidu.com/docs/apollo/latest/md_docs_2_xE6_xA1_x86_xE6_x9E_xB6_xE8_xAE_xBE_xE8_xAE_xA1_2_xE5_x91_xBD_xE4_xBB_xA4_xE8_xA1_x8C_xE5_xB7_xA5_xE5_x85_xB7_2aem.html)
