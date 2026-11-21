@@ -57,6 +57,24 @@ a third-party dependency is missing (CUDA, TensorRT, libtorch, ...), the
 targets that need it are skipped and the configure summary lists them. The
 rest still builds.
 
+## Build and test status
+
+Every module was built and tested on its own (`apollo_module_<m>`,
+`apollo_tests_<m>`, `ctest -L <m>`) with Ubuntu 24.04-equivalent toolchains
+(GCC 13, protobuf 3.21) on ROS 2 Jazzy, CPU only:
+
+* **C++ targets:** 325 of 504 non-test targets build and none fail to
+  compile. The other 179 are skipped automatically because a dependency is
+  not available: CUDA, TensorRT, gRPC or proprietary SDKs. This is most of
+  perception, v2x and MSF localization.
+* **Tests:** 387 of 401 tests pass. The failures come from hard-coded
+  `/apollo` data, map data missing from the repository, legacy TorchScript
+  model files in prediction, upstream test bugs, and one civetweb websocket
+  test.
+
+Per-module tables, failure reasons and environment notes are in
+[module_status.md](module_status.md).
+
 ## Running Apollo
 
 Three equivalent ways to run components:

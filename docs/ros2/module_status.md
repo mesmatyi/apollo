@@ -10,6 +10,8 @@ ninja apollo_module_<m> && ninja apollo_tests_<m> && ctest -L '^<m>$' --timeout 
 
 C++ targets = libraries, components, plugins, shared modules and binaries (tests counted separately). "skipped" = an external dependency is not available (decided at configure time, transitively); "failed" = attempted but did not compile/link; "not attempted" = module not built yet.
 
+**Totals:** 325 of 504 non-test C++ targets build (0 fail to compile, 179 skipped because a dependency is not available here: mostly CUDA/TensorRT, gRPC, proprietary SDKs). 387 of 401 tests that build pass; the 14 failures are listed per module below (environment, legacy model files or upstream test bugs).
+
 ## Summary
 
 | module | C++ built | C++ failed | C++ skipped | tests built | tests passed | tests failed | tests skipped |
@@ -33,9 +35,9 @@ C++ targets = libraries, components, plugins, shared modules and binaries (tests
 | audio | 3 | 0 | 0 | 2 | 1 | 1 | 0 |
 | bridge | 7 | 0 | 0 | 3 | 3 | 0 | 0 |
 | contrib | 2 | 0 | 0 | 0 | - | - | 0 |
-| data | 0 | 0 | 2 | 0 | - | - | 0 |
+| data | 2 | 0 | 0 | 0 | - | - | 0 |
 | dreamview | 4 | 0 | 0 | 5 | 4 | 1 | 1 |
-| dreamview_plus | 0 | 0 | 2 | 0 | 0 | 0 | 1 |
+| dreamview_plus | 2 | 0 | 0 | 0 | - | - | 1 |
 | perception | 16 | 0 | 138 | 27 | 26 | 1 | 44 |
 | prediction_plugin | 0 | 0 | 4 | 0 | - | - | 0 |
 | statistics | 2 | 0 | 1 | 0 | - | - | 0 |
@@ -91,12 +93,18 @@ Skipped tests (1): 1: @ad_rss_lib: ad_rss_lib not available
 
 ### prediction
 
-Failed tests:
+Failed tests (4), all for the same reason, which is not related to the ROS 2
+migration:
 
-- `prediction__cruise_mlp_evaluator_test`: Failed - environment: same (/apollo/modules/prediction/data/cruise_go_vehicle_model.pt opened by libtorch)
-- `prediction__junction_mlp_evaluator_test`: Failed - environment: same as junction_predictor_test (/apollo/modules/prediction/data/junction_mlp_vehicle_model.pt opened by libtorch)
-- `prediction__junction_predictor_test`: Failed - environment: torch::jit::load() opens /apollo/modules/prediction/data/junction_mlp_vehicle_model.pt literally (libtorch does not go through the cyber /apollo -> $APOLLO_ROOT remap; /apollo does not exist here). The model is in the source tree.
-- `prediction__pedestrian_interaction_evaluator_test`: Failed - environment: same (/apollo/modules/prediction/data/*.pt opened by libtorch)
+- `prediction__cruise_mlp_evaluator_test`, `prediction__junction_mlp_evaluator_test`,
+  `prediction__junction_predictor_test`, `prediction__pedestrian_interaction_evaluator_test`:
+  libtorch rejects the models in `modules/prediction/data/*.pt` with
+  "Legacy model format is not supported". The files are TorchScript archives
+  in the legacy format written by an old PyTorch; upstream Apollo pins
+  libtorch 1.7, which can still read it, and PyTorch 2.x cannot. Re-exporting
+  the models with a current PyTorch (load and `torch.jit.save` again) fixes
+  this. Model paths themselves now resolve through
+  `apollo::cyber::common::ResolvePath()` (`/apollo/...` -> `$APOLLO_ROOT/...`).
 
 ### localization
 
@@ -143,9 +151,8 @@ Failed tests:
 
 ### data
 
-Skipped C++ targets (2), by root cause:
-
-- 2: //cyber/tools/cyber_recorder:recorder: not provided by package cyber (cyber/tools/cyber_recorder/recorder.h)
+Builds since `cyber_recorder` is part of package cyber again
+(`smart_recorder` library and binary).
 
 ### dreamview
 
@@ -157,11 +164,15 @@ Skipped tests (1): 1: //cyber/blocker:blocker: not provided by package cyber (cy
 
 ### dreamview_plus
 
-Skipped C++ targets (2), by root cause:
+The backend library and the `dreamview_plus` binary build; all
+`cyber::record::Player` symbols resolve from libcyber. In this environment the
+backend cannot be loaded because conda's PCL 1.8.1 needs Boost 1.66 at runtime
+(see Environment notes); with a working PCL (Ubuntu's `libpcl-dev`) it loads.
+The web frontend (`modules/dreamview_plus/frontend`) is a separate Node.js
+build and is not part of the colcon workspace.
 
-- 2: //cyber/tools/cyber_recorder:recorder: not provided by package cyber (cyber/tools/cyber_recorder/recorder.h)
-
-Skipped tests (1): 1: //cyber/tools/cyber_recorder:recorder: not provided by package cyber (cyber/tools/cyber_recorder/recorder.h)
+Skipped tests (1): `simulation_world_service_test` needs the removed
+`cyber::blocker::BlockerManager`.
 
 ### perception
 
@@ -236,16 +247,17 @@ Skipped tests (11): 11: @com_github_grpc_grpc//:grpc++: CMake target(s) gRPC::gr
 
 ## Cyber API gaps hit by the modules
 
-- `apollo::cyber::blocker::BlockerManager` (`cyber/blocker/`, removed):
-  dreamview / dreamview_plus `simulation_world_service_test`.
-- `apollo::cyber::record::Recorder` (`cyber/tools/cyber_recorder/recorder.h`):
-  not exported by libcyber, and the header misses
-  `#include "cyber/service_discovery/topology_manager.h"`:
-  `modules/data/tools/smart_recorder`.
-- `apollo::cyber::record::Player` (`cyber/tools/cyber_recorder/player/`):
-  undefined in `libapollo_dreamview_plus_backend` (links, cannot load).
+- `apollo::cyber::record::Recorder` / `Player` (resolved): the C++
+  `cyber_recorder` (record, play, info, split, recover) is part of package
+  `cyber` again and works over ROS 2. A channel published by another process
+  is recorded with the protobuf type carried by its messages, and the
+  descriptor comes from the process's protobuf pool. `cyber_recorder` loads
+  `libapollo_proto.so` for this when it is installed. This brings back
+  `modules/data/tools/smart_recorder` and the dreamview_plus backend.
+- `apollo::cyber::blocker::BlockerManager` (`cyber/blocker/`, removed): the
+  only remaining user is `dreamview_plus` / `dreamview`
+  `simulation_world_service_test`, which stays skipped.
 - Headers of the new cyber no longer pull in some transitive includes the old
   ones did (`cyber/task/task.h`, `cyber/common/util.h`,
   `cyber/service_discovery/topology_manager.h`); the module sources now
   include them directly.
-
