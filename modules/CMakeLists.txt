@@ -95,7 +95,10 @@ if(APOLLO_BUILD_TESTS)
     "APOLLO_PLUGIN_INDEX_PATH=${CMAKE_BINARY_DIR}/cyber_plugin_index"
     "APOLLO_PLUGIN_LIB_PATH=${CMAKE_BINARY_DIR}/lib/apollo"
     "APOLLO_LIB_PATH=${CMAKE_BINARY_DIR}/lib/apollo"
-    "GLOG_logtostderr=1")
+    "GLOG_logtostderr=1"
+    # conda-forge's MUMPS 5.8 (IPOPT's linear solver) deadlocks in its OpenMP
+    # L0 factorization with more than one thread (see module_status.md).
+    "OMP_NUM_THREADS=1")
 endif()
 
 include(cmake/ApolloTargets.cmake)
