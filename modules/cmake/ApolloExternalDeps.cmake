@@ -202,9 +202,12 @@ _apollo_ext_targets("@com_github_grpc_grpc//:grpc++" gRPC::grpc++)
 foreach(_repo local_config_cuda local_config_rocm local_config_tensorrt npp nvjpeg)
   apollo_external("@${_repo}" MISSING "requires CUDA/ROCm/TensorRT (no GPU support)")
 endforeach()
-# libtorch: find_package(Torch) (e.g. CMAKE_PREFIX_PATH=<torch>/share/cmake).
-# Without CUDA, @libtorch_gpu also resolves to the CPU libtorch (Bazel's
-# if_gpu() picks libtorch_cpu on CPU-only builds).
+# libtorch: find_package(Torch) (CMAKE_PREFIX_PATH=<torch>/share/cmake), else a
+# plain libtorch tree (e.g. extracted from the PyPI wheel) in
+# APOLLO_LIBTORCH_ROOT. Without CUDA, @libtorch_gpu also resolves to the CPU
+# libtorch (Bazel's if_gpu() picks libtorch_cpu on CPU-only builds).
+set(APOLLO_LIBTORCH_ROOT "/opt/libtorch_cpu" CACHE PATH
+    "libtorch tree (include/, lib/libtorch_cpu.so) used when find_package(Torch) fails")
 find_package(Torch QUIET)
 if(Torch_FOUND OR TORCH_FOUND)
   add_library(apollo_ext_torch INTERFACE)
@@ -216,6 +219,20 @@ if(Torch_FOUND OR TORCH_FOUND)
   if(TORCH_INCLUDE_DIRS)
     target_include_directories(apollo_ext_torch SYSTEM INTERFACE ${TORCH_INCLUDE_DIRS})
   endif()
+elseif(EXISTS "${APOLLO_LIBTORCH_ROOT}/lib/libtorch_cpu.so"
+       AND EXISTS "${APOLLO_LIBTORCH_ROOT}/include/torch/script.h")
+  add_library(apollo_ext_torch INTERFACE)
+  target_include_directories(apollo_ext_torch SYSTEM INTERFACE
+    "${APOLLO_LIBTORCH_ROOT}/include"
+    "${APOLLO_LIBTORCH_ROOT}/include/torch/csrc/api/include")
+  # torch_cpu registers its operators in static initializers only, so it
+  # must not be dropped by --as-needed. The runtime path to its lib/ comes
+  # from CMake's build RPATH and CMAKE_INSTALL_RPATH_USE_LINK_PATH.
+  target_link_libraries(apollo_ext_torch INTERFACE
+    "-Wl,--no-as-needed" "${APOLLO_LIBTORCH_ROOT}/lib/libtorch_cpu.so"
+    "${APOLLO_LIBTORCH_ROOT}/lib/libc10.so")
+endif()
+if(TARGET apollo_ext_torch)
   apollo_external("@libtorch_cpu" apollo_ext_torch)
   if(APOLLO_WITH_cuda AND TARGET torch_cuda)
     apollo_external("@libtorch_gpu" torch)
@@ -224,7 +241,7 @@ if(Torch_FOUND OR TORCH_FOUND)
   endif()
 else()
   foreach(_repo libtorch_cpu libtorch_gpu)
-    apollo_external("@${_repo}" MISSING "requires libtorch (find_package(Torch) failed)")
+    apollo_external("@${_repo}" MISSING "requires libtorch (find_package(Torch) failed, no ${APOLLO_LIBTORCH_ROOT})")
   endforeach()
 endif()
 foreach(_repo paddleinference-x86_64 paddleinference-aarch64
