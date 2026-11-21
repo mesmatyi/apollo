@@ -51,6 +51,21 @@ jobs:
           source /opt/ros/jazzy/setup.bash
           APOLLO_JOBS=4 bash scripts/ros2/build.sh apollo apollo_ros2_bridge
 
+      - name: Closed-loop test (routing + planning + control, MCAP recording)
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          python3 tools/ros2/closed_loop/run_closed_loop.py --runs 2 \
+            --storage mcap --apollo_root "$PWD" --output_dir closed_loop_results
+
+      - name: Upload closed-loop recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: closed-loop-mcap
+          path: closed_loop_results
+
       - name: Launch file tests
         shell: bash
         run: |

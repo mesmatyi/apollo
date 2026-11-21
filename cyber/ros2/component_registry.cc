@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -35,6 +36,7 @@
 #include "cyber/component/component.h"
 #include "cyber/component/timer_component.h"
 #include "cyber/init.h"
+#include "cyber/plugin_manager/plugin_manager.h"
 #include "cyber/ros2/naming.h"
 #include "cyber/ros2/runtime.h"
 
@@ -158,6 +160,16 @@ class ComponentNodeFactory : public rclcpp_components::NodeFactory {
     if (!cyber::OK()) {
       cyber::Init("apollo_component_container");
     }
+    // mainboard loads the installed plugin index before creating
+    // components (unless --disable_plugin_autoload); do the same once per
+    // container process. APOLLO_DISABLE_PLUGIN_AUTOLOAD=1 opts out.
+    static std::once_flag plugins_loaded;
+    std::call_once(plugins_loaded, []() {
+      const char* disable = std::getenv("APOLLO_DISABLE_PLUGIN_AUTOLOAD");
+      if (disable == nullptr || std::string(disable) != "1") {
+        plugin_manager::PluginManager::Instance()->LoadInstalledPlugins();
+      }
+    });
     std::string default_name = class_name_;
     auto pos = default_name.rfind("::");
     if (pos != std::string::npos) {

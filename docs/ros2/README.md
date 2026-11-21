@@ -101,6 +101,20 @@ container that mounts the repository at `/apollo`, or set `APOLLO_ROOT` to the
 checkout (`scripts/ros2/setup.bash` does this). The Cyber file utilities then
 resolve `/apollo/<x>` to `$APOLLO_ROOT/<x>`.
 
+## Closed-loop test
+
+`tools/ros2/closed_loop/run_closed_loop.py --runs 3 --storage mcap` drives
+Apollo's real routing, planning and control against a simulated vehicle,
+records every topic of each run to an MCAP rosbag2 file, and checks:
+
+* the car stops at the goal,
+* lateral deviation stays within the limit,
+* planning and control stay healthy,
+* every message decodes.
+
+The default scenario follows lane `1_-1` of the demo map around a 90° bend.
+See [tools/ros2/closed_loop/README.md](../../tools/ros2/closed_loop/README.md).
+
 ## Tooling
 
 | Cyber RT                    | ROS 2 equivalent                                                    |
