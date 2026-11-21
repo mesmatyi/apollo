@@ -284,6 +284,8 @@ function(_apollo_probe_cyber label header code)
   if(TARGET cyber::cyber)
     set(CMAKE_REQUIRED_LIBRARIES cyber::cyber)
     set(CMAKE_REQUIRED_QUIET ON)
+    # Re-probe on every configure: package cyber may have gained the API.
+    unset(${var} CACHE)
     check_cxx_source_compiles("#include \"${header}\"\nint main() { ${code} return 0; }" ${var})
   endif()
   if(${var})
