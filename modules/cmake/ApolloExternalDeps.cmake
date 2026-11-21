@@ -270,6 +270,10 @@ apollo_external("@local_config_vtk" MISSING "VTK not supported")
 apollo_external("@ad_rss_lib" MISSING "ad_rss_lib not available")
 apollo_external("@localization_msf" MISSING "proprietary localization_msf library not available")
 apollo_external("@adv_plat" MISSING "proprietary adv_plat library not available")
+# vendor lidar SDKs (Apollo docker image), used without a BUILD dependency;
+# tools/ros2/bazel2cmake.py adds these labels when it sees their headers
+apollo_external("@rs_driver" MISSING "RoboSense rs_driver SDK not installed")
+apollo_external("@vanjee_driver" MISSING "Vanjee vanjee_driver SDK not installed")
 
 ###############################################################################
 # Vendored //third_party packages (see ApolloThirdParty.cmake)

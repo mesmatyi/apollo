@@ -13,6 +13,7 @@ apollo_target(component libvanjeelidar_component.so
     //modules/drivers/lidar/vanjeelidar/proto:vanjeelidar_config_proto
     //modules/drivers/lidar/vanjeelidar/proto:vanjeelidar_proto
     //modules/drivers/lidar/common:lidar_common
+    @vanjee_driver//:vanjee_driver
   LOCAL_DEFINES "MODULE_NAME=\"vanjeelidar\""
 )
 

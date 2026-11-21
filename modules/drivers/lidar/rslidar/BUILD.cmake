@@ -13,6 +13,7 @@ apollo_target(component librslidar_component.so
     //modules/drivers/lidar/rslidar/proto:rslidar_config_proto
     //modules/drivers/lidar/rslidar/proto:rslidar_proto
     //modules/drivers/lidar/common:lidar_common
+    @rs_driver//:rs_driver
   LOCAL_DEFINES "MODULE_NAME=\"rslidar\""
   LINKOPTS -lpcap
 )

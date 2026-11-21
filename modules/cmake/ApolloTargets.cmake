@@ -576,6 +576,8 @@ function(_apollo_create_cc t)
     endforeach()
     set_target_properties(${t} PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON
                                           AUTOUIC_SEARCH_PATHS "${ui_dirs}")
+    # uic output includes the custom widget headers by file name
+    target_include_directories(${t} PRIVATE "${APOLLO_SOURCE_ROOT}/${pkg}")
   endif()
   if(interface)
     set(vis INTERFACE)

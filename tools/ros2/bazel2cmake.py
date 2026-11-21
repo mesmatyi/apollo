@@ -112,6 +112,25 @@ _CUDA_API = re.compile(
     r'#\s*include\s*[<"](c10/cuda|ATen/cuda)/')
 
 
+# Vendor SDKs that some BUILD files use without declaring them (they come
+# from the Apollo docker image): include prefix -> external label.
+UNDECLARED_SDK_INCLUDES = {
+    'rs_driver/': '@rs_driver//:rs_driver',
+    'vanjee_driver/': '@vanjee_driver//:vanjee_driver',
+}
+_SDK_INCLUDE = re.compile(r'#\s*include\s*[<"](%s)' % '|'.join(
+    re.escape(k) for k in UNDECLARED_SDK_INCLUDES))
+
+
+def undeclared_sdks(path):
+    try:
+        with open(path, encoding='utf-8', errors='replace') as f:
+            text = f.read()
+    except OSError:
+        return []
+    return sorted(set(UNDECLARED_SDK_INCLUDES[m.group(1)] for m in _SDK_INCLUDE.finditer(text)))
+
+
 def uses_cuda_api(path):
     """True if a C++ source uses the CUDA API without a USE_GPU guard."""
     try:
@@ -850,6 +869,10 @@ class Model(object):
                             # declare the CUDA dependency): needs CUDA.
                             if (CUDA_REQUIREMENT, ()) not in t.values['deps']:
                                 t.values['deps'].append((CUDA_REQUIREMENT, ()))
+                        if not conds and v.endswith(CC_SRC_EXT + ('.h', '.hpp')):
+                            for sdk in undeclared_sdks(os.path.join(self.root, p)):
+                                if (sdk, ()) not in t.values['deps']:
+                                    t.values['deps'].append((sdk, ()))
                 if t.kind == 'proto':
                     for v, conds in t.values['srcs']:
                         p = v[2:].replace(':', '/') if v.startswith('//') else '%s/%s' % (t.pkg, v)
