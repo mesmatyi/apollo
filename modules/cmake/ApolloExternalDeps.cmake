@@ -150,7 +150,26 @@ if(ADOLC_INCLUDE_DIR AND ADOLC_LIBRARY)
   target_link_libraries(apollo_ext_adolc INTERFACE "${ADOLC_LIBRARY}")
   apollo_external("@adolc" apollo_ext_adolc)
 else()
-  apollo_external("@adolc" MISSING "ADOL-C not found (set ADOLC_ROOT)")
+  apollo_external("@adolc" MISSING "ADOL-C not found (tools/ros2/install_adolc.sh, or set ADOLC_ROOT)")
+endif()
+
+# civetweb (dreamview, monitor, task_manager): C and C++ (CivetServer) API
+find_path(CIVETWEB_INCLUDE_DIR CivetServer.h HINTS ${CIVETWEB_ROOT} $ENV{CIVETWEB_ROOT}
+          PATH_SUFFIXES include)
+find_library(CIVETWEB_LIBRARY NAMES civetweb HINTS ${CIVETWEB_ROOT} $ENV{CIVETWEB_ROOT}
+             PATH_SUFFIXES lib)
+find_library(CIVETWEB_CPP_LIBRARY NAMES civetweb-cpp HINTS ${CIVETWEB_ROOT} $ENV{CIVETWEB_ROOT}
+             PATH_SUFFIXES lib)
+if(CIVETWEB_INCLUDE_DIR AND CIVETWEB_LIBRARY)
+  add_library(apollo_ext_civetweb INTERFACE)
+  target_include_directories(apollo_ext_civetweb SYSTEM INTERFACE "${CIVETWEB_INCLUDE_DIR}")
+  if(CIVETWEB_CPP_LIBRARY)  # Ubuntu splits the C++ API into libcivetweb-cpp
+    target_link_libraries(apollo_ext_civetweb INTERFACE "${CIVETWEB_CPP_LIBRARY}")
+  endif()
+  target_link_libraries(apollo_ext_civetweb INTERFACE "${CIVETWEB_LIBRARY}")
+  apollo_external("@civetweb" apollo_ext_civetweb)
+else()
+  apollo_external("@civetweb" MISSING "civetweb not found (tools/ros2/install_civetweb.sh)")
 endif()
 
 # PCL
@@ -192,7 +211,6 @@ foreach(_repo paddleinference-x86_64 paddleinference-aarch64
   apollo_external("@${_repo}" MISSING "requires Paddle inference")
 endforeach()
 apollo_external("@local_config_vtk" MISSING "VTK not supported")
-apollo_external("@civetweb" MISSING "civetweb not available")
 apollo_external("@ad_rss_lib" MISSING "ad_rss_lib not available")
 apollo_external("@localization_msf" MISSING "proprietary localization_msf library not available")
 apollo_external("@adv_plat" MISSING "proprietary adv_plat library not available")
