@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #define CYBER_NODE_WRITER_BASE_H_
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -27,84 +28,47 @@
 namespace apollo {
 namespace cyber {
 
+namespace ros2 {
+class NodeHandle;
+}  // namespace ros2
+
 /**
  * @class WriterBase
- * @brief Base class for a Writer. A Writer is an object to send messages
- * through a 'Channel'
- * @warning One Writer can only write one channel.
- * But different writers can write through the same channel
+ * @brief Base class of every Writer. Backed by a ROS 2 publisher plus a
+ * zero-copy intra-process path (see cyber/ros2/transport.h).
  */
 class WriterBase {
  public:
-  /**
-   * @brief Construct a new Writer Base object
-   *
-   * @param role_attr role attributes for this Writer
-   */
   explicit WriterBase(const proto::RoleAttributes& role_attr)
       : role_attr_(role_attr), init_(false) {}
   virtual ~WriterBase() {}
 
-  /**
-   * @brief Init the Writer
-   *
-   * @return true if init success
-   * @return false if init failed
-   */
   virtual bool Init() = 0;
-
-  /**
-   * @brief Shutdown the Writer
-   */
   virtual void Shutdown() = 0;
-
-  /**
-   * @brief Is there any Reader that subscribes our Channel?
-   * You can publish message when this return true
-   *
-   * @return true if the channel has reader
-   * @return false if the channel has no reader
-   */
   virtual bool HasReader() { return false; }
-
-  /**
-   * @brief Get all Readers that subscriber our writing channel
-   *
-   * @param readers result vector of RoleAttributes
-   */
   virtual void GetReaders(std::vector<proto::RoleAttributes>* readers) {}
 
-  /**
-   * @brief Get Writer's Channel name
-   *
-   * @return const std::string& const reference to the channel name
-   */
   const std::string& GetChannelName() const {
     return role_attr_.channel_name();
   }
-
-  /**
-   * @brief Get Writer's Channel id
-   *
-   * @return const uint64_t& const reference to the channel id
-   */
   const uint64_t GetChannelId() const { return role_attr_.channel_id(); }
 
-  /**
-   * @brief Is Writer initialized?
-   *
-   * @return true if the Writer is inited
-   * @return false if the Write is not inited
-   */
   bool IsInit() const {
     std::lock_guard<std::mutex> g(lock_);
     return init_;
+  }
+
+  /// Selects the ROS 2 node that owns the publisher. Called by Node before
+  /// Init(); writers created standalone use the process aux node.
+  void SetNodeHandle(const std::shared_ptr<ros2::NodeHandle>& handle) {
+    node_handle_ = handle;
   }
 
  protected:
   proto::RoleAttributes role_attr_;
   mutable std::mutex lock_;
   bool init_;
+  std::shared_ptr<ros2::NodeHandle> node_handle_;
 };
 
 }  // namespace cyber

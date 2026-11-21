@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 #include "cyber/component/timer_component.h"
 
-#include "cyber/statistics/statistics.h"
-#include "cyber/timer/timer.h"
+#include <chrono>
 
 namespace apollo {
 namespace cyber {
@@ -38,34 +37,36 @@ bool TimerComponent::Initialize(const TimerComponentConfig& config) {
     AERROR << "Missing required field in config file.";
     return false;
   }
-  node_.reset(new Node(config.name()));
+  if (config.interval() == 0) {
+    AERROR << "Timer component interval must be positive.";
+    return false;
+  }
+  node_ = CreateComponentNode(config.name());
   LoadConfigFiles(config);
   if (!Init()) {
     return false;
   }
-  interval_ = config.interval();
 
-  auto role_attr = std::make_shared<proto::RoleAttributes>();
-  role_attr->set_node_name(config.name());
-  role_attr->set_channel_name(statistics::TIMER_COMPONENT_CHAN_NAME);
-  statistics::Statistics::Instance()->RegisterChanVar(*role_attr);
-
-  std::shared_ptr<TimerComponent> self =
+  std::weak_ptr<TimerComponent> self =
       std::dynamic_pointer_cast<TimerComponent>(shared_from_this());
-  auto func = [self, role_attr]() {
-    auto start_time = Time::Now().ToNanosecond();
-    self->Process();
-    auto end_time = Time::Now().ToNanosecond();
-    // sampling proc latency in microsecond
-    statistics::Statistics::Instance()->SamplingProcLatency<
-                  uint64_t>(*role_attr, (end_time-start_time)/1000);
+  auto func = [self]() {
+    auto ptr = self.lock();
+    if (ptr) {
+      ptr->Process();
+    }
   };
-  timer_.reset(new Timer(config.interval(), func, false));
-  timer_->Start();
-  return true;
+  interval_ = config.interval();
+  timer_ = ros2::TimerEndpoint::Create(
+      node_->Handle(), std::chrono::milliseconds(interval_), func, false);
+  return timer_ != nullptr;
 }
 
-void TimerComponent::Clear() { timer_.reset(); }
+void TimerComponent::Clear() {
+  if (timer_) {
+    timer_->Cancel();
+    timer_.reset();
+  }
+}
 
 uint32_t TimerComponent::GetInterval() const { return interval_; }
 

@@ -1,0 +1,22 @@
+syntax = "proto2";
+
+package apollo.cyber.ros2.test;
+
+message Chatter {
+  optional uint64 seq = 1;
+  optional string content = 2;
+  repeated double values = 3;
+}
+
+message Other {
+  optional int32 value = 1;
+}
+
+message AddRequest {
+  optional int64 a = 1;
+  optional int64 b = 2;
+}
+
+message AddResponse {
+  optional int64 sum = 1;
+}

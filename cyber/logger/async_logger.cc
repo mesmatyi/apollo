@@ -57,8 +57,8 @@ void AsyncLogger::Stop() {
   // std::cout << "Async Logger Stop!" << std::endl;
 }
 
-void AsyncLogger::Write(bool force_flush, time_t timestamp, const char* message,
-                        int message_len) {
+void AsyncLogger::Write(bool force_flush, GlogTimestampArg timestamp,
+                        const char* message, GlogLength message_len) {
   if (cyber_unlikely(state_.load(std::memory_order_acquire) != RUNNING)) {
     // std::cout << "Async Logger not running!" << std::endl;
     return;
@@ -73,7 +73,8 @@ void AsyncLogger::Write(bool force_flush, time_t timestamp, const char* message,
     flag_.clear(std::memory_order_release);
   }
 
-  if (force_flush && timestamp == 0 && message && message_len == 0) {
+  if (force_flush && GlogIsZeroTimestamp(timestamp) && message &&
+      message_len == 0) {
     Stop();
   }
 }
@@ -118,7 +119,7 @@ void AsyncLogger::FlushBuffer(const std::unique_ptr<std::deque<Msg>>& buffer) {
     const bool force_flush = msg.level > 0;
     module_logger_map_.find(module_name)
         ->second->Write(force_flush, msg.ts, msg.message.data(),
-                        static_cast<int>(msg.message.size()));
+                        static_cast<GlogLength>(msg.message.size()));
     buffer->pop_front();
   }
   Flush();

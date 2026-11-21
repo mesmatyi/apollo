@@ -18,6 +18,7 @@
 
 #include <list>
 #include <string>
+#include <vector>
 
 #include "cyber/common/global_data.h"
 #include "cyber/common/log.h"
@@ -26,14 +27,45 @@
 #include "cyber/mainboard/module_controller.h"
 #include "cyber/state.h"
 
-#include "gperftools/profiler.h"
+#if __has_include("gperftools/profiler.h")
 #include "gperftools/heap-profiler.h"
-#include "gperftools/malloc_extension.h"
+#include "gperftools/profiler.h"
+#define APOLLO_HAS_GPERFTOOLS 1
+#else
+#define APOLLO_HAS_GPERFTOOLS 0
+inline void ProfilerStart(const char*) {}
+inline void ProfilerStop() {}
+inline void HeapProfilerStart(const char*) {}
+inline void HeapProfilerDump(const char*) {}
+inline void HeapProfilerStop() {}
+#endif
 
 using apollo::cyber::mainboard::ModuleArgument;
 using apollo::cyber::mainboard::ModuleController;
 
 int main(int argc, char** argv) {
+  // Drop ROS 2 arguments (`--ros-args ... [--]`), which launch_ros appends to
+  // every Node action, before parsing mainboard's own options.
+  std::vector<char*> args;
+  bool in_ros_args = false;
+  for (int i = 0; i < argc; ++i) {
+    const std::string arg(argv[i]);
+    if (arg == "--ros-args") {
+      in_ros_args = true;
+      continue;
+    }
+    if (in_ros_args) {
+      if (arg == "--") {
+        in_ros_args = false;
+      }
+      continue;
+    }
+    args.push_back(argv[i]);
+  }
+  args.push_back(nullptr);
+  argc = static_cast<int>(args.size()) - 1;
+  argv = args.data();
+
   // parse the argument
   ModuleArgument module_args;
   module_args.ParseArgument(argc, argv);

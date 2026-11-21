@@ -59,9 +59,6 @@ bool ModuleController::LoadAll() {
     total_component_nums += GetComponentNum(module_path);
     paths.emplace_back(std::move(module_path));
   }
-  if (has_timer_component) {
-    total_component_nums += scheduler::Instance()->TaskPoolSize();
-  }
   common::GlobalData::Instance()->SetComponentNums(total_component_nums);
   for (auto module_path : paths) {
     AINFO << "Start initialize dag: " << module_path;
@@ -76,8 +73,7 @@ bool ModuleController::LoadAll() {
 bool ModuleController::LoadModule(const DagConfig& dag_config) {
   for (auto module_config : dag_config.module_config()) {
     std::string load_path;
-    if (!common::GetFilePathWithEnv(module_config.module_library(),
-                                    "APOLLO_LIB_PATH", &load_path)) {
+    if (!ResolveModuleLibrary(module_config.module_library(), &load_path)) {
       AERROR << "no module library [" << module_config.module_library()
              << "] found!";
       return false;
@@ -116,6 +112,27 @@ bool ModuleController::LoadModule(const std::string& path) {
     return false;
   }
   return LoadModule(dag_config);
+}
+
+bool ModuleController::ResolveModuleLibrary(const std::string& library,
+                                            std::string* load_path) {
+  if (common::GetFilePathWithEnv(library, "APOLLO_LIB_PATH", load_path)) {
+    return true;
+  }
+  // Bazel-era dags may hard-code an install location; retry with the path
+  // relative to the Apollo source root so lib/apollo/<package>/lib<x>.so of
+  // the colcon install is found.
+  static const char* kLegacyPrefixes[] = {
+      "/apollo/bazel-bin/", "/opt/apollo/neo/lib/", "/apollo/", "bazel-bin/"};
+  for (const char* prefix : kLegacyPrefixes) {
+    const std::string p(prefix);
+    if (library.compare(0, p.size(), p) == 0 &&
+        common::GetFilePathWithEnv(library.substr(p.size()), "APOLLO_LIB_PATH",
+                                   load_path)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 int ModuleController::GetComponentNum(const std::string& path) {

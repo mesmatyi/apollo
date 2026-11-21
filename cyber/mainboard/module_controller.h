@@ -45,6 +45,7 @@ class ModuleController {
   bool LoadModule(const std::string& path);
   bool LoadModule(const DagConfig& dag_config);
   int GetComponentNum(const std::string& path);
+  bool ResolveModuleLibrary(const std::string& library, std::string* load_path);
   int total_component_nums = 0;
   bool has_timer_component = false;
 

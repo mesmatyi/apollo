@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,105 +21,47 @@
 #include <string>
 #include <vector>
 
-#include "cyber/proto/topology_change.pb.h"
-
 #include "cyber/common/log.h"
 #include "cyber/node/writer_base.h"
-#include "cyber/service_discovery/topology_manager.h"
-#include "cyber/transport/transport.h"
+#include "cyber/ros2/transport.h"
 
 namespace apollo {
 namespace cyber {
 
 /**
- * @class Writer<MessageT>
- * @brief The Channel Writer has only one function: publish message through the
- * channel pointed in its RoleAttributes
+ * @class Writer
+ * @brief Publishes messages on a channel (a ROS 2 topic of type
+ * apollo_msgs/msg/ProtoMessage).
  *
- * @tparam MessageT Message Type of the Writer handles
+ * Readers in the same process receive the written shared_ptr itself (no
+ * copy, no serialization), exactly like Cyber's intra-process transport, so
+ * a message must not be modified after it was written.
  */
 template <typename MessageT>
 class Writer : public WriterBase {
  public:
-  using TransmitterPtr = std::shared_ptr<transport::Transmitter<MessageT>>;
-  using ChangeConnection =
-      typename service_discovery::Manager::ChangeConnection;
-
-  /**
-   * @brief Construct a new Writer object
-   *
-   * @param role_attr we use RoleAttributes to identify a Writer
-   */
   explicit Writer(const proto::RoleAttributes& role_attr);
   virtual ~Writer();
 
-  /**
-   * @brief Init the Writer
-   *
-   * @return true if init successfully
-   * @return false if init failed
-   */
   bool Init() override;
-
-  /**
-   * @brief Shutdown the Writer
-   */
   void Shutdown() override;
 
-  /**
-   * @brief Write a MessageT instance
-   *
-   * @param msg the message we want to write
-   * @return true if write successfully
-   * @return false if write failed
-   */
   virtual bool Write(const MessageT& msg);
-
-  /**
-   * @brief Write a shared ptr of MessageT
-   *
-   * @param msg_ptr the message shared ptr we want to write
-   * @return true if write successfully
-   * @return false if write failed
-   */
   virtual bool Write(const std::shared_ptr<MessageT>& msg_ptr);
 
-  /**
-   * @brief Is there any Reader that subscribes our Channel?
-   * You can publish message when this return true
-   *
-   * @return true if the channel has reader
-   * @return false if the channel has no reader
-   */
   bool HasReader() override;
-
-  /**
-   * @brief Get all Readers that subscriber our writing channel
-   *
-   * @param readers vector result of RoleAttributes
-   */
   void GetReaders(std::vector<proto::RoleAttributes>* readers) override;
 
-  /**
-   * @brief Acquire message instance to send
-   *
-   */ 
+  /// Returns a fresh message to fill and write.
   std::shared_ptr<MessageT> AcquireMessage();
 
  private:
-  void JoinTheTopology();
-  void LeaveTheTopology();
-  void OnChannelChange(const proto::ChangeMsg& change_msg);
-
-  TransmitterPtr transmitter_;
-
-  ChangeConnection change_conn_;
-  service_discovery::ChannelManagerPtr channel_manager_;
+  std::shared_ptr<ros2::PublisherEndpoint> endpoint_;
 };
 
 template <typename MessageT>
 Writer<MessageT>::Writer(const proto::RoleAttributes& role_attr)
-    : WriterBase(role_attr), transmitter_(nullptr), channel_manager_(nullptr) {}
+    : WriterBase(role_attr) {}
 
 template <typename MessageT>
 Writer<MessageT>::~Writer() {
@@ -133,33 +75,35 @@ bool Writer<MessageT>::Init() {
     if (init_) {
       return true;
     }
-    transmitter_ =
-        transport::Transport::Instance()->CreateTransmitter<MessageT>(
-            role_attr_);
-    if (transmitter_ == nullptr) {
+    if (!node_handle_) {
+      node_handle_ = ros2::AuxNodeHandle();
+    }
+    endpoint_ = ros2::PublisherEndpoint::Create(
+        node_handle_, role_attr_, ros2::GetTypeSupport<MessageT>());
+    if (endpoint_ == nullptr) {
+      AERROR << "Create writer on channel [" << role_attr_.channel_name()
+             << "] failed.";
       return false;
     }
     init_ = true;
   }
-  this->role_attr_.set_id(transmitter_->id().HashValue());
-  channel_manager_ =
-      service_discovery::TopologyManager::Instance()->channel_manager();
-  JoinTheTopology();
   return true;
 }
 
 template <typename MessageT>
 void Writer<MessageT>::Shutdown() {
+  std::shared_ptr<ros2::PublisherEndpoint> endpoint;
   {
     std::lock_guard<std::mutex> g(lock_);
     if (!init_) {
       return;
     }
     init_ = false;
+    endpoint = std::move(endpoint_);
   }
-  LeaveTheTopology();
-  transmitter_ = nullptr;
-  channel_manager_ = nullptr;
+  if (endpoint) {
+    endpoint->Shutdown();
+  }
 }
 
 template <typename MessageT>
@@ -171,57 +115,22 @@ bool Writer<MessageT>::Write(const MessageT& msg) {
 
 template <typename MessageT>
 bool Writer<MessageT>::Write(const std::shared_ptr<MessageT>& msg_ptr) {
-  RETURN_VAL_IF(!WriterBase::IsInit(), false);
-  return transmitter_->Transmit(msg_ptr);
-}
-
-template <typename MessageT>
-void Writer<MessageT>::JoinTheTopology() {
-  // add listener
-  change_conn_ = channel_manager_->AddChangeListener(std::bind(
-      &Writer<MessageT>::OnChannelChange, this, std::placeholders::_1));
-
-  // get peer readers
-  const std::string& channel_name = this->role_attr_.channel_name();
-  std::vector<proto::RoleAttributes> readers;
-  channel_manager_->GetReadersOfChannel(channel_name, &readers);
-  for (auto& reader : readers) {
-    transmitter_->Enable(reader);
+  std::shared_ptr<ros2::PublisherEndpoint> endpoint;
+  {
+    std::lock_guard<std::mutex> g(lock_);
+    if (!init_) {
+      return false;
+    }
+    endpoint = endpoint_;
   }
-
-  channel_manager_->Join(this->role_attr_, proto::RoleType::ROLE_WRITER,
-                         message::HasSerializer<MessageT>::value);
-}
-
-template <typename MessageT>
-void Writer<MessageT>::LeaveTheTopology() {
-  channel_manager_->RemoveChangeListener(change_conn_);
-  channel_manager_->Leave(this->role_attr_, proto::RoleType::ROLE_WRITER);
-}
-
-template <typename MessageT>
-void Writer<MessageT>::OnChannelChange(const proto::ChangeMsg& change_msg) {
-  if (change_msg.role_type() != proto::RoleType::ROLE_READER) {
-    return;
-  }
-
-  auto& reader_attr = change_msg.role_attr();
-  if (reader_attr.channel_name() != this->role_attr_.channel_name()) {
-    return;
-  }
-
-  auto operate_type = change_msg.operate_type();
-  if (operate_type == proto::OperateType::OPT_JOIN) {
-    transmitter_->Enable(reader_attr);
-  } else {
-    transmitter_->Disable(reader_attr);
-  }
+  return endpoint->Publish(std::static_pointer_cast<const void>(
+      std::const_pointer_cast<const MessageT>(msg_ptr)));
 }
 
 template <typename MessageT>
 bool Writer<MessageT>::HasReader() {
-  RETURN_VAL_IF(!WriterBase::IsInit(), false);
-  return channel_manager_->HasReader(role_attr_.channel_name());
+  std::lock_guard<std::mutex> g(lock_);
+  return init_ && endpoint_ && endpoint_->PeerCount() > 0;
 }
 
 template <typename MessageT>
@@ -229,29 +138,15 @@ void Writer<MessageT>::GetReaders(std::vector<proto::RoleAttributes>* readers) {
   if (readers == nullptr) {
     return;
   }
-
-  if (!WriterBase::IsInit()) {
-    return;
+  std::lock_guard<std::mutex> g(lock_);
+  if (init_ && endpoint_) {
+    endpoint_->GetPeers(readers);
   }
-
-  channel_manager_->GetReadersOfChannel(role_attr_.channel_name(), readers);
 }
 
 template <typename MessageT>
 std::shared_ptr<MessageT> Writer<MessageT>::AcquireMessage() {
-  if (!WriterBase::IsInit()) {
-    AERROR << "Please Acquire message after init writer!";
-    auto m = std::make_shared<MessageT>();
-    return m;
-  }
-
-  std::shared_ptr<MessageT> m(nullptr);
-  if (transmitter_->AcquireMessage(m)) {
-    return m;
-  } else {
-    m = std::make_shared<MessageT>();
-    return m;
-  }
+  return std::make_shared<MessageT>();
 }
 
 }  // namespace cyber

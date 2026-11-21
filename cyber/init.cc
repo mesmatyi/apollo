@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,34 +22,30 @@
 
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <memory>
+#include <mutex>
 #include <string>
+
+#include "gflags/gflags.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "cyber/proto/clock.pb.h"
 
 #include "cyber/binary.h"
 #include "cyber/common/file.h"
 #include "cyber/common/global_data.h"
-#include "cyber/data/data_dispatcher.h"
 #include "cyber/logger/async_logger.h"
 #include "cyber/node/node.h"
-#include "cyber/scheduler/scheduler.h"
-#include "cyber/service_discovery/topology_manager.h"
-#include "cyber/sysmo/sysmo.h"
-#include "cyber/task/task.h"
+#include "cyber/ros2/runtime.h"
+#include "cyber/ros2/paths.h"
+#include "cyber/task/task_manager.h"
 #include "cyber/time/clock.h"
-#include "cyber/timer/timing_wheel.h"
-#include "cyber/transport/transport.h"
-#include "cyber/statistics/statistics.h"
-
-#include "gflags/gflags.h"
 
 namespace apollo {
 namespace cyber {
-
-using apollo::cyber::scheduler::Scheduler;
-using apollo::cyber::service_discovery::TopologyManager;
 
 namespace {
 
@@ -59,7 +55,6 @@ const std::string& kClockNode = "clock";
 bool g_atexit_registered = false;
 std::mutex g_mutex;
 std::unique_ptr<Node> clock_node;
-
 logger::AsyncLogger* async_logger = nullptr;
 
 void InitLogger(const char* binary_name) {
@@ -70,20 +65,31 @@ void InitLogger(const char* binary_name) {
     ::apollo::cyber::binary::SetName(binary_name);
   }
 
-  // Init glog
-  google::InitGoogleLogging(binary_name);
+  // Init glog (only once per process; a component container may host many
+  // Apollo components).
+  static bool glog_initialized = false;
+  if (!glog_initialized) {
+    if (!google::IsGoogleLoggingInitialized()) {
+      google::InitGoogleLogging(binary_name);
+    }
+    glog_initialized = true;
+  }
   google::SetLogDestination(google::ERROR, "");
   google::SetLogDestination(google::WARNING, "");
   google::SetLogDestination(google::FATAL, "");
 
   // Init async logger
+  const auto severity = logger::ToLogSeverity(FLAGS_minloglevel);
   async_logger = new ::apollo::cyber::logger::AsyncLogger(
-      google::base::GetLogger(FLAGS_minloglevel));
-  google::base::SetLogger(FLAGS_minloglevel, async_logger);
+      google::base::GetLogger(severity));
+  google::base::SetLogger(severity, async_logger);
   async_logger->Start();
 }
 
-void StopLogger() { delete async_logger; }
+void StopLogger() {
+  delete async_logger;
+  async_logger = nullptr;
+}
 
 }  // namespace
 
@@ -97,16 +103,26 @@ void OnShutdown(int sig) {
 void ExitHandle() { Clear(); }
 
 bool Init(const char* binary_name, const std::string& dag_info) {
+  (void)dag_info;
   std::lock_guard<std::mutex> lg(g_mutex);
   if (GetState() != STATE_UNINITIALIZED) {
     return false;
   }
 
+  ros2::SetDefaultSearchPaths();
   InitLogger(binary_name);
-  auto thread = const_cast<std::thread*>(async_logger->LogThread());
-  scheduler::Instance()->SetInnerThreadAttr("async_log", thread);
-  SysMo::Instance();
-  std::signal(SIGINT, OnShutdown);
+
+  // ROS 2 owns signal handling: SIGINT/SIGTERM shut the rclcpp context down,
+  // which moves Cyber into STATE_SHUTTING_DOWN so `while (!IsShutdown())`
+  // loops and WaitForShutdown() return.
+  const char* argv[] = {binary_name};
+  if (!ros2::Runtime::Instance()->Init(1, argv)) {
+    AERROR << "failed to initialize the ROS 2 runtime";
+    return false;
+  }
+  rclcpp::contexts::get_global_default_context()->add_pre_shutdown_callback(
+      []() { OnShutdown(SIGINT); });
+
   // Register exit handlers
   if (!g_atexit_registered) {
     if (std::atexit(ExitHandle) != 0) {
@@ -130,24 +146,6 @@ bool Init(const char* binary_name, const std::string& dag_info) {
         };
     clock_node->CreateReader<apollo::cyber::proto::Clock>(kClockChannel, cb);
   }
-
-  if (dag_info != "") {
-    std::string dump_path;
-    if (dag_info.length() > 200) {
-      std::string truncated = dag_info.substr(0, 200);
-      dump_path = common::GetEnv(
-        "APOLLO_ENV_WORKROOT", "/apollo") + "/dumps/" + truncated;
-    } else {
-      dump_path = \
-        common::GetEnv("APOLLO_ENV_WORKROOT", "/apollo") + "/dumps/" + dag_info;
-    }
-    google::SetCommandLineOption("bvar_dump_file", dump_path.c_str());
-  } else {
-    statistics::Statistics::Instance()->DisableChanVar();
-  }
-  google::SetCommandLineOption("bvar_dump_exclude", "*qps");
-  google::SetCommandLineOption("bvar_dump", "true");
-
   return true;
 }
 
@@ -156,12 +154,10 @@ void Clear() {
   if (GetState() == STATE_SHUTDOWN || GetState() == STATE_UNINITIALIZED) {
     return;
   }
-  SysMo::CleanUp();
+  SetState(STATE_SHUTTING_DOWN);
+  clock_node.reset();
   TaskManager::CleanUp();
-  TimingWheel::CleanUp();
-  scheduler::CleanUp();
-  service_discovery::TopologyManager::CleanUp();
-  transport::Transport::CleanUp();
+  ros2::Runtime::Instance()->Shutdown();
   StopLogger();
   SetState(STATE_SHUTDOWN);
 }
