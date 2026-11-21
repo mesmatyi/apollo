@@ -20,6 +20,7 @@
 
 #include "cyber/common/file.h"
 #include "cyber/common/log.h"
+#include "cyber/service_discovery/topology_manager.h"
 #include "modules/common/util/map_util.h"
 #include "modules/monitor/common/monitor_manager.h"
 #include "modules/monitor/software/summary_monitor.h"
