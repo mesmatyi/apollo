@@ -624,11 +624,11 @@ void PathBoundsDecider::GetBoundaryFromLaneChangeForbiddenZone(
     lane_change_start_s = point_sl.s();
   } else {
     // TODO(jiacheng): train ML model to learn this.
-  // Set a point a certain distance in front of the adc as the lane-change starting point
+    // Set a point a certain distance in front of the adc as the lane-change starting point
     lane_change_start_s = FLAGS_lane_change_prepare_length + adc_frenet_s_;
 
     // Update the decided lane_change_start_s into planning-context.
-  // Update the information of the lane-change starting point
+    // Update the information of the lane-change starting point
     common::SLPoint lane_change_start_sl;
     lane_change_start_sl.set_s(lane_change_start_s);
     lane_change_start_sl.set_l(0.0);

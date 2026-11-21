@@ -431,24 +431,24 @@ The main idea of optimization is to optimize the top, longer functions (with a h
     ```cpp
     for (int j = 0; j < height_; j += 2) {
         for (int i = 0; i < width_; i += 16) {
-            // 读取16个像素点到双通道寄存器中，其中通道1存储y分量，通道2存储uv分量 (32 bytes)
+            // Read 16 pixels into dual-channel registers, where channel 1 stores the y component and channel 2 stores the uv component (32 bytes)
             uint8x16x2_t row0 = vld2q_u8(usrc + j * width_ * 2 + i * 2);
             uint8x16x2_t row1 = vld2q_u8(usrc + (j + 1) * width_ * 2 + i * 2);
 
-            // 提取y分量
+            // Extract the y component
             uint8x16_t y0 = row0.val[0];
             uint8x16_t y1 = row1.val[0];
 
-            // 保存y分量到数组中
+            // Save the y component into the array
             vst1q_u8(yPlane + yIndex, y0);
             vst1q_u8(yPlane + yIndex + width_, y1);
             yIndex += 16;
 
-            // 提取uv分量
+            // Extract the uv component
             uint8x16_t u0 = row0.val[1];
             uint8x16_t v0 = row1.val[1];
 
-            // 求uv分量均值（减轻下采样丢失数据的影响）
+            // Compute the mean of the uv components (to mitigate the data loss caused by downsampling)
             uint16x8_t u16_low = vaddl_u8(vget_low_u8(u0), vget_low_u8(v0));
             uint16x8_t u16_high = vaddl_u8(vget_high_u8(u0), vget_high_u8(v0));
             uint8x8_t u8_avg_low = vshrn_n_u16(u16_low, 1);
@@ -462,7 +462,7 @@ The main idea of optimization is to optimize the top, longer functions (with a h
             uint8x16_t u_avg = vcombine_u8(u8_avg_low, u8_avg_high);
             uint8x16_t v_avg = vcombine_u8(v8_avg_low, v8_avg_high);
 
-            // 保存uv分量到数组中
+            // Save the uv components into the array
             vst1_u8(uPlane + uIndex, u8_avg_low);
             vst1_u8(vPlane + vIndex, v8_avg_low);
             uIndex += 8;

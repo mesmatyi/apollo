@@ -20,7 +20,7 @@
 Module for example of record.
 
 Run with:
-    bazel run //cyber/python/cyber_py3/examples:record
+    python3 cyber/python/cyber_py3/examples/py_record.py
 """
 
 import time
