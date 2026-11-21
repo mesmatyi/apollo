@@ -390,15 +390,25 @@ def _guarded_call(func, *args):
         return None
 
 
-def _qos_for_reader(node, topic, depth):
+def _qos_for_reader(node, topic, depth, discovery_wait_s=0.5):
     """Keep-last `depth`; reliability/durability compatible with the
-    publishers already known on the graph (reliable/volatile otherwise)."""
+    publishers known on the graph (reliable/volatile otherwise).
+
+    A freshly started process may not have discovered the publishers yet;
+    wait up to `discovery_wait_s` for them so that latched (transient-local)
+    channels such as /tf_static are subscribed with a matching QoS."""
     reliability = ReliabilityPolicy.RELIABLE
     durability = DurabilityPolicy.VOLATILE
-    try:
-        infos = node.get_publishers_info_by_topic(topic)
-    except Exception:  # pylint: disable=broad-except
-        infos = []
+    infos = []
+    deadline = time.monotonic() + max(0.0, discovery_wait_s)
+    while True:
+        try:
+            infos = node.get_publishers_info_by_topic(topic)
+        except Exception:  # pylint: disable=broad-except
+            infos = []
+        if infos or time.monotonic() >= deadline:
+            break
+        time.sleep(0.05)
     if infos:
         if any(i.qos_profile.reliability == ReliabilityPolicy.BEST_EFFORT
                for i in infos):

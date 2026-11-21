@@ -55,7 +55,9 @@ void StaticTransformComponent::SendTransforms() {
 }
 
 bool StaticTransformComponent::ParseFromYaml(
-    const std::string& file_path, TransformStamped* transform_stamped) {
+    const std::string& file_path_in, TransformStamped* transform_stamped) {
+  // "/apollo/..." is relocated through APOLLO_ROOT when it does not exist.
+  const std::string file_path = cyber::common::ResolvePath(file_path_in);
   if (!cyber::common::PathExists(file_path)) {
     AERROR << "Extrinsic yaml file does not exist: " << file_path;
     return false;
