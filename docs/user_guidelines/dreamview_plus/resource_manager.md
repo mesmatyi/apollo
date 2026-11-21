@@ -52,7 +52,7 @@ The status of a scenario set includes pending download, downloading, download su
 Vehicles provided by the system. You can apply for access in [Apollo Studio](https://apollo.baidu.com/workspace/fuel/vehicle).
 
 <!--
-Vehicles provided by the system. The system provides 2 vehicles (Lincoln2017 MKZ, LGSVL, and MKZ). You can also download vehicles you have purchased from the cloud,
+Vehicles provided by the system. The system provides 2 vehicles (namely Lincoln2017 MKZLGSVL and MKZ). You can also download vehicles you have purchased from the cloud,
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_a5b6917.png)-->
 
 ### Upload a Vehicle Configuration
