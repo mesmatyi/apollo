@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libeigen3-dev libboost-all-dev libabsl-dev libyaml-cpp-dev \
       libopencv-dev libpcl-dev libproj-dev libfftw3-dev libsqlite3-dev \
       coinor-libipopt-dev libadolc-dev libcurl4-openssl-dev \
+      libcivetweb-dev libpcap-dev portaudio19-dev libleveldb-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Third-party libraries Ubuntu does not package (OSQP, ADOL-C, ...).

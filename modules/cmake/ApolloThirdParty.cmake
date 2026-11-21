@@ -85,11 +85,19 @@ if(TARGET osqp::osqp OR TARGET osqp::osqpstatic)
   else()
     set(_osqp osqp::osqpstatic)
   endif()
-  add_library(apollo_osqp SHARED "${APOLLO_SOURCE_ROOT}/modules/ros2_compat/osqp/osqp_compat.cc")
-  target_include_directories(apollo_osqp BEFORE PUBLIC
-    "$<BUILD_INTERFACE:${APOLLO_SOURCE_ROOT}/modules/ros2_compat/osqp/include>")
-  target_link_libraries(apollo_osqp PUBLIC ${_osqp})
-  _apollo_tp_library(apollo_osqp)
+  if(DEFINED osqp_VERSION AND osqp_VERSION VERSION_LESS 1.0)
+    # OSQP 0.5/0.6 already provides the API Apollo was written against.
+    message(STATUS "OSQP ${osqp_VERSION}: using its native 0.x API")
+    add_library(apollo_osqp INTERFACE)
+    target_link_libraries(apollo_osqp INTERFACE ${_osqp})
+  else()
+    message(STATUS "OSQP ${osqp_VERSION}: using the 0.6 API compatibility layer")
+    add_library(apollo_osqp SHARED "${APOLLO_SOURCE_ROOT}/modules/ros2_compat/osqp/osqp_compat.cc")
+    target_include_directories(apollo_osqp BEFORE PUBLIC
+      "$<BUILD_INTERFACE:${APOLLO_SOURCE_ROOT}/modules/ros2_compat/osqp/include>")
+    target_link_libraries(apollo_osqp PUBLIC ${_osqp})
+    _apollo_tp_library(apollo_osqp)
+  endif()
 endif()
 
 ###############################################################################

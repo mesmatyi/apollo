@@ -18,6 +18,8 @@
 
 #include <dlfcn.h>
 
+#include <iomanip>
+
 #include "cyber/message/protobuf_factory.h"
 
 #include <algorithm>

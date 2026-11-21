@@ -31,9 +31,17 @@
 #include "cyber/tools/cyber_recorder/recoverer.h"
 #include "cyber/tools/cyber_recorder/spliter.h"
 
-#include "gperftools/profiler.h"
+#if __has_include("gperftools/profiler.h")
 #include "gperftools/heap-profiler.h"
-#include "gperftools/malloc_extension.h"
+#include "gperftools/profiler.h"
+#else
+// gperftools is optional: profiling flags become no-ops without it.
+inline void ProfilerStart(const char*) {}
+inline void ProfilerStop() {}
+inline void HeapProfilerStart(const char*) {}
+inline void HeapProfilerDump(const char*) {}
+inline void HeapProfilerStop() {}
+#endif
 
 using apollo::cyber::common::GetFileName;
 using apollo::cyber::common::StringToUnixSeconds;

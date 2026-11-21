@@ -29,7 +29,8 @@ jobs:
             nlohmann-json3-dev libtinyxml2-dev uuid-dev libncurses-dev \
             libeigen3-dev libboost-all-dev libabsl-dev libyaml-cpp-dev \
             libopencv-dev libpcl-dev libproj-dev libfftw3-dev libsqlite3-dev \
-            coinor-libipopt-dev libcurl4-openssl-dev libgtest-dev
+            coinor-libipopt-dev libcurl4-openssl-dev \
+            libcivetweb-dev libpcap-dev portaudio19-dev libleveldb-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev zlib1g-dev libgtest-dev
           bash scripts/ros2/install_third_party.sh
 
       - name: Check generated files are up to date
