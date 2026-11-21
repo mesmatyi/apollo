@@ -16,32 +16,281 @@
 # limitations under the License.
 # ****************************************************************************
 # -*- coding: utf-8 -*-
-"""Module for init environment."""
+"""Cyber RT Python API, implemented in pure Python on rclpy (ROS 2).
 
-import ctypes
-import importlib
+Transport contract (docs/ros2/architecture.md):
+
+* every channel is a ROS 2 topic named ``naming.channel_to_topic(channel)``
+  of type ``apollo_msgs/msg/ProtoMessage`` (``type`` = protobuf full name,
+  ``data`` = protobuf wire bytes, plus writer ``seq``/``stamp_ns``);
+* every service is a ROS 2 service of type ``apollo_msgs/srv/ProtoService``;
+* writers are reliable / volatile / keep-last ``qos_depth``; readers are
+  keep-last ``qos_depth`` (Cyber pending_queue_size, default 1) and adapt
+  reliability/durability to the publishers already on the graph;
+* nodes are named ``naming.to_node_name(name)``.
+
+As with Cyber, callbacks run on background threads and ``Node.spin()`` only
+blocks until shutdown. Threading model (mirrors Cyber's PyReader):
+
+* every Node is spun by its own rclpy SingleThreadedExecutor thread (rclpy's
+  MultiThreadedExecutor adds tens of ms of jitter and drops samples);
+* a subscription callback only enqueues the sample; each reader runs the user
+  callback on its own worker thread, keeping at most ``qos_depth`` pending
+  samples (oldest dropped, like Cyber's pending queue). So one reader's
+  callbacks never overlap while different readers run in parallel;
+* each service has its own callback group and runs its callback on a worker
+  thread (the executor awaits the result), so one service handles requests
+  serially while different services, even of the same node, run in parallel;
+* service clients, graph queries and sampling use one hidden helper node with
+  its own executor thread (like the C++ runtime's aux node), so
+  ``Client.send_request()`` works from any callback without deadlocking.
+
+SIGINT puts the runtime in the shutting-down state (``is_shutdown()`` becomes
+True) instead of raising KeyboardInterrupt; a second SIGINT raises it.
+"""
+
+import array
+import atexit
+import collections
+import hashlib
 import os
+import signal
+import socket
 import sys
 import threading
 import time
+import traceback
 
-from google.protobuf.descriptor_pb2 import FileDescriptorProto
+import rclpy
+import rclpy.context
+import rclpy.node
+import rclpy.task
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.executors import SingleThreadedExecutor
+from rclpy.qos import DurabilityPolicy
+from rclpy.qos import HistoryPolicy
+from rclpy.qos import QoSProfile
+from rclpy.qos import ReliabilityPolicy
+
+try:
+    from rclpy.signals import SignalHandlerOptions
+except ImportError:  # pragma: no cover - rclpy < Humble
+    SignalHandlerOptions = None
+
+from apollo_msgs.msg import ProtoMessage
+from apollo_msgs.srv import ProtoService
+
+from . import _cyber_protos
+from . import cyber_timer
+from . import proto_registry
+from .naming import channel_to_topic
+from .naming import to_node_name
+
+PROTO_MESSAGE_TYPE = 'apollo_msgs/msg/ProtoMessage'
+PROTO_SERVICE_TYPE = 'apollo_msgs/srv/ProtoService'
+RAWDATATYPE = 'RawData'
+# cyber::Client::SendRequest() default timeout
+DEFAULT_REQUEST_TIMEOUT_S = 5.0
+
+# cyber/state.h
+STATE_UNINITIALIZED = 0
+STATE_INITIALIZED = 1
+STATE_SHUTTING_DOWN = 2
+STATE_SHUTDOWN = 3
 
 
-PY_CALLBACK_TYPE = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_char_p)
-PY_CALLBACK_TYPE_T = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_char_p)
+def _to_str(value):
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode('utf-8')
+    return value
 
-# init vars
-APOLLO_DISTRIBUTION_HOME = os.environ.get(
-    'APOLLO_DISTRIBUTION_HOME', '/opt/apollo/neo')
 
-if APOLLO_DISTRIBUTION_HOME.startswith('/opt/apollo/neo'):
-    wrapper_lib_path = os.path.join(
-        APOLLO_DISTRIBUTION_HOME, "lib", "cyber/python/internal")
+def _payload(data):
+    """Wire bytes of a protobuf message or raw bytes-like object."""
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        return bytes(data)
+    if isinstance(data, str):
+        return data.encode('utf-8')
+    return data.SerializeToString()
 
-    sys.path.append(wrapper_lib_path)
 
-_CYBER = importlib.import_module('_cyber_wrapper')
+def _to_array(data):
+    # Assigning an array('B') skips the per-byte checks of the generated
+    # message setter, which would be very slow for large payloads.
+    return array.array('B', data)
+
+
+def _from_array(data):
+    try:
+        return data.tobytes()
+    except AttributeError:
+        return bytes(data)
+
+
+class _SpunNode(object):
+    """An rclpy node spun by its own SingleThreadedExecutor thread."""
+
+    def __init__(self, ros_name, context):
+        self.node = rclpy.node.Node(ros_name, context=context,
+                                    use_global_arguments=False,
+                                    start_parameter_services=False)
+        self.executor = SingleThreadedExecutor(context=context)
+        self.executor.add_node(self.node)
+        self.queues = []
+        self.thread = threading.Thread(target=self._spin,
+                                       name='cyber_py:' + ros_name,
+                                       daemon=True)
+        self.thread.start()
+
+    def _spin(self):
+        try:
+            self.executor.spin()
+        except Exception:  # pylint: disable=broad-except
+            # ExternalShutdownException / context shut down: normal exit.
+            if _rt.state == STATE_INITIALIZED and self.node is not None:
+                traceback.print_exc()
+
+    def destroy(self):
+        own_thread = threading.current_thread() is self.thread
+        for queue in self.queues:
+            queue.close()
+        try:
+            self.executor.shutdown(timeout_sec=0 if own_thread else 1.0)
+        except Exception:  # pylint: disable=broad-except
+            pass
+        try:
+            self.node.destroy_node()
+        except Exception:  # pylint: disable=broad-except
+            pass
+        if not own_thread:
+            self.thread.join(timeout=1.0)
+
+
+class _CallbackQueue(object):
+    """Runs a reader's callbacks on its own thread.
+
+    At most `depth` samples are pending; when the callback is slower than the
+    writer the oldest pending sample is dropped (Cyber pending_queue_size).
+    """
+
+    def __init__(self, name, depth, handler):
+        self._items = collections.deque(maxlen=max(1, int(depth)))
+        self._cond = threading.Condition()
+        self._closed = False
+        self._handler = handler
+        self._thread = threading.Thread(target=self._run,
+                                        name='cyber_reader:' + name,
+                                        daemon=True)
+        self._thread.start()
+
+    def push(self, item):
+        with self._cond:
+            self._items.append(item)
+            self._cond.notify()
+
+    def close(self):
+        with self._cond:
+            self._closed = True
+            self._items.clear()
+            self._cond.notify()
+
+    def _run(self):
+        while True:
+            with self._cond:
+                while not self._items and not self._closed:
+                    self._cond.wait()
+                if self._closed:
+                    return
+                item = self._items.popleft()
+            try:
+                self._handler(item)
+            except Exception:  # pylint: disable=broad-except
+                traceback.print_exc()
+
+
+class _Runtime(object):
+    """Process-wide state: rclpy context, spun nodes, signals."""
+
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.state = STATE_UNINITIALIZED
+        self.context = None
+        self.shutdown_event = threading.Event()
+        self.init_time = 0.0
+        self.module_name = ''
+        self.nodes = []
+        self.aux = None
+        self.prev_sigint = None
+        self.atexit_registered = False
+
+    def spin_node(self, ros_name):
+        with self.lock:
+            if self.state != STATE_INITIALIZED:
+                init()
+            spun = _SpunNode(ros_name, self.context)
+            self.nodes.append(spun)
+            return spun
+
+    def destroy_node(self, spun):
+        with self.lock:
+            if spun not in self.nodes:
+                return
+            self.nodes.remove(spun)
+        spun.destroy()
+
+    def aux_node(self):
+        """The hidden helper node (clients, graph queries, sampling)."""
+        with self.lock:
+            if self.state != STATE_INITIALIZED:
+                init()
+            if self.aux is None:
+                self.aux = self.spin_node('_cyber_py_%d' % os.getpid())
+            return self.aux.node
+
+
+_rt = _Runtime()
+# topic -> protobuf type name, learnt from received samples
+_channel_types = {}
+
+
+def _on_sigint(signum, frame):
+    if _rt.state != STATE_INITIALIZED:
+        raise KeyboardInterrupt
+    # Cyber's OnShutdown(): only switch state; the program decides when to
+    # call shutdown(). A second Ctrl-C raises KeyboardInterrupt.
+    _rt.state = STATE_SHUTTING_DOWN
+    _rt.shutdown_event.set()
+
+
+def _install_signal_handler():
+    if threading.current_thread() is not threading.main_thread():
+        return
+    if _rt.prev_sigint is not None:
+        return
+    try:
+        _rt.prev_sigint = signal.signal(signal.SIGINT, _on_sigint)
+    except (ValueError, OSError):
+        _rt.prev_sigint = None
+
+
+def _restore_signal_handler():
+    if _rt.prev_sigint is None:
+        return
+    if threading.current_thread() is not threading.main_thread():
+        return
+    try:
+        if signal.getsignal(signal.SIGINT) is _on_sigint:
+            signal.signal(signal.SIGINT, _rt.prev_sigint)
+    except (ValueError, OSError, TypeError):
+        pass
+    _rt.prev_sigint = None
+
+
+def _atexit():
+    try:
+        shutdown()
+    except Exception:  # pylint: disable=broad-except
+        pass
 
 
 ##
@@ -53,35 +302,120 @@ def init(module_name="cyber_py"):
     """
     init cyber environment.
     """
-    return _CYBER.py_init(module_name)
+    with _rt.lock:
+        if _rt.state == STATE_INITIALIZED:
+            return True
+        context = rclpy.context.Context()
+        kwargs = {}
+        if SignalHandlerOptions is not None:
+            kwargs['signal_handler_options'] = SignalHandlerOptions.NO
+        try:
+            rclpy.init(context=context, **kwargs)
+        except Exception as e:  # pylint: disable=broad-except
+            sys.stderr.write('cyber.init(%s) failed: %s\n' % (module_name, e))
+            return False
+        _rt.context = context
+        _rt.nodes = []
+        _rt.aux = None
+        _rt.module_name = module_name
+        _rt.init_time = time.monotonic()
+        _rt.shutdown_event.clear()
+        _rt.state = STATE_INITIALIZED
+        _install_signal_handler()
+        if not _rt.atexit_registered:
+            atexit.register(_atexit)
+            _rt.atexit_registered = True
+        return True
 
 
 def ok():
     """
     is cyber envi ok.
     """
-    return _CYBER.py_ok()
+    context = _rt.context
+    return (_rt.state == STATE_INITIALIZED and context is not None and
+            context.ok())
 
 
 def shutdown():
     """
     shutdown cyber envi.
     """
-    return _CYBER.py_shutdown()
+    with _rt.lock:
+        if _rt.state in (STATE_UNINITIALIZED, STATE_SHUTDOWN):
+            return
+        _rt.state = STATE_SHUTDOWN
+        _rt.shutdown_event.set()
+        context, nodes = _rt.context, list(_rt.nodes)
+        _rt.nodes = []
+        _rt.aux = None
+    cyber_timer._stop_all()  # pylint: disable=protected-access
+    for spun in nodes:
+        spun.destroy()
+    if context is not None:
+        try:
+            rclpy.shutdown(context=context)
+        except Exception:  # pylint: disable=broad-except
+            pass
+    _restore_signal_handler()
 
 
 def is_shutdown():
     """
     is cyber shutdown.
     """
-    return _CYBER.py_is_shutdown()
+    state = _rt.state
+    if state in (STATE_SHUTTING_DOWN, STATE_SHUTDOWN):
+        return True
+    context = _rt.context
+    return state == STATE_INITIALIZED and context is not None and \
+        not context.ok()
 
 
 def waitforshutdown():
     """
     wait until the cyber is shutdown.
     """
-    return _CYBER.py_waitforshutdown()
+    while not is_shutdown():
+        _rt.shutdown_event.wait(0.1)
+
+
+def _guarded_call(func, *args):
+    """Runs a user callback; exceptions are printed, never propagated into
+    the executor (they would stop it)."""
+    try:
+        return func(*args)
+    except Exception:  # pylint: disable=broad-except
+        traceback.print_exc()
+        return None
+
+
+def _qos_for_reader(node, topic, depth):
+    """Keep-last `depth`; reliability/durability compatible with the
+    publishers already known on the graph (reliable/volatile otherwise)."""
+    reliability = ReliabilityPolicy.RELIABLE
+    durability = DurabilityPolicy.VOLATILE
+    try:
+        infos = node.get_publishers_info_by_topic(topic)
+    except Exception:  # pylint: disable=broad-except
+        infos = []
+    if infos:
+        if any(i.qos_profile.reliability == ReliabilityPolicy.BEST_EFFORT
+               for i in infos):
+            reliability = ReliabilityPolicy.BEST_EFFORT
+        if all(i.qos_profile.durability == DurabilityPolicy.TRANSIENT_LOCAL
+               for i in infos):
+            durability = DurabilityPolicy.TRANSIENT_LOCAL
+    return QoSProfile(history=HistoryPolicy.KEEP_LAST,
+                      depth=max(1, int(depth)),
+                      reliability=reliability, durability=durability)
+
+
+def _writer_qos(depth):
+    return QoSProfile(history=HistoryPolicy.KEEP_LAST,
+                      depth=max(1, int(depth)),
+                      reliability=ReliabilityPolicy.RELIABLE,
+                      durability=DurabilityPolicy.VOLATILE)
 
 # //////////////////////////////class//////////////////////////////
 
@@ -96,18 +430,40 @@ class Writer(object):
         self.name = name
         self.writer = writer
         self.data_type = data_type
+        self.topic = channel_to_topic(name)
+        self._seq = 0
+        self._lock = threading.Lock()
 
     ##
     # @brief write message.
     #
-    # @param data is a message type.
+    # @param data is a message type (or raw protobuf bytes).
     #
-    # @return Success is 0, otherwise False.
+    # @return Success is True, otherwise False.
     def write(self, data):
         """
         writer message string
         """
-        return _CYBER.PyWriter_write(self.writer, data.SerializeToString())
+        msg = ProtoMessage()
+        msg.type = self.data_type
+        msg.data = _to_array(_payload(data))
+        with self._lock:
+            self._seq += 1
+            msg.seq = self._seq
+        msg.stamp_ns = time.time_ns()
+        try:
+            self.writer.publish(msg)
+        except Exception as e:  # pylint: disable=broad-except
+            sys.stderr.write('cyber: write to %s failed: %s\n' % (self.name, e))
+            return False
+        return True
+
+    def get_subscription_count(self):
+        """Number of matched readers (ROS 2 subscriptions)."""
+        try:
+            return self.writer.get_subscription_count()
+        except Exception:  # pylint: disable=broad-except
+            return 0
 
 
 class Reader(object):
@@ -120,6 +476,14 @@ class Reader(object):
         self.name = name
         self.reader = reader
         self.data_type = data_type
+        self.topic = channel_to_topic(name)
+
+    def get_publisher_count(self):
+        """Number of matched writers (ROS 2 publishers)."""
+        try:
+            return self.reader.get_publisher_count()
+        except Exception:  # pylint: disable=broad-except
+            return 0
 
 
 class Client(object):
@@ -128,28 +492,100 @@ class Client(object):
     Class for cyber service client wrapper.
     """
 
-    def __init__(self, client, data_type):
+    def __init__(self, client, data_type, name='', request_type='',
+                 owner=None):
         self.client = client
         self.data_type = data_type
+        self.name = name
+        self.request_type = request_type
+        self._owner = owner
+
+    def destroy(self):
+        """Destroys the underlying ROS 2 client."""
+        owner, self._owner = self._owner, None
+        if owner is not None:
+            try:
+                owner.destroy_client(self.client)
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+    def service_is_ready(self):
+        try:
+            return self.client.service_is_ready()
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+    def wait_for_service(self, timeout=None):
+        """Waits until the service is available; False on timeout."""
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while not self.service_is_ready():
+            if is_shutdown() or (deadline is not None and
+                                 time.monotonic() >= deadline):
+                return False
+            time.sleep(0.01)
+        return True
 
     ##
     # @brief send request message to service.
     #
     # @param data is a message type.
+    # @param timeout seconds to wait for the response (Cyber default: 5).
     #
     # @return None or response from service.
-    def send_request(self, data):
+    def send_request(self, data, timeout=DEFAULT_REQUEST_TIMEOUT_S):
         """
         send request to service
         """
-        response_str = _CYBER.PyClient_send_request(
-            self.client, data.SerializeToString())
-        if len(response_str) == 0:
+        if not ok():
             return None
+        deadline = time.monotonic() + timeout
+        request = ProtoService.Request()
+        request.type = self.request_type or getattr(
+            getattr(data, 'DESCRIPTOR', None), 'full_name', '')
+        request.data = _to_array(_payload(data))
+        if not self.wait_for_service(timeout):
+            return None
+        done = threading.Event()
+        try:
+            future = self.client.call_async(request)
+        except Exception as e:  # pylint: disable=broad-except
+            sys.stderr.write('cyber: request to %s failed: %s\n' %
+                             (self.name, e))
+            return None
+        future.add_done_callback(lambda _: done.set())
+        if not done.wait(max(0.0, deadline - time.monotonic())):
+            try:
+                self.client.remove_pending_request(future)
+            except Exception:  # pylint: disable=broad-except
+                pass
+            return None
+        response = future.result()
+        if response is None or len(response.data) == 0:
+            return None
+        if self.data_type is None or isinstance(self.data_type, str):
+            return _from_array(response.data)
+        result = self.data_type()
+        result.ParseFromString(_from_array(response.data))
+        return result
 
-        response = self.data_type()
-        response.ParseFromString(response_str)
-        return response
+
+class Service(object):
+
+    """
+    Class for cyber service wrapper.
+    """
+
+    def __init__(self, name, service, req_data_type, res_data_type):
+        self.name = name
+        self.service = service
+        self.req_data_type = req_data_type
+        self.res_data_type = res_data_type
+
+
+def _type_name(data_type):
+    if isinstance(data_type, str):
+        return data_type
+    return data_type.DESCRIPTOR.full_name
 
 
 class Node(object):
@@ -159,7 +595,9 @@ class Node(object):
     """
 
     def __init__(self, name):
-        self.node = _CYBER.new_PyNode(name)
+        self.name = name
+        self._spun = _rt.spin_node(to_node_name(name))
+        self.node = self._spun.node
         self.list_writer = []
         self.list_reader = []
         self.subs = {}
@@ -171,16 +609,25 @@ class Node(object):
         self.services = {}
 
     def __del__(self):
-        # print("+++ node __del___")
-        for writer in self.list_writer:
-            _CYBER.delete_PyWriter(writer)
-        for reader in self.list_reader:
-            _CYBER.delete_PyReader(reader)
-        for c in self.list_client:
-            _CYBER.delete_PyClient(c)
-        for s in self.list_service:
-            _CYBER.delete_PyService(s)
-        _CYBER.delete_PyNode(self.node)
+        try:
+            self.shutdown()
+        except Exception:  # pylint: disable=broad-except
+            pass
+
+    def shutdown(self):
+        """Destroys the node and all its readers/writers/services/clients."""
+        spun = getattr(self, '_spun', None)
+        if spun is None:
+            return
+        self._spun = None
+        self.node = None
+        for c in getattr(self, 'list_client', []):
+            c.destroy()
+        _rt.destroy_node(spun)
+
+    def get_ros_node(self):
+        """The underlying rclpy.node.Node."""
+        return self.node
 
     ##
     # @brief register proto message by proto descriptor file.
@@ -190,19 +637,14 @@ class Node(object):
         """
         register proto message desc file.
         """
-        for dep in file_desc.dependencies:
-            self.register_message(dep)
-        proto = FileDescriptorProto()
-        file_desc.CopyToProto(proto)
-        proto.name = file_desc.name
-        desc_str = proto.SerializeToString()
-        _CYBER.PyNode_register_message(self.node, desc_str)
+        proto_registry.register_file(file_desc)
 
     ##
     # @brief create a channel writer for send message to another channel.
     #
     # @param name is the channel name.
-    # @param data_type is message class for serialization
+    # @param data_type is message class for serialization (or the protobuf
+    # full name for a raw-bytes writer)
     # @param qos_depth is a queue size, which defines the size of the cache.
     #
     # @return return the writer object.
@@ -210,74 +652,113 @@ class Node(object):
         """
         create a channel writer for send message to another channel.
         """
-        self.register_message(data_type.DESCRIPTOR.file)
-        datatype = data_type.DESCRIPTOR.full_name
-        writer = _CYBER.PyNode_create_writer(self.node, name,
-                                             datatype, qos_depth)
-        self.list_writer.append(writer)
-        return Writer(name, writer, datatype)
+        if not isinstance(data_type, str):
+            self.register_message(data_type.DESCRIPTOR.file)
+        datatype = _type_name(data_type)
+        publisher = self.node.create_publisher(
+            ProtoMessage, channel_to_topic(name), _writer_qos(qos_depth))
+        writer = Writer(name, publisher, datatype)
+        with self.mutex:
+            self.list_writer.append(writer)
+            self.pubs[name] = writer
+        return writer
 
-    def reader_callback(self, name):
-        sub = self.subs[name.decode('utf8')]
-        msg_str = _CYBER.PyReader_read(sub[0], False)
-        if len(msg_str) > 0:
-            if sub[3] != "RawData":
-                proto = sub[3]()
-                proto.ParseFromString(msg_str)
-            else:
-                # print "read rawdata-> ",sub[3]
-                proto = msg_str
+    def _subscribe(self, name, handler, qos_depth):
+        """Subscribes `name`; `handler(ProtoMessage)` runs on a dedicated
+        reader thread with at most `qos_depth` pending samples."""
+        topic = channel_to_topic(name)
+        queue = _CallbackQueue(name, qos_depth, handler)
 
-            if sub[2] is None:
-                sub[1](proto)
-            else:
-                sub[1](proto, sub[2])
-        return 0
+        def on_message(ros_msg):
+            _channel_types[topic] = ros_msg.type
+            queue.push(ros_msg)
+
+        try:
+            subscription = self.node.create_subscription(
+                ProtoMessage, topic, on_message,
+                _qos_for_reader(self.node, topic, qos_depth))
+        except Exception:
+            queue.close()
+            raise
+        self._spun.queues.append(queue)
+        return subscription
 
     ##
     # @brief create a channel reader for receive message from another channel.
     #
     # @param name the channel name to read.
-    # @param data_type  message class for serialization
+    # @param data_type  message class for serialization ("RawData" for bytes)
     # @param callback function to call (fn(data)) when data is received. If
     # args is set, the function must accept the args as a second argument,
     # i.e. fn(data, args)
     # @param args additional arguments to pass to the callback
+    # @param qos_depth reader queue depth (Cyber pending_queue_size)
     #
-    # @return return the writer object.
-    def create_reader(self, name, data_type, callback, args=None):
+    # @return return the reader object, None if the channel is already read.
+    def create_reader(self, name, data_type, callback, args=None,
+                      qos_depth=1):
         """
         create a channel reader for receive message from another channel.
         """
-        self.mutex.acquire()
-        if name in self.subs.keys():
-            self.mutex.release()
-            return None
-        self.mutex.release()
+        with self.mutex:
+            if name in self.subs:
+                return None
+            self.subs[name] = None
 
-        # datatype = data_type.DESCRIPTOR.full_name
-        reader = _CYBER.PyNode_create_reader(
-            self.node, name, str(data_type))
-        if reader is None:
-            return None
-        self.list_reader.append(reader)
-        sub = (reader, callback, args, data_type, False)
+        msg_class = None
+        if isinstance(data_type, str):
+            if data_type != RAWDATATYPE:
+                msg_class = proto_registry.get_message_class(data_type)
+        else:
+            msg_class = data_type
+            self.register_message(data_type.DESCRIPTOR.file)
 
-        self.mutex.acquire()
-        self.subs[name] = sub
-        self.mutex.release()
-        fun_reader_cb = PY_CALLBACK_TYPE(self.reader_callback)
-        self.callbacks[name] = fun_reader_cb
-        f_ptr = ctypes.cast(self.callbacks[name], ctypes.c_void_p).value
-        _CYBER.PyReader_register_func(reader, f_ptr)
+        def on_message(ros_msg):
+            payload = _from_array(ros_msg.data)
+            if msg_class is None:
+                data = payload
+            else:
+                data = msg_class()
+                try:
+                    data.ParseFromString(payload)
+                except Exception:  # pylint: disable=broad-except
+                    sys.stderr.write('cyber: cannot parse %s as %s on %s\n' %
+                                     (ros_msg.type,
+                                      msg_class.DESCRIPTOR.full_name, name))
+                    return
+            if args is None:
+                _guarded_call(callback, data)
+            else:
+                _guarded_call(callback, data, args)
 
-        return Reader(name, reader, data_type)
+        try:
+            subscription = self._subscribe(name, on_message, qos_depth)
+        except Exception:
+            with self.mutex:
+                self.subs.pop(name, None)
+            raise
+        reader = Reader(name, subscription, data_type)
+        with self.mutex:
+            self.list_reader.append(reader)
+            self.subs[name] = reader
+        return reader
 
-    def create_rawdata_reader(self, name, callback, args=None):
+    def create_rawdata_reader(self, name, callback, args=None, qos_depth=1):
         """
         Create RawData reader:listener RawMessage
         """
-        return self.create_reader(name, "RawData", callback, args)
+        return self.create_reader(name, RAWDATATYPE, callback, args,
+                                  qos_depth)
+
+    def create_ros_reader(self, name, callback, qos_depth=10):
+        """Reader whose callback receives the apollo_msgs/msg/ProtoMessage
+        itself (protobuf type name, seq, stamp_ns and data). Used by tools."""
+        subscription = self._subscribe(
+            name, lambda ros_msg: _guarded_call(callback, ros_msg), qos_depth)
+        reader = Reader(name, subscription, PROTO_MESSAGE_TYPE)
+        with self.mutex:
+            self.list_reader.append(reader)
+        return reader
 
     ##
     # @brief create client for the c/s.
@@ -288,27 +769,18 @@ class Node(object):
     #
     # @return the client object.
     def create_client(self, name, request_data_type, response_data_type):
-        datatype = request_data_type.DESCRIPTOR.full_name
-        c = _CYBER.PyNode_create_client(self.node, name,
-                                        str(datatype))
-        self.list_client.append(c)
-        return Client(c, response_data_type)
-
-    def service_callback(self, name):
-        # Temporary workaround for cyber_py3 examples: service & client
-        v = self.services[name.decode("utf-8")]
-
-        msg_str = _CYBER.PyService_read(v[0])
-        if (len(msg_str) > 0):
-            proto = v[3]()
-            proto.ParseFromString(msg_str)
-            response = None
-            if v[2] is None:
-                response = v[1](proto)
-            else:
-                response = v[1](proto, v[2])
-            _CYBER.PyService_write(v[0], response.SerializeToString())
-        return 0
+        for data_type in (request_data_type, response_data_type):
+            if not isinstance(data_type, str):
+                self.register_message(data_type.DESCRIPTOR.file)
+        # Clients live on the helper node (own executor thread), so that a
+        # request sent from any callback can always receive its response.
+        aux = _rt.aux_node()
+        client = aux.create_client(ProtoService, channel_to_topic(name))
+        c = Client(client, response_data_type, name,
+                   _type_name(request_data_type), aux)
+        with self.mutex:
+            self.list_client.append(c)
+        return c
 
     ##
     # @brief create client for the c/s.
@@ -324,30 +796,251 @@ class Node(object):
     # @return return the service object.
     def create_service(self, name, req_data_type, res_data_type, callback,
                        args=None):
-        self.mutex.acquire()
-        if name in self.services.keys():
-            self.mutex.release()
-            return None
-        self.mutex.release()
-        datatype = req_data_type.DESCRIPTOR.full_name
-        s = _CYBER.PyNode_create_service(self.node, name, str(datatype))
-        self.list_service.append(s)
-        v = (s, callback, args, req_data_type, False)
-        self.mutex.acquire()
-        self.services[name] = v
-        self.mutex.release()
-        f = PY_CALLBACK_TYPE(self.service_callback)
-        self.callbacks[name] = f
-        f_ptr = ctypes.cast(f, ctypes.c_void_p).value
-        _CYBER.PyService_register_func(s, f_ptr)
+        with self.mutex:
+            if name in self.services:
+                return None
+            self.services[name] = None
+        for data_type in (req_data_type, res_data_type):
+            if not isinstance(data_type, str):
+                self.register_message(data_type.DESCRIPTOR.file)
+        res_type_name = _type_name(res_data_type)
+
+        def handle(request):
+            """Runs the user callback; returns the response wire bytes."""
+            if isinstance(req_data_type, str):
+                req = _from_array(request.data)
+            else:
+                req = req_data_type()
+                try:
+                    req.ParseFromString(_from_array(request.data))
+                except Exception:  # pylint: disable=broad-except
+                    sys.stderr.write('cyber: bad request on service %s\n' %
+                                     name)
+                    return None
+            if args is None:
+                result = _guarded_call(callback, req)
+            else:
+                result = _guarded_call(callback, req, args)
+            return None if result is None else _payload(result)
+
+        async def on_request(request, response):
+            # The callback may block (e.g. call another service of this
+            # node): run it off the executor thread and await the result.
+            future = rclpy.task.Future()
+
+            def work():
+                data = None
+                try:
+                    data = handle(request)
+                finally:
+                    future.set_result(data)
+
+            threading.Thread(target=work, name='cyber_service:' + name,
+                             daemon=True).start()
+            data = await future
+            response.type = res_type_name
+            if data is not None:
+                response.data = _to_array(data)
+            return response
+
+        try:
+            service = self.node.create_service(
+                ProtoService, channel_to_topic(name), on_request,
+                callback_group=MutuallyExclusiveCallbackGroup())
+        except Exception:
+            with self.mutex:
+                self.services.pop(name, None)
+            raise
+        s = Service(name, service, req_data_type, res_data_type)
+        with self.mutex:
+            self.list_service.append(s)
+            self.services[name] = s
         return s
 
     def spin(self):
         """
-        spin for every 0.002s.
+        Block until cyber is shut down (callbacks run in the background).
         """
-        while not _CYBER.py_is_shutdown():
-            time.sleep(0.002)
+        while not is_shutdown():
+            _rt.shutdown_event.wait(0.1)
+
+
+# //////////////////////////// graph queries ////////////////////////////
+
+
+def graph_node():
+    """The process-wide (hidden) rclpy node used for graph queries."""
+    return _rt.aux_node()
+
+
+def wait_for_discovery(sleep_s):
+    """Sleeps until `sleep_s` seconds have passed since init(), giving DDS
+    discovery time to populate the graph (Cyber utils slept sleep_s)."""
+    graph_node()
+    remaining = _rt.init_time + float(sleep_s) - time.monotonic()
+    if remaining > 0:
+        time.sleep(remaining)
+
+
+# After the initial `sleep_s` wait, graph queries keep polling while the
+# answer still changes (DDS discovery can be slow on a loaded machine).
+_SETTLE_QUIET_S = 0.5
+_SETTLE_MAX_EXTRA_S = 3.0
+
+
+def _settled(query, sleep_s):
+    """query() once discovery had `sleep_s` seconds and its result stopped
+    changing (quiet for _SETTLE_QUIET_S, at most _SETTLE_MAX_EXTRA_S more).
+    With sleep_s == 0 the graph is queried once, immediately."""
+    wait_for_discovery(sleep_s)
+    result = query()
+    if not sleep_s:
+        return result
+    deadline = time.monotonic() + _SETTLE_MAX_EXTRA_S
+    stable_since = time.monotonic()
+    while time.monotonic() < deadline:
+        if time.monotonic() - stable_since >= _SETTLE_QUIET_S:
+            break
+        time.sleep(0.1)
+        current = query()
+        if current != result:
+            result, stable_since = current, time.monotonic()
+    return result
+
+
+def _found(lookup, sleep_s):
+    """lookup() after the discovery wait, retried for up to
+    _SETTLE_MAX_EXTRA_S while it returns nothing (unless sleep_s == 0)."""
+    wait_for_discovery(sleep_s)
+    result = lookup()
+    deadline = time.monotonic() + (_SETTLE_MAX_EXTRA_S if sleep_s else 0)
+    while not result and time.monotonic() < deadline:
+        time.sleep(0.1)
+        result = lookup()
+    return result
+
+
+def _is_internal_node(name):
+    # Hidden ROS 2 nodes start with '_' (ours, ros2cli daemons); names that
+    # to_node_name() prefixed because of a leading digit stay visible.
+    if name.startswith('_') and not name[1:2].isdigit():
+        return True
+    return name.startswith('apollo_cyber_') and name[13:].isdigit()
+
+
+def _endpoints(infos):
+    """Topic endpoints minus those of internal helper nodes (e.g. the
+    sampling subscription of get_msgtype())."""
+    return [i for i in infos if not _is_internal_node(i.node_name)]
+
+
+def _full_node_name(name, namespace):
+    if not namespace or namespace == '/':
+        return name
+    return namespace.rstrip('/') + '/' + name
+
+
+def _graph_nodes():
+    """[(full name, name, namespace)] of the visible nodes on the graph."""
+    result = []
+    for name, namespace in graph_node().get_node_names_and_namespaces():
+        if _is_internal_node(name):
+            continue
+        result.append((_full_node_name(name, namespace), name, namespace))
+    return result
+
+
+def _find_node(node_name):
+    node_name = _to_str(node_name)
+    candidates = (node_name, node_name.lstrip('/'), to_node_name(node_name))
+    for full, name, namespace in _graph_nodes():
+        if full in candidates or full.lstrip('/') in candidates or \
+                name in candidates:
+            return full, name, namespace
+    return None
+
+
+def _graph_servers():
+    """[(service name, full node name, node name)] of the Apollo services
+    *served* on the graph (get_service_names_and_types() also lists names
+    that only have clients)."""
+    node = graph_node()
+    result = []
+    for name, namespace in node.get_node_names_and_namespaces():
+        try:
+            entries = node.get_service_names_and_types_by_node(name, namespace)
+        except Exception:  # pylint: disable=broad-except
+            continue
+        for service, types in entries:
+            if PROTO_SERVICE_TYPE in types:
+                result.append(
+                    (service, _full_node_name(name, namespace), name))
+    return result
+
+
+def _local_node_names():
+    with _rt.lock:
+        return set(spun.node.get_name() for spun in _rt.nodes)
+
+
+def _gid_hash(gid):
+    return int.from_bytes(hashlib.blake2b(bytes(gid), digest_size=8).digest(),
+                          'little')
+
+
+def _qos_to_cyber(qos, attr_qos):
+    if qos.history in (HistoryPolicy.KEEP_LAST, HistoryPolicy.KEEP_ALL):
+        attr_qos.history = int(qos.history)
+    else:
+        attr_qos.history = _cyber_protos.QosHistoryPolicy[
+            'HISTORY_SYSTEM_DEFAULT']
+    if qos.depth:
+        attr_qos.depth = int(qos.depth)
+    if qos.reliability in (ReliabilityPolicy.RELIABLE,
+                           ReliabilityPolicy.BEST_EFFORT):
+        attr_qos.reliability = int(qos.reliability)
+    if qos.durability in (DurabilityPolicy.TRANSIENT_LOCAL,
+                          DurabilityPolicy.VOLATILE):
+        attr_qos.durability = int(qos.durability)
+
+
+def endpoint_role_attributes(topic, info):
+    """cyber.proto.RoleAttributes describing a ROS 2 TopicEndpointInfo."""
+    attr = _cyber_protos.RoleAttributes()
+    attr.channel_name = topic
+    attr.node_name = _full_node_name(info.node_name, info.node_namespace)
+    attr.message_type = _channel_types.get(topic, '')
+    attr.id = _gid_hash(info.endpoint_gid)
+    _qos_to_cyber(info.qos_profile, attr.qos_profile)
+    if info.node_name in _local_node_names():
+        attr.host_name = socket.gethostname()
+        attr.process_id = os.getpid()
+    return attr
+
+
+def sample_message(channel_name, timeout=1.0):
+    """Waits up to `timeout` s for one sample of a channel and returns the
+    apollo_msgs/msg/ProtoMessage, or None."""
+    node = graph_node()
+    topic = channel_to_topic(_to_str(channel_name))
+    received = []
+    event = threading.Event()
+
+    def on_message(ros_msg):
+        _channel_types[topic] = ros_msg.type
+        received.append(ros_msg)
+        event.set()
+
+    subscription = node.create_subscription(
+        ProtoMessage, topic, on_message, _qos_for_reader(node, topic, 1))
+    try:
+        event.wait(max(0.0, timeout))
+    finally:
+        try:
+            node.destroy_subscription(subscription)
+        except Exception:  # pylint: disable=broad-except
+            pass
+    return received[0] if received else None
 
 
 class ChannelUtils(object):
@@ -359,21 +1052,32 @@ class ChannelUtils(object):
     # @param msg_type message type.
     # @param rawmsgdata rawmsg data.
     #
-    # @return a human readable form of this message. For debugging and
-    # other purposes.
+    # @return a human readable form of this message (utf-8 bytes). For
+    # debugging and other purposes.
     def get_debugstring_rawmsgdata(msg_type, rawmsgdata):
-        return _CYBER.PyChannelUtils_get_debugstring_by_msgtype_rawmsgdata(msg_type, rawmsgdata)
+        return proto_registry.to_debug_string(
+            _to_str(msg_type), rawmsgdata).encode('utf-8')
 
     @staticmethod
     ##
-    # @brief Parse rawmsg from channel name.
+    # @brief Get the protobuf message type of a channel.
+    #
+    # Every topic has the ROS 2 type apollo_msgs/msg/ProtoMessage, so the
+    # protobuf type is learnt from a sample: a cached one when this process
+    # already received the channel, otherwise by waiting up to
+    # max(sleep_s, 0.5) seconds for a message.
     #
     # @param channel_name channel name.
-    # @param sleep_s wait time for topo discovery.
+    # @param sleep_s wait time.
     #
-    # @return return the messsage type of this channel.
+    # @return the message type of this channel (bytes, b'' if unknown).
     def get_msgtype(channel_name, sleep_s=2):
-        return _CYBER.PyChannelUtils_get_msg_type(channel_name, sleep_s)
+        topic = channel_to_topic(_to_str(channel_name))
+        msg_type = _channel_types.get(topic)
+        if not msg_type:
+            msg = sample_message(topic, max(float(sleep_s), 0.5))
+            msg_type = msg.type if msg is not None else ''
+        return msg_type.encode('utf-8')
 
     @staticmethod
     ##
@@ -381,9 +1085,11 @@ class ChannelUtils(object):
     #
     # @param sleep_s wait time for topo discovery.
     #
-    # @return all active channel names.
+    # @return all active channel (ROS 2 topic) names.
     def get_channels(sleep_s=2):
-        return _CYBER.PyChannelUtils_get_active_channels(sleep_s)
+        return _settled(lambda: sorted(
+            name for name, types in graph_node().get_topic_names_and_types()
+            if PROTO_MESSAGE_TYPE in types), sleep_s)
 
     @staticmethod
     ##
@@ -391,9 +1097,39 @@ class ChannelUtils(object):
     #
     # @param sleep_s wait time for topo discovery.
     #
-    # @return all active channels info. {'channel1':[], 'channel2':[]} .
+    # @return all active channels info. {'channel1':[], 'channel2':[]}, the
+    # values being serialized cyber.proto.RoleAttributes (writers first).
     def get_channels_info(sleep_s=2):
-        return _CYBER.PyChannelUtils_get_channels_info(sleep_s)
+        node = graph_node()
+        result = {}
+        for topic in ChannelUtils.get_channels(sleep_s):
+            roles = []
+            for info in _endpoints(node.get_publishers_info_by_topic(topic)):
+                roles.append(
+                    endpoint_role_attributes(topic, info).SerializeToString())
+            for info in _endpoints(
+                    node.get_subscriptions_info_by_topic(topic)):
+                roles.append(
+                    endpoint_role_attributes(topic, info).SerializeToString())
+            result[topic] = roles
+        return result
+
+    @staticmethod
+    def get_writers_info(channel_name, sleep_s=0):
+        """[cyber.proto.RoleAttributes] of the writers of a channel."""
+        wait_for_discovery(sleep_s)
+        topic = channel_to_topic(_to_str(channel_name))
+        return [endpoint_role_attributes(topic, info) for info in
+                _endpoints(graph_node().get_publishers_info_by_topic(topic))]
+
+    @staticmethod
+    def get_readers_info(channel_name, sleep_s=0):
+        """[cyber.proto.RoleAttributes] of the readers of a channel."""
+        wait_for_discovery(sleep_s)
+        topic = channel_to_topic(_to_str(channel_name))
+        return [endpoint_role_attributes(topic, info) for info in
+                _endpoints(
+                    graph_node().get_subscriptions_info_by_topic(topic))]
 
 
 class NodeUtils(object):
@@ -406,7 +1142,9 @@ class NodeUtils(object):
     #
     # @return all active node names.
     def get_nodes(sleep_s=2):
-        return _CYBER.PyNodeUtils_get_active_nodes(sleep_s)
+        return _settled(
+            lambda: sorted(set(full for full, _, _ in _graph_nodes())),
+            sleep_s)
 
     @staticmethod
     ##
@@ -415,9 +1153,34 @@ class NodeUtils(object):
     # @param node_name node name.
     # @param sleep_s wait time for topo discovery.
     #
-    # @return the node's attribute.
+    # @return the node's attribute (serialized cyber.proto.RoleAttributes),
+    # b'' when there is no such node.
     def get_node_attr(node_name, sleep_s=2):
-        return _CYBER.PyNodeUtils_get_node_attr(node_name, sleep_s)
+        found = _found(lambda: _find_node(node_name), sleep_s)
+        if found is None:
+            return b''
+        attr = _cyber_protos.RoleAttributes()
+        attr.node_name = found[0]
+        attr.node_id = int.from_bytes(hashlib.blake2b(
+            found[0].encode('utf-8'), digest_size=8).digest(), 'little')
+        if found[1] in _local_node_names():
+            attr.host_name = socket.gethostname()
+            attr.process_id = os.getpid()
+        return attr.SerializeToString()
+
+    @staticmethod
+    def _channels_of_node(node_name, sleep_s, writers):
+        found = _found(lambda: _find_node(node_name), sleep_s)
+        if found is None:
+            return []
+        node = graph_node()
+        query = (node.get_publisher_names_and_types_by_node if writers else
+                 node.get_subscriber_names_and_types_by_node)
+        try:
+            entries = query(found[1], found[2])
+        except Exception:  # pylint: disable=broad-except
+            return []
+        return [name for name, types in entries if PROTO_MESSAGE_TYPE in types]
 
     @staticmethod
     ##
@@ -428,7 +1191,7 @@ class NodeUtils(object):
     #
     # @return node's reader channel names.
     def get_readersofnode(node_name, sleep_s=2):
-        return _CYBER.PyNodeUtils_get_readersofnode(node_name, sleep_s)
+        return NodeUtils._channels_of_node(node_name, sleep_s, False)
 
     @staticmethod
     ##
@@ -439,7 +1202,20 @@ class NodeUtils(object):
     #
     # @return node's writer channel names.
     def get_writersofnode(node_name, sleep_s=2):
-        return _CYBER.PyNodeUtils_get_writersofnode(node_name, sleep_s)
+        return NodeUtils._channels_of_node(node_name, sleep_s, True)
+
+    @staticmethod
+    def get_servicesofnode(node_name, sleep_s=2):
+        """Names of the Apollo services served by a node."""
+        found = _found(lambda: _find_node(node_name), sleep_s)
+        if found is None:
+            return []
+        try:
+            entries = graph_node().get_service_names_and_types_by_node(
+                found[1], found[2])
+        except Exception:  # pylint: disable=broad-except
+            return []
+        return [name for name, types in entries if PROTO_SERVICE_TYPE in types]
 
 
 class ServiceUtils(object):
@@ -452,7 +1228,8 @@ class ServiceUtils(object):
     #
     # @return all active service names.
     def get_services(sleep_s=2):
-        return _CYBER.PyServiceUtils_get_active_services(sleep_s)
+        return _settled(lambda: sorted(set(
+            service for service, _, _ in _graph_servers())), sleep_s)
 
     @staticmethod
     ##
@@ -461,6 +1238,18 @@ class ServiceUtils(object):
     # @param service_name service name.
     # @param sleep_s wait time for topo discovery.
     #
-    # @return the service's attribute.
+    # @return the service's attribute (serialized cyber.proto.RoleAttributes
+    # naming the serving node), b'' when there is no such service.
     def get_service_attr(service_name, sleep_s=2):
-        return _CYBER.PyServiceUtils_get_service_attr(service_name, sleep_s)
+        service = channel_to_topic(_to_str(service_name))
+        servers = _found(lambda: [entry for entry in _graph_servers()
+                                  if entry[0] == service], sleep_s)
+        for name, full, node_name in servers:
+            attr = _cyber_protos.RoleAttributes()
+            attr.service_name = service
+            attr.node_name = full
+            if node_name in _local_node_names():
+                attr.host_name = socket.gethostname()
+                attr.process_id = os.getpid()
+            return attr.SerializeToString()
+        return b''

@@ -21,6 +21,7 @@
 #include "modules/planning/planning_base/reference_line/reference_line.h"
 
 #include <algorithm>
+#include <iomanip>
 #include <limits>
 #include <unordered_set>
 

@@ -61,7 +61,6 @@ apollo_cc_library(
         "math/constraint_checker/constraint_checker1d.cc",
         "gflags/planning_gflags.cc",
         "learning_based/img_feature_renderer/birdview_img_feature_renderer.cc",
-        "learning_based/model_inference/trajectory_imitation_libtorch_inference.cc",
         "learning_based/tuning/autotuning_mlp_net_model.cc",
         "learning_based/tuning/autotuning_raw_feature_generator.cc",
         "learning_based/tuning/speed_model/autotuning_speed_feature_builder.cc",
@@ -156,7 +155,6 @@ apollo_cc_library(
         "gflags/planning_gflags.h",
         "learning_based/img_feature_renderer/birdview_img_feature_renderer.h",
         "learning_based/model_inference/model_inference.h",
-        "learning_based/model_inference/trajectory_imitation_libtorch_inference.h",
         "learning_based/tuning/autotuning_base_model.h",
         "learning_based/tuning/autotuning_feature_builder.h",
         "learning_based/tuning/autotuning_mlp_net_model.h",
@@ -275,10 +273,26 @@ apollo_cc_library(
         "@com_google_protobuf//:protobuf",
         "@eigen",
         "@ipopt",
-        "@libtorch_cpu",
         "@opencv//:core",
         "@opencv//:imgcodecs",
         "@osqp",
+    ],
+)
+
+# The libtorch based model inference is kept out of
+# apollo_planning_planning_base so that planning builds without libtorch
+# (only model_inference_test uses it).
+apollo_cc_library(
+    name = "planning_libtorch_inference",
+    srcs = ["learning_based/model_inference/trajectory_imitation_libtorch_inference.cc"],
+    hdrs = ["learning_based/model_inference/trajectory_imitation_libtorch_inference.h"],
+    copts = PLANNING_COPTS,
+    deps = [
+        ":apollo_planning_planning_base",
+        "//cyber",
+        "//modules/common/math",
+        "@libtorch_cpu",
+        "@opencv//:core",
     ],
 )
 
@@ -576,6 +590,7 @@ apollo_cc_test(
     tags = ["exclude"],
     deps = [
         ":apollo_planning_planning_base",
+        ":planning_libtorch_inference",
         "//modules/common/configs:config_gflags",
         "@com_google_googletest//:gtest",
     ],

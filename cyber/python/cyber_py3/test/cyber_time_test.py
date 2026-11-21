@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # ****************************************************************************
 # Copyright 2019 The Apollo Authors. All Rights Reserved.
 #
@@ -15,78 +14,77 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ****************************************************************************
-# -*- coding: utf-8 -*-
 """Module for test cyber_time."""
 
 import time
-import unittest
 
-from cyber.python.cyber_py3 import cyber
 from cyber.python.cyber_py3 import cyber_time
 
 
-class TestTime(unittest.TestCase):
+def test_time():
+    ct = cyber_time.Time(123)
+    assert ct.to_nsec() == 123
+    assert abs(ct.now().to_sec() - time.time()) < 1.0
+    assert cyber_time.Time.mono_time().to_nsec() > 0
 
-    """
-    Class for node unit test.
-    """
-    @classmethod
-    def setUpClass(cls):
-        cyber.init()
+    td1 = cyber_time.Duration(111)
+    tm1 = ct - td1
+    assert isinstance(tm1, cyber_time.Time)
+    assert tm1.to_nsec() == 12
+    assert isinstance(ct - tm1, cyber_time.Duration)
+    assert (ct + td1).to_nsec() == 234
 
-    @classmethod
-    def tearDownClass(cls):
-        cyber.shutdown()
-
-    def test_time(self):
-        ct = cyber_time.Time(123)
-        self.assertEqual(123, ct.to_nsec())
-        ftime = ct.now().to_sec()
-        print(ftime)
-        time.sleep(1)
-        ftime = cyber_time.Time.now().to_sec()
-        print(ftime)
-        ftime = cyber_time.Time.mono_time().to_sec()
-        print(ftime)
-
-        td1 = cyber_time.Duration(111)
-        tm1 = ct - td1
-        self.assertEqual(12, tm1.to_nsec())
-
-        tm5 = cyber_time.Time(1.8)
-        self.assertFalse(tm5.iszero())
-        self.assertEqual(1800000000, tm5.to_nsec())
-        tm7 = cyber_time.Time(tm5)
-        self.assertEqual(1800000000, tm7.to_nsec())
-
-    def test_duration(self):
-        td1 = cyber_time.Duration(111)
-        td2 = cyber_time.Duration(601000000000)
-        td3 = td2 - td1
-        self.assertEqual(111, td1.to_nsec())
-        self.assertEqual(601000000000, td2.to_nsec())
-        self.assertEqual(601000000000 - 111, td3.to_nsec())
-
-        print(td2.to_sec())
-        self.assertEqual(601.0, td2.to_sec())
-        self.assertFalse(td2.iszero())
-        print(str(td2))
-        td5 = cyber_time.Duration(1.8)
-        td6 = td5
-        print(type(td6))
-        self.assertTrue(isinstance(td6, cyber_time.Duration))
-
-    def test_rate(self):
-        rt1 = cyber_time.Rate(111)
-        self.assertEqual(0, rt1.get_cycle_time().to_nsec())
-        self.assertEqual(111, rt1.get_expected_cycle_time().to_nsec())
-        rt2 = cyber_time.Rate(0.2)
-        self.assertEqual(0, rt2.get_cycle_time().to_nsec())
-        self.assertEqual(5, rt2.get_expected_cycle_time().to_nsec())
-        rt3 = cyber_time.Rate(cyber_time.Duration(666))
-        self.assertEqual(0, rt3.get_cycle_time().to_nsec())
-        self.assertEqual(666, rt3.get_expected_cycle_time().to_nsec())
+    tm5 = cyber_time.Time(1.8)
+    assert not tm5.iszero()
+    assert tm5.to_nsec() == 1800000000
+    tm7 = cyber_time.Time(tm5)
+    assert tm7.to_nsec() == 1800000000
+    assert tm7 == tm5 and tm1 < tm5 and tm5 >= tm7
+    assert str(tm7) == '1800000000'
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_sleep_until():
+    target = cyber_time.Time.now() + cyber_time.Duration(0.05)
+    cyber_time.Time(0).sleep_until(target)
+    assert cyber_time.Time.now() >= target
+
+
+def test_duration():
+    td1 = cyber_time.Duration(111)
+    td2 = cyber_time.Duration(601000000000)
+    td3 = td2 - td1
+    assert td1.to_nsec() == 111
+    assert td2.to_nsec() == 601000000000
+    assert td3.to_nsec() == 601000000000 - 111
+    assert td2.to_sec() == 601.0
+    assert not td2.iszero()
+    assert str(td2) == '601000000000'
+    td5 = cyber_time.Duration(1.8)
+    assert td5.to_nsec() == 1800000000
+    assert isinstance(cyber_time.Duration(td5), cyber_time.Duration)
+    start = time.monotonic()
+    cyber_time.Duration(0.05).sleep()
+    assert time.monotonic() - start >= 0.045
+
+
+def test_rate():
+    rt1 = cyber_time.Rate(111)
+    assert rt1.get_cycle_time().to_nsec() == 0
+    assert rt1.get_expected_cycle_time().to_nsec() == 111
+    # float = frequency in Hz (cyber::Rate(double)); 0.2 Hz -> 5 s
+    rt2 = cyber_time.Rate(0.2)
+    assert rt2.get_cycle_time().to_nsec() == 0
+    assert rt2.get_expected_cycle_time().to_nsec() == 5000000000
+    rt3 = cyber_time.Rate(cyber_time.Duration(666))
+    assert rt3.get_cycle_time().to_nsec() == 0
+    assert rt3.get_expected_cycle_time().to_nsec() == 666
+
+
+def test_rate_sleep():
+    rate = cyber_time.Rate(50.0)   # 20 ms
+    start = time.monotonic()
+    for _ in range(10):
+        rate.sleep()
+    elapsed = time.monotonic() - start
+    assert 0.17 < elapsed < 0.4
+    assert rate.get_cycle_time().to_nsec() < 20000000

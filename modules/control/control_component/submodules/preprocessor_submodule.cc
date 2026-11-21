@@ -20,6 +20,7 @@
 
 #include "modules/control/control_component/submodules/preprocessor_submodule.h"
 
+#include <iomanip>
 #include <string>
 
 #include "cyber/time/clock.h"

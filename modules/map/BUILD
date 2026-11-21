@@ -81,7 +81,6 @@ apollo_cc_library(
         "@boost",
         "@com_github_gflags_gflags//:gflags",
         "@com_github_google_glog//:glog",
-        "@com_github_grpc_grpc//:grpc++",
         "@com_github_jbeder_yaml_cpp//:yaml-cpp",
         "@com_google_absl//:absl",
         "@eigen",

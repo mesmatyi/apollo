@@ -19,6 +19,12 @@
 #if __cplusplus == 201103L || __cplusplus == 201402L
 #  include "absl/types/optional.h"
 #  include "absl/strings/string_view.h"
+#else
+// C++17: the standard headers provide what this file used to borrow.
+#  include <memory>
+#  include <optional>
+#  include <string_view>
+#  include <utility>
 #endif
 
 #if __cplusplus == 201103L

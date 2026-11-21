@@ -39,6 +39,7 @@
 #include <iostream>
 // #include <console_bridge/console.h>
 #include <boost/foreach.hpp>
+#include <boost/tuple/tuple.hpp>  // no longer included transitively (Boost >= 1.8x)
 #include "tf2/LinearMath/Transform.h"
 #include "tf2_msgs/tf2_error.h"
 

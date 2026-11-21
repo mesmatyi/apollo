@@ -14,27 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ****************************************************************************
+"""cyber_service: inspect Apollo services (apollo_msgs/srv/ProtoService)."""
 
 import os
 import sys
+from optparse import OptionParser
 
+from cyber.python.cyber_py3 import _cyber_protos
 from cyber.python.cyber_py3 import cyber
+from cyber.python.cyber_py3.naming import channel_to_topic
+
 
 def print_service_info(service_name, sleep_s=2):
-    roleattr_rawdata = cyber.ServiceUtils.get_service_attr(service_name, sleep_s)
-    from cyber.proto.role_attributes_pb2 import RoleAttributes
-    try:
-        msg = RoleAttributes()
-        msg.ParseFromString(roleattr_rawdata)
-        assert(service_name == msg.service_name)
-    except:
-        print("RoleAttributes ParseFromString failed. size is ", len(roleattr_rawdata),
-              ", service name: ", service_name)
+    roleattr_rawdata = cyber.ServiceUtils.get_service_attr(service_name,
+                                                           sleep_s)
+    if not roleattr_rawdata:
+        print("no service named: %s" % channel_to_topic(service_name))
         return
+    msg = _cyber_protos.RoleAttributes()
+    msg.ParseFromString(roleattr_rawdata)
     print(msg.service_name)
-    print("\tprocessid\t", msg.process_id)
+    if msg.process_id:
+        print("\tprocessid\t", msg.process_id)
     print("\tnodename\t", msg.node_name)
-    print("\thostname\t", msg.host_name)
+    if msg.host_name:
+        print("\thostname\t", msg.host_name)
     print("")
 
 
@@ -43,7 +47,6 @@ def _service_cmd_info(argv):
     Command-line parsing for 'cyber_service info' command.
     """
     args = argv[2:]
-    from optparse import OptionParser
     parser = OptionParser(
         usage="usage: cyber_service info servicename ")
     parser.add_option("-a", "--all",
@@ -65,7 +68,7 @@ def _service_cmd_info(argv):
 
 
 def print_service_list():
-    services = sorted(cyber.ServiceUtils.get_services())
+    services = cyber.ServiceUtils.get_services()
     print("The number of services is: ", len(services))
     for service_name in services:
         print(service_name)
@@ -76,7 +79,6 @@ def _service_cmd_list(argv):
     Command-line parsing for 'cyber_service list' command.
     """
     args = argv[2:]
-    from optparse import OptionParser
     parser = OptionParser(
         usage="usage: cyber_service list")
     (options, args) = parser.parse_args(args)
@@ -86,7 +88,7 @@ def _service_cmd_list(argv):
 
 
 def _printallusage():
-    print("""cyber_service is a command-line tool for printing information about CyberRT Services.
+    print("""cyber_service is a command-line tool for printing information about Apollo services (ROS 2 services).
 
 Commands:
 \tcyber_service list\tlist active services
@@ -96,19 +98,20 @@ Type cyber_service <command> -h for more detailed usage, e.g. 'cyber_service inf
 """)
     sys.exit(getattr(os, 'EX_USAGE', 1))
 
+
+def main(argv=None):
+    argv = list(sys.argv if argv is None else argv)
+    if len(argv) == 1 or argv[1] not in ('list', 'info'):
+        _printallusage()
+    cyber.init("cyber_service")
+    try:
+        if argv[1] == 'list':
+            _service_cmd_list(argv)
+        else:
+            _service_cmd_info(argv)
+    finally:
+        cyber.shutdown()
+
+
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        _printallusage()
-
-    cyber.init()
-
-    argv = sys.argv[0:]
-    command = argv[1]
-    if command == 'list':
-        _service_cmd_list(argv)
-    elif command == 'info':
-        _service_cmd_info(argv)
-    else:
-        _printallusage()
-
-    cyber.shutdown()
+    main()
