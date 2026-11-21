@@ -16,6 +16,24 @@ Welcome to Apollo's GitHub page!
 
 For business and partnership, please visit [our website](http://apollo.auto).
 
+## ROS 2
+
+This branch runs Apollo on **ROS 2 Jazzy** instead of Cyber RT:
+
+* Messages travel over ROS 2 topics and services.
+* Components load as ROS 2 composable nodes.
+* The build uses colcon.
+* `ros2 launch`, `ros2 bag` and RViz work on Apollo traffic.
+
+Module code is unchanged: the Cyber API is now implemented on rclcpp. See
+[docs/ros2/README.md](docs/ros2/README.md).
+
+```bash
+source /opt/ros/jazzy/setup.bash
+scripts/ros2/build.sh && source scripts/ros2/setup.bash
+ros2 launch apollo planning.launch.py
+```
+
 ## Table of Contents
 
 1. [Introduction](#introduction)

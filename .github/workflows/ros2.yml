@@ -1,0 +1,58 @@
+name: ROS 2 build
+
+on:
+  push:
+    branches: [master, "claude/**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: ros:jazzy-ros-base
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      ROS_DOMAIN_ID: 42
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ninja-build python3-colcon-common-extensions python3-protobuf \
+            python3-pytest \
+            ros-jazzy-rclcpp-components ros-jazzy-sensor-msgs \
+            ros-jazzy-sensor-msgs-py ros-jazzy-nav-msgs ros-jazzy-tf2-msgs \
+            ros-jazzy-visualization-msgs ros-jazzy-rosbag2 ros-jazzy-launch-ros \
+            libprotobuf-dev protobuf-compiler libgoogle-glog-dev libgflags-dev \
+            nlohmann-json3-dev libtinyxml2-dev uuid-dev libncurses-dev \
+            libeigen3-dev libboost-all-dev libabsl-dev libyaml-cpp-dev \
+            libopencv-dev libpcl-dev libproj-dev libfftw3-dev libsqlite3-dev \
+            coinor-libipopt-dev libcurl4-openssl-dev libgtest-dev
+          bash scripts/ros2/install_third_party.sh
+
+      - name: Check generated files are up to date
+        run: |
+          python3 tools/ros2/dag2launch.py --check
+          if [ -f tools/ros2/bazel2cmake.py ]; then python3 tools/ros2/bazel2cmake.py --check; fi
+
+      - name: Build and test middleware packages
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          APOLLO_BUILD_TESTS=1 APOLLO_JOBS=4 \
+            bash scripts/ros2/build.sh apollo_msgs cyber
+
+      - name: Build Apollo modules
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          APOLLO_JOBS=4 bash scripts/ros2/build.sh apollo apollo_ros2_bridge
+
+      - name: Launch file tests
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          python3 -m pytest -q tools/ros2/test_dag2launch.py
