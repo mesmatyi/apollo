@@ -86,6 +86,16 @@ CONDITIONS = {
 }
 DEFAULT_CONDITION = '//conditions:default'
 
+# Dependencies that are optional in the ROS 2 build: when CMake cannot
+# resolve them, the target is still built, with the given compile definition
+# (public) instead of the dependency. {target label: {dep label: define}}
+OPTIONAL_DEPS = {
+    # CPU fallback in modules/prediction/common/affine_transform.cc
+    '//modules/prediction:apollo_prediction': {
+        '@npp//:npp': 'APOLLO_PREDICTION_NO_NPP=1',
+    },
+}
+
 CC_SRC_EXT = ('.cc', '.cpp', '.cxx', '.c', '.C')
 GPU_SRC_EXT = ('.cu', '.cuh', '.hip')
 CUDA_REQUIREMENT = '@local_config_cuda//cuda:cuda_headers'
@@ -108,7 +118,9 @@ def uses_cuda_api(path):
             text = f.read()
     except OSError:
         return False
-    return bool(_CUDA_API.search(text)) and 'USE_GPU' not in text
+    guards = ['USE_GPU'] + [d.split('=')[0] for opt in OPTIONAL_DEPS.values()
+                            for d in opt.values()]
+    return bool(_CUDA_API.search(text)) and not any(g in text for g in guards)
 
 
 ###############################################################################
@@ -308,6 +320,7 @@ class Target(object):
         self.components = []
         self.flags = []
         self.broken = []
+        self.optional_deps = []  # [(label, define)]
         self.cmake_name = None
 
     @property
@@ -813,6 +826,12 @@ class Model(object):
                 for v, conds in t.values['deps']:
                     deps.append((canonical_label(v, t.pkg), conds))
                 t.values['deps'] = _dedupe(deps)
+                optional = OPTIONAL_DEPS.get(t.label, {})
+                if optional:
+                    t.optional_deps = [(d, optional[d]) for d, c in t.values['deps']
+                                       if d in optional]
+                    t.values['deps'] = [(d, c) for d, c in t.values['deps']
+                                        if d not in optional]
                 for field in ('srcs', 'hdrs', 'data', 'copts', 'linkopts',
                               'defines', 'local_defines', 'includes'):
                     t.values[field] = _dedupe(t.values[field])
@@ -953,6 +972,9 @@ def emit_package(pkg):
                 out.write('  %s\n' % kw)
                 for v, conds in vals:
                     out.write('    %s\n' % entry_text(v, conds))
+        if t.optional_deps:
+            out.write('  OPTIONAL_DEPS %s\n' % ' '.join(
+                '%s %s' % (cmake_quote(d), cmake_quote(df)) for d, df in t.optional_deps))
         if t.components:
             out.write('  COMPONENTS %s\n' % ' '.join(cmake_quote(c) for c in t.components))
         if t.flags:

@@ -199,7 +199,6 @@ apollo_target(cc_library apollo_prediction
     @com_github_gflags_gflags//:gflags
     @com_google_googletest//:gtest_main
     @eigen//:eigen
-    @npp//:npp
     @opencv//:highgui
     @opencv//:imgcodecs
     gpu?@libtorch_gpu//:libtorch_gpu
@@ -207,6 +206,7 @@ apollo_target(cc_library apollo_prediction
   LOCAL_DEFINES "MODULE_NAME=\"prediction\""
   COPTS -fopenmp
   LINKOPTS -lgomp
+  OPTIONAL_DEPS @npp//:npp APOLLO_PREDICTION_NO_NPP=1
 )
 
 apollo_target(cc_binary vector_net_feature

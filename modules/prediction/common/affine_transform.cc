@@ -17,9 +17,12 @@
 #include "modules/prediction/common/affine_transform.h"
 
 #include <cmath>
+
+#if APOLLO_PREDICTION_USE_NPP
+#include <cuda_runtime.h>
 #include <npp.h>
 #include <nppdefs.h>
-#include <cuda_runtime.h>
+#endif
 
 #include "cyber/common/log.h"
 #include "modules/prediction/common/prediction_gflags.h"
@@ -31,11 +34,13 @@ namespace prediction {
 AffineTransform::AffineTransform() {}
 
 AffineTransform::~AffineTransform() {
+#if APOLLO_PREDICTION_USE_NPP
   for (auto it = pointer_table_.begin(); it != pointer_table_.end(); it++) {
     if (*it) {
       cudaFreeHost(*it);
     }
   }
+#endif
 }
 
 bool AffineTransform::Init(cv::Size size, int type) {
@@ -72,6 +77,27 @@ int AffineTransform::GetCoeffs(const double heading,
 
   return 0;
 }
+
+#if !APOLLO_PREDICTION_USE_NPP
+
+int AffineTransform::AffineTransformsFromMat(const cv::Mat& input_img,
+    const cv::Point2i& center_point, const double heading,
+    const double scale, cv::Mat* output_img) {
+  double coeffs[2][3];
+  if (GetCoeffs(heading, center_point, scale, coeffs)) {
+    AERROR << "Fail to get rotation matrix";
+    return -1;
+  }
+  // Same forward mapping and nearest-neighbour sampling as
+  // nppiWarpAffine_8u_C3R(..., NPPI_INTER_NN); pixels mapped from outside the
+  // source stay black, like the zero-initialised NPP output.
+  const cv::Mat transform(2, 3, CV_64F, coeffs);
+  cv::warpAffine(input_img, *output_img, transform, input_img.size(),
+                 cv::INTER_NEAREST, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+  return 0;
+}
+
+#else
 
 int AffineTransform::AffineTransformsFromMat(const cv::Mat& input_img,
     const cv::Point2i& center_point, const double heading,
@@ -121,6 +147,8 @@ int AffineTransform::AffineTransformsFromMat(const cv::Mat& input_img,
 
   return 0;
 }
+
+#endif  // APOLLO_PREDICTION_USE_NPP
 
 }  // namespace prediction
 }  // namespace apollo
