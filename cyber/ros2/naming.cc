@@ -48,6 +48,11 @@ std::string ChannelToTopic(const std::string& channel) {
       }
       continue;
     }
+    // One '_' per UTF-8 code point (skip continuation bytes), matching the
+    // per-character rule of the Python implementation.
+    if ((static_cast<unsigned char>(c) & 0xC0) == 0x80) {
+      continue;
+    }
     token.push_back((IsAsciiAlnum(c) || c == '_') ? c : '_');
   }
   if (!token.empty()) {
@@ -83,6 +88,9 @@ std::string ToNodeName(const std::string& name) {
   std::string result;
   result.reserve(name.size() + 1);
   for (char c : name) {
+    if ((static_cast<unsigned char>(c) & 0xC0) == 0x80) {
+      continue;  // UTF-8 continuation byte
+    }
     result.push_back((IsAsciiAlnum(c) || c == '_') ? c : '_');
   }
   if (IsAsciiDigit(result.front())) {

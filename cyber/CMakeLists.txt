@@ -206,6 +206,17 @@ if(CYBER_BUILD_EXAMPLES)
          ${CMAKE_CURRENT_SOURCE_DIR}/examples/proto/examples.proto
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/examples/proto/examples.proto
     VERBATIM)
+  add_custom_command(
+    OUTPUT ${EXAMPLE_GEN}/cyber/examples/proto/examples_pb2.py
+    COMMAND protobuf::protoc
+    ARGS -I${APOLLO_SOURCE_ROOT} --python_out=${EXAMPLE_GEN}
+         ${CMAKE_CURRENT_SOURCE_DIR}/examples/proto/examples.proto
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/examples/proto/examples.proto
+    VERBATIM)
+  add_custom_target(cyber_examples_proto_py ALL
+    DEPENDS ${EXAMPLE_GEN}/cyber/examples/proto/examples_pb2.py)
+  install(FILES ${EXAMPLE_GEN}/cyber/examples/proto/examples_pb2.py
+    DESTINATION ${PYTHON_INSTALL_DIR}/cyber/examples/proto)
   add_library(cyber_examples_proto SHARED
     ${EXAMPLE_GEN}/cyber/examples/proto/examples.pb.cc)
   target_link_libraries(cyber_examples_proto PUBLIC cyber)
@@ -271,11 +282,11 @@ install(FILES ${CYBER_PROTO_HDRS} DESTINATION include/cyber/cyber/proto)
 install(FILES ${CYBER_PROTOS} DESTINATION share/${PROJECT_NAME}/proto/cyber/proto)
 install(FILES conf/cyber.pb.conf DESTINATION share/${PROJECT_NAME}/conf)
 
-# Python: cyber.proto.*_pb2 and cyber.python.cyber_py3
+# Python: cyber.proto.*_pb2 and cyber.python.cyber_py3.
+# `cyber` and `cyber.proto` are namespace packages (no __init__.py) so other
+# installs or a source checkout can contribute cyber.* modules too.
 set(_py_root ${CMAKE_CURRENT_BINARY_DIR}/python)
 file(WRITE ${_py_root}/__init__.py "")
-install(FILES ${_py_root}/__init__.py DESTINATION ${PYTHON_INSTALL_DIR}/cyber)
-install(FILES ${_py_root}/__init__.py DESTINATION ${PYTHON_INSTALL_DIR}/cyber/proto)
 install(FILES ${CYBER_PROTO_PY} DESTINATION ${PYTHON_INSTALL_DIR}/cyber/proto)
 install(FILES ${_py_root}/__init__.py DESTINATION ${PYTHON_INSTALL_DIR}/cyber/python)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/python/cyber_py3)

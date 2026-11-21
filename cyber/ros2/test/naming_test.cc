@@ -35,6 +35,8 @@ TEST(NamingTest, ChannelToTopic) {
   EXPECT_EQ("/apollo/tf_static", ChannelToTopic("tf_static"));
   EXPECT_EQ("/apollo/clock", ChannelToTopic("/clock"));
   EXPECT_EQ("/tf/extra", ChannelToTopic("/tf/extra"));
+  // one '_' per UTF-8 code point, like the Python implementation
+  EXPECT_EQ("/a/_b", ChannelToTopic("/a/\xe4\xb8\xad" "b"));
 }
 
 TEST(NamingTest, ToNodeName) {
