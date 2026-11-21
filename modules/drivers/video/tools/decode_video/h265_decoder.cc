@@ -28,7 +28,9 @@ namespace video {
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 bool H265Decoder::Init() {
-  avcodec_register_all();
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
+  avcodec_register_all();  // deprecated in FFmpeg 4.0, removed in 5.0
+#endif
   AVCodec* codec_h265 = avcodec_find_decoder(AV_CODEC_ID_H265);
   if (codec_h265 == nullptr) {
     AERROR << "error: codec not found";

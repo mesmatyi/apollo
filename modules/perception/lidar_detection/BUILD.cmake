@@ -196,6 +196,7 @@ apollo_target(cc_library apollo_perception_lidar_detection
     cuda?@local_config_tensorrt//:tensorrt
     rocm?@local_config_rocm//rocm:hip
     rocm?@local_config_rocm//rocm:migraphx
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"perception\""
     profiler?ENABLE_PROFILER=1

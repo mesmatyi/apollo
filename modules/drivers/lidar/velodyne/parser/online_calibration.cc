@@ -14,6 +14,8 @@
  * limitations under the License.
  *****************************************************************************/
 
+#include <cmath>
+
 #include "modules/drivers/lidar/velodyne/parser/online_calibration.h"
 
 namespace apollo {

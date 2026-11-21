@@ -21,6 +21,7 @@ apollo_target(cc_library smoke_obstacle_detector
     //modules/perception/camera_detection_single_stage/detector/smoke/proto:model_param_cc_proto
     //modules/perception/common/onboard:apollo_perception_common_onboard
     @opencv//:imgproc
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"perception\""
     profiler?ENABLE_PROFILER=1

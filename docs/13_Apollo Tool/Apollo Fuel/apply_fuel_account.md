@@ -1,8 +1,8 @@
 # 1. Guide to Activating a Cloud Service Account
-- [1. Guide to Activating a Cloud Service Account](#1-开通云服务账号向导)
-    - [1.1. Prerequisites](#11-前提条件)
-    - [1.2. Register Baidu Cloud BOS](#12-注册百度云BOS)
-    - [1.3. Activate the cloud service account](#13-开通云服务账号)
+- [1. Guide to Activating a Cloud Service Account](#1-guide-to-activating-a-cloud-service-account)
+    - [1.1. Prerequisites](#11-prerequisites)
+    - [1.2. Register Baidu Cloud BOS](#12-register-baidu-cloud-bos)
+    - [1.3. Activate the cloud service account](#13-activate-the-cloud-service-account)
 
 ## 1.1. Prerequisites
 

@@ -16,6 +16,7 @@ apollo_target(plugin libgpu_down_sample.so
     //modules/perception/common/lidar:apollo_perception_common_lidar
     //modules/perception/common/interface:base_down_sample
     //modules/perception/perception_plugin/lidar_detection/gpu_down_sample/proto:gpu_down_sample_proto
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES "MODULE_NAME=\"perception\""
 )
 

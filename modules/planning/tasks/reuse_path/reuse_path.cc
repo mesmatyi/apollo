@@ -16,6 +16,7 @@
 
 #include "modules/planning/tasks/reuse_path/reuse_path.h"
 
+#include <iomanip>
 #include <algorithm>
 #include <memory>
 #include <string>

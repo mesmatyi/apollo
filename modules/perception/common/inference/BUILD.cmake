@@ -156,6 +156,7 @@ apollo_target(cc_library apollo_perception_common_inference
     rocm?@local_config_rocm//rocm:hipblas
     rocm?@local_config_rocm//rocm:rocm_headers
     rocm?@local_config_rocm//rocm:migraphx
+    @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(filegroup inference_test_data

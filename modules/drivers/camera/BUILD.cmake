@@ -41,6 +41,7 @@ apollo_target(component libcamera_component.so
     @ffmpeg//:avcodec
     @ffmpeg//:avformat
     @ffmpeg//:swscale
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES "MODULE_NAME=\"camera\""
   LINKOPTS -latomic
   COMPONENTS apollo::drivers::camera::CameraComponent

@@ -22,4 +22,5 @@ apollo_target(plugin libmodel.so
     //modules/prediction:apollo_prediction
     @local_config_cuda//cuda:cudart
     @local_config_tensorrt//:tensorrt
+    @local_config_cuda//cuda:cuda_headers
 )

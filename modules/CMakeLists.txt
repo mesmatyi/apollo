@@ -54,6 +54,12 @@ get_filename_component(APOLLO_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." REALP
 add_compile_options(
   "$<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>"
   "$<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-parameter>")
+# Apollo's x86 code uses SSE4 intrinsics unconditionally (e.g.
+# perception/common/algorithm/i_lib); conda's default is -march=nocona.
+# Applied to the BUILD.cmake targets (not to the generated protos).
+if(APOLLO_WITH_x86_64)
+  set(APOLLO_TARGET_COMPILE_OPTIONS -msse4.2)
+endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)

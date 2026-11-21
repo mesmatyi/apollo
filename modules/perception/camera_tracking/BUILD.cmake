@@ -81,6 +81,7 @@ apollo_target(cc_library apollo_perception_camera_tracking
     //modules/perception/common/onboard:apollo_perception_common_onboard
     @boost//:boost
     @eigen//:eigen
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"perception\""
     profiler?ENABLE_PROFILER=1

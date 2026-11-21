@@ -56,6 +56,8 @@ bool g_atexit_registered = false;
 std::mutex g_mutex;
 std::unique_ptr<Node> clock_node;
 logger::AsyncLogger* async_logger = nullptr;
+google::base::Logger* original_logger = nullptr;
+google::LogSeverity logger_severity = google::INFO;
 
 void InitLogger(const char* binary_name) {
   const char* slash = strrchr(binary_name, '/');
@@ -79,15 +81,22 @@ void InitLogger(const char* binary_name) {
   google::SetLogDestination(google::FATAL, "");
 
   // Init async logger
-  const auto severity = logger::ToLogSeverity(FLAGS_minloglevel);
-  async_logger = new ::apollo::cyber::logger::AsyncLogger(
-      google::base::GetLogger(severity));
-  google::base::SetLogger(severity, async_logger);
+  logger_severity = logger::ToLogSeverity(FLAGS_minloglevel);
+  original_logger = google::base::GetLogger(logger_severity);
+  async_logger = new ::apollo::cyber::logger::AsyncLogger(original_logger);
+  // glog takes ownership of loggers passed to SetLogger().
+  google::base::SetLogger(logger_severity, async_logger);
   async_logger->Start();
 }
 
 void StopLogger() {
-  delete async_logger;
+  if (async_logger == nullptr) {
+    return;
+  }
+  // Hand glog its own logger back; glog then deletes (and thereby stops and
+  // flushes) the AsyncLogger it owns. Deleting it here as well would free it
+  // twice when glog's static destructors run at exit.
+  google::base::SetLogger(logger_severity, original_logger);
   async_logger = nullptr;
 }
 

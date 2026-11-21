@@ -52,6 +52,7 @@ apollo_target(cc_library apollo_perception_traffic_light_detection
     //modules/perception/traffic_light_detection/detector/yolox_detection/proto:yolox_model_param_cc_proto
     //modules/perception/traffic_light_detection/proto:trafficlights_detection_component_cc_proto
     @opencv//:imgproc
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"trafficlight\""
     profiler?ENABLE_PROFILER=1

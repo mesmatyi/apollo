@@ -20,6 +20,7 @@
 
 #include "modules/planning/tasks/open_space_roi_decider/open_space_roi_decider.h"
 
+#include <iomanip>
 #include <limits>
 #include <memory>
 #include <utility>

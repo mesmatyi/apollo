@@ -1,11 +1,11 @@
 # Baidu Cloud Object Storage (BOS) Registration and Basic Usage Guide
-- [Baidu Cloud Object Storage (BOS) Registration and Basic Usage Guide](#百度云对象存储bos注册与基本使用向导)
-  - [Overview](#概述)
-  - [Prerequisites](#前提条件)
-  - [Main steps](#主要步骤)
-    - [1. Log in and activate BOS](#1登录开通bos)
-    - [2. Create a bucket](#2创建bucket)
-    - [3. Use the BOS client](#3使用bos客户端)
+- [Baidu Cloud Object Storage (BOS) Registration and Basic Usage Guide](#baidu-cloud-object-storage-bos-registration-and-basic-usage-guide)
+  - [Overview](#overview)
+  - [Prerequisites](#prerequisites)
+  - [Main steps](#main-steps)
+    - [1. Log in and activate BOS](#1-log-in-and-activate-bos)
+    - [2. Create a bucket](#2-create-a-bucket)
+    - [3. Use the BOS client](#3-use-the-bos-client)
 ## Overview
 This user manual is intended to help users register for and purchase the Baidu Cloud Object Storage (BOS) service, and use the client to log in to BOS and upload and download data.
 ## Prerequisites

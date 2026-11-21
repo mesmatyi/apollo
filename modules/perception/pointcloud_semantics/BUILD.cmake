@@ -63,6 +63,7 @@ apollo_target(cc_library apollo_perception_pointcloud_semantics
     //modules/perception/common/inference:apollo_perception_common_inference
     //modules/perception/pointcloud_semantics/parser/pointwise_unet/proto:pointwise_unet_proto
     @local_config_pcl//:pcl
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"perception\""
     profiler?ENABLE_PROFILER=1

@@ -20,6 +20,7 @@ apollo_target(cc_binary denseline_sample
     //modules/perception/common/inference/tensorrt:apollo_perception_inference_rt_common
     //modules/perception/common/inference/tensorrt:apollo_perception_inference_rt_net
     //modules/perception/common/inference/utils:apollo_perception_common_utils
+    @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(cc_binary lane_sample
@@ -30,6 +31,7 @@ apollo_target(cc_binary lane_sample
     //modules/perception/common/inference/tensorrt:apollo_perception_inference_rt_common
     //modules/perception/common/inference/tensorrt:apollo_perception_inference_rt_net
     //modules/perception/common/inference/utils:apollo_perception_common_utils
+    @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(cc_binary yolo_sample

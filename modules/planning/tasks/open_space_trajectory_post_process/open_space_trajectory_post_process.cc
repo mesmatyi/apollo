@@ -19,6 +19,7 @@
  **/
 #include "modules/planning/tasks/open_space_trajectory_post_process/open_space_trajectory_post_process.h"
 
+#include <iomanip>
 #include <algorithm>
 #include <memory>
 #include <queue>

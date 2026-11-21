@@ -39,6 +39,7 @@ apollo_target(cc_library apollo_perception_traffic_light_recognition
     //modules/perception/traffic_light_recognition/proto:trafficlights_recognition_component_cc_proto
     //modules/perception/traffic_light_recognition/recognition/caffe_recognizer/proto:model_param_cc_proto
     //modules/perception/traffic_light_recognition/recognition/efficient_net/proto:efficient_net_param_cc_proto
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"trafficlight\""
     profiler?ENABLE_PROFILER=1

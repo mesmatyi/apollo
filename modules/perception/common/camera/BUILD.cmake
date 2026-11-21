@@ -22,6 +22,7 @@ apollo_target(cc_library apollo_perception_common_camera_camera_frame
     //modules/perception/common/base:apollo_perception_common_base
     cuda?@npp//:npp
     rocm?@local_config_rocm//rocm:rpp
+    @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(cc_library apollo_perception_common_camera

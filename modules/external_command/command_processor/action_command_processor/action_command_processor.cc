@@ -20,6 +20,7 @@
 
 #include "modules/external_command/command_processor/action_command_processor/action_command_processor.h"
 
+#include <iomanip>
 #include <cxxabi.h>
 
 #include "modules/common_msgs/planning_msgs/planning.pb.h"

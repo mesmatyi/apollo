@@ -214,6 +214,7 @@ apollo_target(cc_library apollo_perception_radar4d_detection
     @local_config_pcl//:pcl
     @local_config_tensorrt//:tensorrt
     @libtorch_gpu//:libtorch_gpu
+    @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(component libradar4d_detection.so

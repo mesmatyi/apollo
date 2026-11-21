@@ -95,6 +95,22 @@ class GenError(Exception):
     pass
 
 
+_CUDA_API = re.compile(
+    r'\bcuda(SetDevice|Malloc\w*|Memcpy\w*|Free\w*|Stream_t)\b|'
+    r'#\s*include\s*[<"](cuda_runtime|cuda_runtime_api|cuda|nppi|npp|cublas_v2|'
+    r'cudnn|NvInfer|NvOnnxParser)\.h[>"]')
+
+
+def uses_cuda_api(path):
+    """True if a C++ source uses the CUDA API without a USE_GPU guard."""
+    try:
+        with open(path, encoding='utf-8', errors='replace') as f:
+            text = f.read()
+    except OSError:
+        return False
+    return bool(_CUDA_API.search(text)) and 'USE_GPU' not in text
+
+
 ###############################################################################
 # Configurable values (select)
 ###############################################################################
@@ -806,7 +822,12 @@ class Model(object):
                         p = v[2:].replace(':', '/') if v.startswith('//') else '%s/%s' % (t.pkg, v)
                         if t.kind != 'proto' and not conds and not self.file_exists(p):
                             t.broken.append('missing source file %s' % p)
-                        if v.endswith(GPU_SRC_EXT) and not conds:
+                        if not conds and (v.endswith(GPU_SRC_EXT) or (
+                                field == 'srcs' and v.endswith(CC_SRC_EXT) and
+                                uses_cuda_api(os.path.join(self.root, p)))):
+                            # .cu sources, or C++ sources calling the CUDA API
+                            # without a USE_GPU guard (the BUILD file does not
+                            # declare the CUDA dependency): needs CUDA.
                             if (CUDA_REQUIREMENT, ()) not in t.values['deps']:
                                 t.values['deps'].append((CUDA_REQUIREMENT, ()))
                 if t.kind == 'proto':

@@ -18,6 +18,8 @@
  * @file chassis_command_processor.cc
  **/
 
+#include <iomanip>
+
 #include "modules/external_command/command_processor/chassis_command_processor/chassis_command_processor.h"
 
 #include "modules/external_command/command_processor/command_processor_base/proto/command_processor_config.pb.h"

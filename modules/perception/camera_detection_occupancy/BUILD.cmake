@@ -59,6 +59,7 @@ apollo_target(cc_library apollo_perception_camera_detection_occupancy
     @com_github_jbeder_yaml_cpp//:yaml-cpp
     @eigen//:eigen
     @opencv//:imgproc
+    @local_config_cuda//cuda:cuda_headers
   LOCAL_DEFINES
     "MODULE_NAME=\"perception\""
     profiler?ENABLE_PROFILER=1
