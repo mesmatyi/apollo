@@ -891,6 +891,8 @@ _SETTLE_MAX_EXTRA_S = 3.0
 def _settled(query, sleep_s):
     """query() once discovery had `sleep_s` seconds and its result stopped
     changing (quiet for _SETTLE_QUIET_S, at most _SETTLE_MAX_EXTRA_S more).
+    An empty result is never considered settled: when the first discovery
+    announcements are missed, Fast DDS only re-announces ~3 s later.
     With sleep_s == 0 the graph is queried once, immediately."""
     wait_for_discovery(sleep_s)
     result = query()
@@ -899,7 +901,7 @@ def _settled(query, sleep_s):
     deadline = time.monotonic() + _SETTLE_MAX_EXTRA_S
     stable_since = time.monotonic()
     while time.monotonic() < deadline:
-        if time.monotonic() - stable_since >= _SETTLE_QUIET_S:
+        if result and time.monotonic() - stable_since >= _SETTLE_QUIET_S:
             break
         time.sleep(0.1)
         current = query()

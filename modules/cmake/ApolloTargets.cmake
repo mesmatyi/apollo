@@ -133,6 +133,30 @@ function(_apollo_write_if_different path content)
   file(WRITE "${path}" "${content}")
 endfunction()
 
+# modules/<module>/... -> <module>; also the second level (<module>__<sub>)
+function(_apollo_module_of out pkg)
+  string(REPLACE "/" ";" parts "${pkg}")
+  list(LENGTH parts n)
+  if(n GREATER 1)
+    list(GET parts 1 m)
+  else()
+    set(m "${pkg}")
+  endif()
+  set(${out} "${m}" PARENT_SCOPE)
+endfunction()
+
+function(_apollo_submodule_of out pkg)
+  string(REPLACE "/" ";" parts "${pkg}")
+  list(LENGTH parts n)
+  if(n GREATER 2)
+    list(GET parts 1 m)
+    list(GET parts 2 sub)
+    set(${out} "${m}__${sub}" PARENT_SCOPE)
+  else()
+    set(${out} "" PARENT_SCOPE)
+  endif()
+endfunction()
+
 function(_apollo_mark_skip t why)
   _apollo_set(${t} STATUS SKIP)
   _apollo_set(${t} WHY "${why}")
@@ -295,13 +319,17 @@ function(_apollo_check t)
     _apollo_mark_skip(${t} "tests disabled (APOLLO_BUILD_TESTS=OFF)")
     return()
   endif()
+  if(kind STREQUAL "cc_test" AND NOT TARGET GTest::gtest)
+    _apollo_mark_skip(${t} "GTest not found")
+    return()
+  endif()
 
   _apollo_get(deps ${t} DEPS)
   _apollo_filter(deps ${deps})
   set(link)
   foreach(d IN LISTS deps)
     if(kind STREQUAL "cc_test" AND d MATCHES "^@com_google_googletest//:gtest(_main)?$")
-      continue()  # provided by ament_add_gtest
+      continue()  # linked explicitly in _apollo_create_cc
     endif()
     _apollo_resolve_dep(items why "${d}")
     if(why)
@@ -472,18 +500,31 @@ function(_apollo_create_cc t)
     install(TARGETS ${t} RUNTIME DESTINATION lib/${PROJECT_NAME})
     _apollo_set_rpath(${t} "lib/${PROJECT_NAME}")
   elseif(kind STREQUAL "cc_test")
-    set(gtest_args)
+    # Plain executables + add_test() instead of ament_add_gtest(): every test
+    # and every library that links @com_google_googletest then use the same
+    # gtest (GTest::gtest from find_package(GTest)), and the tests get the
+    # Apollo runtime environment (see APOLLO_TEST_ENVIRONMENT).
+    if(NOT compiled)
+      list(APPEND sources "${APOLLO_EMPTY_SOURCE}")
+    endif()
+    add_executable(${t} ${sources})
+    set_target_properties(${t} PROPERTIES
+      OUTPUT_NAME "${name}"
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/${pkg}")
     _apollo_get(deps ${t} DEPS)
-    if(NOT "@com_google_googletest//:gtest_main" IN_LIST deps)
-      list(APPEND gtest_args SKIP_LINKING_MAIN_LIBRARIES)
+    if("@com_google_googletest//:gtest_main" IN_LIST deps)
+      target_link_libraries(${t} PRIVATE GTest::gtest_main GTest::gtest)
+    else()
+      target_link_libraries(${t} PRIVATE GTest::gtest)
     endif()
-    ament_add_gtest(${t} ${sources} ${gtest_args}
-      WORKING_DIRECTORY "${APOLLO_SOURCE_ROOT}"
-      APPEND_ENV APOLLO_ROOT=${APOLLO_SOURCE_ROOT}
-      TIMEOUT 300)
-    if(NOT TARGET ${t})
-      return()
-    endif()
+    _apollo_module_of(module "${pkg}")
+    add_test(NAME ${t}
+      COMMAND ${t} "--gtest_output=xml:${CMAKE_BINARY_DIR}/test_results/${PROJECT_NAME}/${t}.gtest.xml"
+      WORKING_DIRECTORY "${APOLLO_SOURCE_ROOT}")
+    set_tests_properties(${t} PROPERTIES
+      LABELS "${module}"
+      TIMEOUT ${APOLLO_TEST_TIMEOUT}
+      ENVIRONMENT "${APOLLO_TEST_ENVIRONMENT}")
   elseif(kind MATCHES "^(cc|qt)_library$" AND NOT compiled AND NOT loadable)
     add_library(${t} INTERFACE)
     set(interface TRUE)
@@ -674,6 +715,19 @@ function(apollo_create_targets)
       _apollo_create_cc(${t})
       _apollo_get(created ${t} CREATED)
       if(created)
+        _apollo_module_of(module "${pkg}")
+        _apollo_submodule_of(sub "${pkg}")
+        if(kind STREQUAL "cc_test")
+          set(group tests)
+        else()
+          set(group module)
+        endif()
+        set_property(GLOBAL APPEND PROPERTY "APOLLO_GROUP::${group}::${module}" ${t})
+        set_property(GLOBAL APPEND PROPERTY "APOLLO_GROUPS::${group}" ${module})
+        if(sub)
+          set_property(GLOBAL APPEND PROPERTY "APOLLO_GROUP::${group}::${sub}" ${t})
+          set_property(GLOBAL APPEND PROPERTY "APOLLO_GROUPS::${group}" ${sub})
+        endif()
         _apollo_is_loadable(loadable ${t})
         _apollo_get(components ${t} COMPONENTS)
         _apollo_get(output_name ${t} OUTPUT_NAME)
@@ -700,6 +754,23 @@ function(apollo_create_targets)
     elseif(kind MATCHES "^py_(library|binary)$")
       _apollo_install_python(${t})
     endif()
+  endforeach()
+
+  # Aggregate targets: apollo_module_<module> builds every available
+  # library/component/plugin/binary of modules/<module> (and
+  # apollo_module_<module>__<subdir> those of modules/<module>/<subdir>);
+  # apollo_tests_<module>[__<subdir>] builds the tests.
+  foreach(group module tests)
+    get_property(names GLOBAL PROPERTY "APOLLO_GROUPS::${group}")
+    if(names)
+      list(REMOVE_DUPLICATES names)
+    endif()
+    foreach(m IN LISTS names)
+      get_property(members GLOBAL PROPERTY "APOLLO_GROUP::${group}::${m}")
+      string(MAKE_C_IDENTIFIER "apollo_${group}_${m}" agg)
+      add_custom_target(${agg})
+      add_dependencies(${agg} ${members})
+    endforeach()
   endforeach()
 
   # data files, grouped per destination directory

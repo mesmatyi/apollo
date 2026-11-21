@@ -69,8 +69,27 @@ else()
     message(WARNING "Apollo: package cyber not found; every target using //cyber is skipped")
   endif()
 endif()
+# Tests: plain gtest executables registered with add_test() (ctest / colcon
+# test), labelled with their module: `ctest -L '^control$'`. They run from the
+# repository root with the Apollo runtime environment, so /apollo/... paths
+# resolve to $APOLLO_ROOT/... through the cyber file utilities.
+set(APOLLO_TEST_TIMEOUT 300 CACHE STRING "Per-test timeout (seconds)")
 if(APOLLO_BUILD_TESTS)
-  find_package(ament_cmake_gtest REQUIRED)
+  enable_testing()
+  find_package(GTest REQUIRED)
+  if(cyber_DIR)
+    get_filename_component(_cyber_share "${cyber_DIR}/.." ABSOLUTE)
+  endif()
+  set(APOLLO_TEST_ENVIRONMENT
+    "APOLLO_ROOT=${APOLLO_SOURCE_ROOT}"
+    "CYBER_PATH=${_cyber_share}"
+    "APOLLO_CONF_PATH=${APOLLO_SOURCE_ROOT}"
+    "APOLLO_FLAG_PATH=${APOLLO_SOURCE_ROOT}"
+    "APOLLO_PLUGIN_DESCRIPTION_PATH=${APOLLO_SOURCE_ROOT}"
+    "APOLLO_PLUGIN_INDEX_PATH=${CMAKE_BINARY_DIR}/cyber_plugin_index"
+    "APOLLO_PLUGIN_LIB_PATH=${CMAKE_BINARY_DIR}/lib/apollo"
+    "APOLLO_LIB_PATH=${CMAKE_BINARY_DIR}/lib/apollo"
+    "GLOG_logtostderr=1")
 endif()
 
 include(cmake/ApolloTargets.cmake)
