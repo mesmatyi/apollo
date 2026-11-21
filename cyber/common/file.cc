@@ -426,6 +426,10 @@ std::string GetFileName(const std::string &path, const bool remove_extension) {
   return path.substr(start, len);
 }
 
+std::string ResolvePath(const std::string &path) {
+  return ros2::ResolveApolloPath(path);
+}
+
 bool GetFilePathWithEnv(const std::string &path, const std::string &env_var,
                         std::string *file_path) {
   if (path.empty()) {

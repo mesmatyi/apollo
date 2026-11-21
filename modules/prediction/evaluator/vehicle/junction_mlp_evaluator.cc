@@ -365,8 +365,9 @@ void JunctionMLPEvaluator::LoadModel() {
     device_ = torch::Device(torch::kCUDA);
   }
   torch::set_num_threads(1);
-  torch_model_ =
-      torch::jit::load(FLAGS_torch_vehicle_junction_mlp_file, device_);
+  torch_model_ = torch::jit::load(
+      apollo::cyber::common::ResolvePath(FLAGS_torch_vehicle_junction_mlp_file),
+      device_);
 
   std::vector<torch::jit::IValue> torch_inputs;
   int input_dim = static_cast<int>(

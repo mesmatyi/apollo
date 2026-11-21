@@ -16,6 +16,7 @@
 
 #include "modules/perception/common/inference/libtorch/torch_net.h"
 
+#include "cyber/common/file.h"
 #include "cyber/common/log.h"
 #include "modules/perception/common/inference/inference.h"
 
@@ -40,7 +41,8 @@ bool TorchNet::Init(const std::map<std::string, std::vector<int>> &shapes) {
 
   // Init net
   torch::Device device(device_type_, device_id_);
-  net_ = torch::jit::load(model_file_, device);
+  net_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(model_file_), device);
   net_.eval();
 
   // add blobs

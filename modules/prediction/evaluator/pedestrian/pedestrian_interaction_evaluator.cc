@@ -18,6 +18,7 @@
 
 #include <utility>
 
+#include "cyber/common/file.h"
 #include "modules/common/math/vec2d.h"
 #include "modules/prediction/common/feature_output.h"
 #include "modules/prediction/common/prediction_constants.h"
@@ -65,13 +66,21 @@ void PedestrianInteractionEvaluator::LoadModel() {
   }
 
   torch_position_embedding_ = torch::jit::load(
-      FLAGS_torch_pedestrian_interaction_position_embedding_file, device_);
+      apollo::cyber::common::ResolvePath(
+          FLAGS_torch_pedestrian_interaction_position_embedding_file),
+      device_);
   torch_social_embedding_ = torch::jit::load(
-      FLAGS_torch_pedestrian_interaction_social_embedding_file, device_);
-  torch_single_lstm_ = torch::jit::load(
-      FLAGS_torch_pedestrian_interaction_single_lstm_file, device_);
+      apollo::cyber::common::ResolvePath(
+          FLAGS_torch_pedestrian_interaction_social_embedding_file),
+      device_);
+  torch_single_lstm_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(
+                           FLAGS_torch_pedestrian_interaction_single_lstm_file),
+                       device_);
   torch_prediction_layer_ = torch::jit::load(
-      FLAGS_torch_pedestrian_interaction_prediction_layer_file, device_);
+      apollo::cyber::common::ResolvePath(
+          FLAGS_torch_pedestrian_interaction_prediction_layer_file),
+      device_);
 }
 
 torch::Tensor PedestrianInteractionEvaluator::GetSocialPooling() {

@@ -237,6 +237,14 @@ std::string GetFileName(const std::string &path,
                         const bool remove_extension = false);
 
 /**
+ * @brief Resolves an Apollo path for direct use (e.g. by third-party loaders
+ *        such as torch::jit::load or sqlite): "/apollo/<x>" maps to
+ *        "$APOLLO_ROOT/<x>" (or <ament prefix>/share/apollo/<x>) when the
+ *        literal path does not exist. Other paths are returned unchanged.
+ */
+std::string ResolvePath(const std::string &path);
+
+/**
  * @brief get file path, judgement priority:
  * 1. absolute path.
  * 2. relative path starts with '.'.
