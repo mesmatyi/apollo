@@ -113,7 +113,8 @@ records every topic of each run to an MCAP rosbag2 file, and checks:
 * every message decodes.
 
 The default scenario follows lane `1_-1` of the demo map around a 90° bend.
-See [tools/ros2/closed_loop/README.md](../../tools/ros2/closed_loop/README.md).
+See [tools/ros2/closed_loop/README.md](../../tools/ros2/closed_loop/README.md)
+and the latest results in [closed_loop_results.md](closed_loop_results.md).
 
 ## Tooling
 
