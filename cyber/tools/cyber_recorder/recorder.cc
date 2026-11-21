@@ -16,6 +16,10 @@
 
 #include "cyber/tools/cyber_recorder/recorder.h"
 
+#include <dlfcn.h>
+
+#include "cyber/message/protobuf_factory.h"
+
 #include <algorithm>
 
 #include "cyber/record/header_builder.h"
@@ -46,7 +50,31 @@ Recorder::Recorder(const std::string& output, bool all_channels,
 
 Recorder::~Recorder() { Stop(); }
 
+namespace {
+
+// The cyber package cannot link Apollo's messages (package `apollo` depends
+// on `cyber`). Load the installed message library, if any, so descriptors of
+// all Apollo types are available for the record file headers.
+void LoadApolloMessageDescriptors() {
+  static bool loaded = false;
+  if (loaded) {
+    return;
+  }
+  loaded = true;
+  if (dlopen("libapollo_proto.so", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD)) {
+    return;  // already linked into this process
+  }
+  if (dlopen("libapollo_proto.so", RTLD_NOW | RTLD_GLOBAL) == nullptr) {
+    AINFO << "Apollo message library not found (" << dlerror()
+          << "); records keep type names without descriptors for types "
+             "unknown to this process.";
+  }
+}
+
+}  // namespace
+
 bool Recorder::Start() {
+  LoadApolloMessageDescriptors();
   for (const auto& channel_name : white_channels_) {
     if (std::find(black_channels_.begin(), black_channels_.end(),
                   channel_name) != black_channels_.end()) {
@@ -140,18 +168,12 @@ void Recorder::FindNewChannel(const RoleAttributes& role_attr) {
     AWARN << "change message not has a channel name or has an empty one.";
     return;
   }
-  if (!role_attr.has_message_type() || role_attr.message_type().empty()) {
-    AWARN << "Change message not has a message type or has an empty one.";
-    return;
-  }
-  if (!role_attr.has_proto_desc() || role_attr.proto_desc().empty()) {
-    AWARN << "Change message not has a proto desc or has an empty one.";
-    return;
-  }
-
-  if (channel_reader_map_.find(role_attr.channel_name()) !=
-      channel_reader_map_.end()) {
-    return;
+  {
+    std::lock_guard<std::mutex> lock(channel_mutex_);
+    if (channel_reader_map_.find(role_attr.channel_name()) !=
+        channel_reader_map_.end()) {
+      return;
+    }
   }
 
   auto channel_match_func = [&role_attr](
@@ -183,11 +205,46 @@ void Recorder::FindNewChannel(const RoleAttributes& role_attr) {
     return;
   }
 
-  if (!writer_->WriteChannel(role_attr.channel_name(), role_attr.message_type(),
-                             role_attr.proto_desc())) {
-    AERROR << "write channel fail, channel:" << role_attr.channel_name();
+  // On ROS 2 a writer in another process is known from the graph without its
+  // protobuf type; such channels are written to the record when their first
+  // message (which carries the type name) arrives.
+  if (!role_attr.message_type().empty() && !role_attr.proto_desc().empty()) {
+    if (!writer_->WriteChannel(role_attr.channel_name(),
+                               role_attr.message_type(),
+                               role_attr.proto_desc())) {
+      AERROR << "write channel fail, channel:" << role_attr.channel_name();
+    }
+  } else {
+    std::lock_guard<std::mutex> lock(channel_mutex_);
+    pending_channels_.insert(role_attr.channel_name());
   }
   InitReaderImpl(role_attr.channel_name(), role_attr.message_type());
+}
+
+bool Recorder::WritePendingChannel(const std::string& channel_name) {
+  std::lock_guard<std::mutex> lock(channel_mutex_);
+  if (pending_channels_.count(channel_name) == 0) {
+    return true;
+  }
+  std::string message_type;
+  TopologyManager::Instance()->channel_manager()->GetMsgType(channel_name,
+                                                            &message_type);
+  if (message_type.empty()) {
+    return false;
+  }
+  std::string proto_desc;
+  message::ProtobufFactory::Instance()->GetDescriptorString(message_type,
+                                                            &proto_desc);
+  if (proto_desc.empty()) {
+    AWARN << "no protobuf descriptor for " << message_type << " (channel "
+          << channel_name << "); the record stores the type name only.";
+  }
+  if (!writer_->WriteChannel(channel_name, message_type, proto_desc)) {
+    AERROR << "write channel fail, channel:" << channel_name;
+    return false;
+  }
+  pending_channels_.erase(channel_name);
+  return true;
 }
 
 bool Recorder::InitReadersImpl() {
@@ -242,6 +299,7 @@ bool Recorder::InitReaderImpl(const std::string& channel_name,
       AERROR << "Create reader failed.";
       return false;
     }
+    std::lock_guard<std::mutex> lock(channel_mutex_);
     channel_reader_map_[channel_name] = reader;
     return true;
   } catch (const std::bad_weak_ptr& e) {
@@ -259,6 +317,12 @@ void Recorder::ReaderCallback(const std::shared_ptr<RawMessage>& message,
 
   if (message == nullptr) {
     AERROR << "message is nullptr, channel: " << channel_name;
+    return;
+  }
+
+  if (!WritePendingChannel(channel_name)) {
+    AWARN << "channel " << channel_name << " has no known type yet; dropping "
+          << "a message";
     return;
   }
 

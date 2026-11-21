@@ -160,6 +160,15 @@ set(CYBER_SRCS
   time/time.cc
   timer/timer.cc
   transport/qos/qos_profile_conf.cc
+  tools/cyber_recorder/info.cc
+  tools/cyber_recorder/recorder.cc
+  tools/cyber_recorder/recoverer.cc
+  tools/cyber_recorder/spliter.cc
+  tools/cyber_recorder/player/play_task.cc
+  tools/cyber_recorder/player/play_task_buffer.cc
+  tools/cyber_recorder/player/play_task_consumer.cc
+  tools/cyber_recorder/player/play_task_producer.cc
+  tools/cyber_recorder/player/player.cc
 )
 
 add_library(cyber SHARED ${CYBER_SRCS} ${CYBER_PROTO_SRCS})
@@ -194,6 +203,11 @@ add_executable(mainboard
   mainboard/module_argument.cc
   mainboard/module_controller.cc)
 target_link_libraries(mainboard cyber)
+
+# cyber_recorder: record / play / info / split / recover .record files over
+# ROS 2 (rosbag2 conversion: tools/cyber_recorder/*_rosbag2*.py).
+add_executable(cyber_recorder tools/cyber_recorder/main.cc)
+target_link_libraries(cyber_recorder cyber)
 
 if(CYBER_BUILD_EXAMPLES)
   set(EXAMPLE_GEN ${CMAKE_CURRENT_BINARY_DIR}/gen)
@@ -268,8 +282,8 @@ install(TARGETS cyber
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin)
-install(TARGETS mainboard RUNTIME DESTINATION lib/${PROJECT_NAME})
-install(TARGETS mainboard RUNTIME DESTINATION bin)
+install(TARGETS mainboard cyber_recorder RUNTIME DESTINATION lib/${PROJECT_NAME})
+install(TARGETS mainboard cyber_recorder RUNTIME DESTINATION bin)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION include/cyber/cyber

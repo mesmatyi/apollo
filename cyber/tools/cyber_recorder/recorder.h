@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <mutex>
+#include <set>
 #include <regex>
 #include <string>
 #include <unordered_map>
@@ -26,6 +27,8 @@
 
 #include "cyber/proto/record.pb.h"
 #include "cyber/proto/topology_change.pb.h"
+
+#include "cyber/service_discovery/topology_manager.h"
 
 #include "cyber/base/signal.h"
 #include "cyber/cyber.h"
@@ -75,6 +78,8 @@ class Recorder : public std::enable_shared_from_this<Recorder> {
   proto::Header header_;
   std::unordered_map<std::string, std::shared_ptr<ReaderBase>>
       channel_reader_map_;
+  std::mutex channel_mutex_;
+  std::set<std::string> pending_channels_;
   uint64_t message_count_;
   uint64_t message_time_;
 
@@ -91,6 +96,7 @@ class Recorder : public std::enable_shared_from_this<Recorder> {
                       const std::string& channel_name);
 
   void FindNewChannel(const RoleAttributes& role_attr);
+  bool WritePendingChannel(const std::string& channel_name);
 
   void ShowProgress();
 };

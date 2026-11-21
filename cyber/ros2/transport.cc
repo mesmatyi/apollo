@@ -440,13 +440,20 @@ class SubscriberImpl : public SubscriberEndpoint {
         };
     auto active = active_;
     auto warned = std::make_shared<std::atomic<bool>>(false);
+    auto type_learned = std::make_shared<std::atomic<bool>>(false);
     const TypeSupport* ts = type_support;
+    const std::string channel = channel_;
     subscription_ = ros_node->create_subscription<ProtoMessage>(
         topic_, MakeQos(p, depth),
-        [active, warned, ts, callback,
-         topic](std::shared_ptr<const ProtoMessage> m) {
+        [active, warned, type_learned, ts, callback, topic,
+         channel](std::shared_ptr<const ProtoMessage> m) {
           if (!active->load()) {
             return;
+          }
+          // Raw readers (recorder, tools) learn the channel's protobuf type
+          // from the first sample; the ROS 2 graph only knows ProtoMessage.
+          if (ts->is_raw && !m->type.empty() && !type_learned->exchange(true)) {
+            RegisterLocalChannelType(channel, m->type);
           }
           if (!ts->is_raw && !m->type.empty() && m->type != ts->type_name &&
               m->type != RawTypeName()) {
