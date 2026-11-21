@@ -108,7 +108,8 @@ class GenError(Exception):
 _CUDA_API = re.compile(
     r'\bcuda(SetDevice|Malloc\w*|Memcpy\w*|Free\w*|Stream_t)\b|'
     r'#\s*include\s*[<"](cuda_runtime|cuda_runtime_api|cuda|nppi|npp|cublas_v2|'
-    r'cudnn|NvInfer|NvOnnxParser)\.h[>"]')
+    r'cudnn|NvInfer|NvOnnxParser)\.h[>"]|'
+    r'#\s*include\s*[<"](c10/cuda|ATen/cuda)/')
 
 
 def uses_cuda_api(path):
@@ -842,7 +843,7 @@ class Model(object):
                         if t.kind != 'proto' and not conds and not self.file_exists(p):
                             t.broken.append('missing source file %s' % p)
                         if not conds and (v.endswith(GPU_SRC_EXT) or (
-                                field == 'srcs' and v.endswith(CC_SRC_EXT) and
+                                v.endswith(CC_SRC_EXT + ('.h', '.hpp')) and
                                 uses_cuda_api(os.path.join(self.root, p)))):
                             # .cu sources, or C++ sources calling the CUDA API
                             # without a USE_GPU guard (the BUILD file does not

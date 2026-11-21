@@ -37,6 +37,7 @@ apollo_target(cc_library plugin
   TARGET perception_common_inference_migraphx_plugins__plugin
   ALIASES libplugin.so
   HDRS plugin.h
+  DEPS @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(cc_library dfmb_psroi_align_plugin

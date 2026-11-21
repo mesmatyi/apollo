@@ -25,6 +25,7 @@ apollo_target(cc_library point_pillars_common
   TARGET perception_lidar_detection__point_pillars_common
   ALIASES libpoint_pillars_common.so
   HDRS detector/point_pillars_detection/common.h
+  DEPS @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(cc_library anchor_mask_cuda

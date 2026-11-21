@@ -77,6 +77,7 @@ apollo_target(cc_library inference_lib
     //modules/perception/common/base:apollo_perception_common_base
     @libtorch_gpu//:libtorch_gpu
     @boost//:boost
+    @local_config_cuda//cuda:cuda_headers
 )
 
 apollo_target(cc_test layer_test
