@@ -131,6 +131,11 @@ bool Init(const char* binary_name, const std::string& dag_info) {
   }
   rclcpp::contexts::get_global_default_context()->add_pre_shutdown_callback(
       []() { OnShutdown(SIGINT); });
+  // Create the process helper node now: the RMW layer (Fast DDS) creates its
+  // participant -- and the static factory owning it -- with the first node.
+  // The exit handler registered below then runs before that factory's static
+  // destructor, so Clear() releases our nodes while DDS is still alive.
+  ros2::Runtime::Instance()->AuxNode();
 
   // Register exit handlers
   if (!g_atexit_registered) {

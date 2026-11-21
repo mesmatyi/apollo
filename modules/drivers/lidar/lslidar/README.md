@@ -4,7 +4,7 @@
 
 ## 1. Project Overview
 
- **lslidar** is the Lslidar (镭神) LiDAR driver integration package for the Apollo 8.0 platform. It currently supports the *C16, C32, CH16, CH32, CH64, CH64w, CH120, CH128, CH128X1* and other LiDAR models. 
+ **lslidar** is the Lslidar LiDAR driver integration package for the Apollo 8.0 platform. It currently supports the *C16, C32, CH16, CH32, CH64, CH64w, CH120, CH128, CH128X1* and other LiDAR models. 
 
 
 

@@ -10,8 +10,8 @@ Select the desired mode from the drop-down list:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_92fca84.png)
 
-- For playing data packages in default mode, see [Play a Data Package](Apollo_alpha_doc/安装说明/软件包方式/快速上手/步骤三：播放数据包.md).
-- For playing data packages in perception mode, see [How to Play a Data Package in Perception Mode](<Apollo_alpha_doc/应用实践/上机实践教程/Apollo 感知实践（2.0）/如何在感知模式下播包.md>).
+- For playing data packages in default mode, see [Play a Data Package](Apollo_alpha_doc/安装说明/软件包方式/快速上手/步骤三: 播放数据包.md).
+- For playing data packages in perception mode, see [How to Play a Data Package in Perception Mode](<Apollo_alpha_doc/应用实践/上机实践教程/Apollo 感知实践 (2.0) /如何在感知模式下播包.md>).
 
 ## Modules
 

@@ -29,10 +29,15 @@ void ToNativeSettings(const ApolloOSQPSettings &in, ::OSQPSettings *out) {
   out->rho = in.rho;
   out->sigma = in.sigma;
   out->scaling = in.scaling;
-  out->adaptive_rho = in.adaptive_rho ? OSQP_ADAPTIVE_RHO_UPDATE_DEFAULT
-                                      : OSQP_ADAPTIVE_RHO_UPDATE_DISABLED;
-  if (in.adaptive_rho_interval > 0) {
+  // OSQP 0.6: adaptive_rho_interval == 0 means "time based" (a fraction of
+  // the setup time), which is OSQP 1.x's OSQP_ADAPTIVE_RHO_UPDATE_TIME.
+  if (!in.adaptive_rho) {
+    out->adaptive_rho = OSQP_ADAPTIVE_RHO_UPDATE_DISABLED;
+  } else if (in.adaptive_rho_interval > 0) {
+    out->adaptive_rho = OSQP_ADAPTIVE_RHO_UPDATE_ITERATIONS;
     out->adaptive_rho_interval = in.adaptive_rho_interval;
+  } else {
+    out->adaptive_rho = OSQP_ADAPTIVE_RHO_UPDATE_TIME;
   }
   out->adaptive_rho_tolerance = in.adaptive_rho_tolerance;
   out->adaptive_rho_fraction = in.adaptive_rho_fraction;
@@ -49,6 +54,7 @@ void ToNativeSettings(const ApolloOSQPSettings &in, ::OSQPSettings *out) {
   out->verbose = in.verbose;
   out->scaled_termination = in.scaled_termination;
   out->check_termination = in.check_termination;
+  out->check_dualgap = 0;  // OSQP 1.x addition; 0.6 had no duality gap check
   out->warm_starting = in.warm_start;
   // OSQP 0.6: time_limit == 0 disables the limit.
   out->time_limit = in.time_limit > 0 ? in.time_limit : OSQP_TIME_LIMIT;

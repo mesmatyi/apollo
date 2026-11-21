@@ -1,0 +1,7 @@
+Log file created at: 2026/11/21 17:22:45
+Running on machine: vm
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20261121 17:22:45.363508 140737312362688 init.cc:132] Register exit handle succ.
+W20261121 17:22:45.363537 140737312362688 monitor_logger.cc:58] monitor_msg_writer_ is nullptr.
+W20261121 17:22:45.363545 140737312362688 monitor_logger.cc:58] monitor_msg_writer_ is nullptr.
+W20261121 17:22:45.363795 140737312362688 monitor_logger.cc:58] monitor_msg_writer_ is nullptr.

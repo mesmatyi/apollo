@@ -2,7 +2,7 @@
 
 ## 1 Project Overview
 
- **seyond** is the Seyond (图达通) LiDAR driver for the Apollo platform. It supports the *Falcon/Robin* series of LiDARs. 
+ **seyond** is the Seyond LiDAR driver for the Apollo platform. It supports the *Falcon/Robin* series of LiDARs. 
 
 ## 2 Running
 
