@@ -18,6 +18,7 @@
 
 #include <set>
 
+#include "cyber/service_discovery/topology_manager.h"
 #include "cyber/cyber.h"
 #include "modules/dreamview_plus/backend/record_player/record_player_factory.h"
 

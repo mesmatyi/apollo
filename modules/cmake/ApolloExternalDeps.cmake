@@ -72,7 +72,8 @@ set(_absl)
 foreach(_c base strings str_format time synchronization flat_hash_map
         flat_hash_set node_hash_map node_hash_set btree hash optional span
         memory status statusor any variant utility algorithm container_memory
-        inlined_vector fixed_array cord random_random log check)
+        inlined_vector fixed_array cord random_random log check flags
+        flags_parse flags_usage flags_marshalling flags_reflection)
   if(TARGET absl::${_c})
     list(APPEND _absl absl::${_c})
   endif()
