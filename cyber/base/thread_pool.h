@@ -20,6 +20,7 @@
 #include <atomic>
 #include <functional>
 #include <future>
+#include <type_traits>
 #include <memory>
 #include <queue>
 #include <stdexcept>
@@ -39,7 +40,7 @@ class ThreadPool {
 
   template <typename F, typename... Args>
   auto Enqueue(F&& f, Args&&... args)
-      -> std::future<typename std::result_of<F(Args...)>::type>;
+      -> std::future<std::invoke_result_t<F, Args...>>;
 
   ~ThreadPool();
 
@@ -70,8 +71,8 @@ inline ThreadPool::ThreadPool(std::size_t threads, std::size_t max_task_num)
 // before using the return value, you should check value.valid()
 template <typename F, typename... Args>
 auto ThreadPool::Enqueue(F&& f, Args&&... args)
-    -> std::future<typename std::result_of<F(Args...)>::type> {
-  using return_type = typename std::result_of<F(Args...)>::type;
+    -> std::future<std::invoke_result_t<F, Args...>> {
+  using return_type = std::invoke_result_t<F, Args...>;
 
   auto task = std::make_shared<std::packaged_task<return_type()>>(
       std::bind(std::forward<F>(f), std::forward<Args>(args)...));

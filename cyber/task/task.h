@@ -21,6 +21,7 @@
 
 #include <chrono>
 #include <future>
+#include <type_traits>
 #include <thread>
 #include <utility>
 
@@ -32,7 +33,7 @@ namespace cyber {
 /// Runs `f(args...)` on the Cyber task thread pool.
 template <typename F, typename... Args>
 static auto Async(F&& f, Args&&... args)
-    -> std::future<typename std::result_of<F(Args...)>::type> {
+    -> std::future<std::invoke_result_t<F, Args...>> {
   return TaskManager::Instance()->Enqueue(std::forward<F>(f),
                                           std::forward<Args>(args)...);
 }
