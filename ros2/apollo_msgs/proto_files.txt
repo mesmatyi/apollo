@@ -1,0 +1,40 @@
+# Protobuf files whose messages become native ROS 2 interfaces of this
+# package (tools/ros2/proto2ros.py). Paths and globs are relative to the
+# Apollo source root. Messages they reference are generated too.
+#
+# Order matters when two files define the same message differently: the first
+# definition wins and the other keeps the protobuf wire format
+# (apollo_msgs/msg/ProtoMessage), e.g. the per-vehicle canbus detail protos.
+
+# The inter-module interfaces of Apollo.
+modules/common_msgs/**/*.proto
+
+# Cyber: simulation clock, parameter service, examples.
+cyber/proto/clock.proto
+cyber/proto/parameter.proto
+cyber/examples/proto/examples.proto
+
+# Channel types defined inside modules.
+modules/common/latency_recorder/proto/latency_record.proto
+modules/control/control_component/proto/calibration_debug.proto
+modules/control/control_component/proto/control_debug.proto
+modules/control/control_component/proto/local_view.proto
+modules/control/control_component/proto/preprocessor.proto
+modules/dreamview/backend/common/teleop/proto/daemon_cmd.proto
+modules/dreamview/backend/common/teleop/proto/daemon_rpt.proto
+modules/dreamview/backend/common/teleop/proto/modem_info.proto
+modules/dreamview/proto/dv_plugin_msg.proto
+modules/dreamview/proto/preprocess_table.proto
+modules/drivers/gnss/proto/gnss_status.proto
+modules/drivers/lidar/proto/velodyne.proto
+modules/drivers/microphone/proto/audio.proto
+modules/perception/common/proto/motion_service.proto
+modules/planning/planning_base/proto/learning_data.proto
+modules/safety_manager_msgs/safety_manager.proto
+modules/statistics_msgs/*.proto
+modules/v2x/proto/v2x_obstacles.proto
+modules/v2x/proto/v2x_obu_traffic_light.proto
+
+# Vehicle-specific chassis detail messages (lowest priority: several of them
+# redefine messages of modules/common_msgs/chassis_msgs/chassis_detail.proto).
+modules/canbus_vehicle/*/proto/*.proto

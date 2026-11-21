@@ -116,7 +116,8 @@ bool Client<Request, Response>::Init() {
     return true;
   }
   endpoint_ = ros2::ClientEndpoint::Create(node_handle_, service_name_,
-                                           message::MessageType<Request>());
+                                           message::MessageType<Request>(),
+                                           message::MessageType<Response>());
   return endpoint_ != nullptr;
 }
 

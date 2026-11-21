@@ -29,6 +29,7 @@
 #include "cyber/common/log.h"
 #include "cyber/message/protobuf_factory.h"
 #include "cyber/ros2/naming.h"
+#include "cyber/ros2/native_types.h"
 #include "cyber/ros2/runtime.h"
 #include "cyber/ros2/transport.h"
 #include "cyber/state.h"
@@ -39,9 +40,6 @@ namespace cyber {
 namespace service_discovery {
 
 namespace {
-
-constexpr char kProtoMessageType[] = "apollo_msgs/msg/ProtoMessage";
-constexpr char kProtoServiceType[] = "apollo_msgs/srv/ProtoService";
 
 rclcpp::Node::SharedPtr GraphNode() {
   return ros2::AuxNodeHandle()->ros_node();
@@ -59,8 +57,13 @@ RoleAttributes MakeAttr(const rclcpp::TopicEndpointInfo& info,
   RoleAttributes attr;
   attr.set_node_name(QualifiedNodeName(info.node_namespace(), info.node_name()));
   attr.set_channel_name(channel);
+  // A native ROS 2 type names its protobuf type; for the protobuf wire
+  // format the type is whatever this process learned about the channel.
   std::string type;
-  if (ros2::LookupLocalChannelType(channel, &type)) {
+  if (const auto* native =
+          ros2::NativeTypes::Instance()->FindByRosType(info.topic_type())) {
+    attr.set_message_type(native->proto_name);
+  } else if (ros2::LookupLocalChannelType(channel, &type)) {
     attr.set_message_type(type);
   }
   return attr;
@@ -71,7 +74,7 @@ std::vector<std::string> ApolloChannels(const rclcpp::Node::SharedPtr& node) {
   std::vector<std::string> channels;
   for (auto& item : node->get_topic_names_and_types()) {
     for (auto& type : item.second) {
-      if (type == kProtoMessageType) {
+      if (ros2::IsApolloTopicType(type)) {
         channels.push_back(item.first);
         break;
       }
@@ -148,7 +151,7 @@ GraphSnapshot TakeSnapshot(const rclcpp::Node::SharedPtr& node) {
   }
   for (auto& item : node->get_service_names_and_types()) {
     for (auto& type : item.second) {
-      if (type == kProtoServiceType) {
+      if (ros2::IsApolloServiceType(type)) {
         snap.services.insert(item.first);
       }
     }
@@ -203,9 +206,18 @@ void ChannelManager::GetProtoDesc(const std::string& channel_name,
   if (proto_desc == nullptr) {
     return;
   }
-  std::string type;
-  if (ros2::LookupLocalChannelType(channel_name, &type)) {
-    message::ProtobufFactory::Instance()->GetDescriptorString(type, proto_desc);
+  const std::string type = ros2::ChannelProtoType(channel_name);
+  if (type.empty()) {
+    return;
+  }
+  message::ProtobufFactory::Instance()->GetDescriptorString(type, proto_desc);
+  if (proto_desc->empty()) {
+    // Not compiled into this process (tools): use the descriptors installed
+    // with the interface packages.
+    const auto* descriptor = ros2::NativeTypes::Instance()->FindDescriptor(type);
+    if (descriptor != nullptr) {
+      message::ProtobufFactory::GetDescriptorString(descriptor, proto_desc);
+    }
   }
 }
 
@@ -214,7 +226,10 @@ void ChannelManager::GetMsgType(const std::string& channel_name,
   if (msg_type == nullptr) {
     return;
   }
-  ros2::LookupLocalChannelType(channel_name, msg_type);
+  const std::string type = ros2::ChannelProtoType(channel_name);
+  if (!type.empty()) {
+    *msg_type = type;
+  }
 }
 
 bool ChannelManager::HasWriter(const std::string& channel_name) {
@@ -334,7 +349,7 @@ void ServiceManager::GetServers(RoleAttrVec* servers) {
   }
   for (auto& item : GraphNode()->get_service_names_and_types()) {
     for (auto& type : item.second) {
-      if (type == kProtoServiceType) {
+      if (ros2::IsApolloServiceType(type)) {
         RoleAttributes attr;
         attr.set_service_name(item.first);
         servers->push_back(attr);
@@ -435,8 +450,8 @@ void TopologyManager::Watch() {
         RoleAttributes attr;
         attr.set_channel_name(key.first);
         attr.set_node_name(key.second);
-        std::string type;
-        if (ros2::LookupLocalChannelType(key.first, &type)) {
+        const std::string type = ros2::ChannelProtoType(key.first);
+        if (!type.empty()) {
           attr.set_message_type(type);
         }
         attr.set_channel_id(cyber::common::GlobalData::RegisterChannel(key.first));

@@ -21,24 +21,12 @@
 #include <vector>
 
 #include "cyber/common/global_data.h"
+#include "cyber/common/gperftools.h"
 #include "cyber/common/log.h"
 #include "cyber/init.h"
 #include "cyber/mainboard/module_argument.h"
 #include "cyber/mainboard/module_controller.h"
 #include "cyber/state.h"
-
-#if __has_include("gperftools/profiler.h")
-#include "gperftools/heap-profiler.h"
-#include "gperftools/profiler.h"
-#define APOLLO_HAS_GPERFTOOLS 1
-#else
-#define APOLLO_HAS_GPERFTOOLS 0
-inline void ProfilerStart(const char*) {}
-inline void ProfilerStop() {}
-inline void HeapProfilerStart(const char*) {}
-inline void HeapProfilerDump(const char*) {}
-inline void HeapProfilerStop() {}
-#endif
 
 using apollo::cyber::mainboard::ModuleArgument;
 using apollo::cyber::mainboard::ModuleController;

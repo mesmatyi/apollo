@@ -25,7 +25,8 @@ namespace apollo {
 namespace cyber {
 namespace service_discovery {
 
-/// Service topology (apollo_msgs/srv/ProtoService services), from the graph.
+/// Service topology (services of a native Apollo service type or of
+/// apollo_msgs/srv/ProtoService), from the ROS 2 graph.
 class ServiceManager : public Manager {
  public:
   ServiceManager() = default;

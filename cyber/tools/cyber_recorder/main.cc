@@ -22,6 +22,7 @@
 #include <vector>
 #include <csignal>
 
+#include "cyber/common/gperftools.h"
 #include "cyber/common/file.h"
 #include "cyber/common/time_conversion.h"
 #include "cyber/init.h"
@@ -30,18 +31,6 @@
 #include "cyber/tools/cyber_recorder/recorder.h"
 #include "cyber/tools/cyber_recorder/recoverer.h"
 #include "cyber/tools/cyber_recorder/spliter.h"
-
-#if __has_include("gperftools/profiler.h")
-#include "gperftools/heap-profiler.h"
-#include "gperftools/profiler.h"
-#else
-// gperftools is optional: profiling flags become no-ops without it.
-inline void ProfilerStart(const char*) {}
-inline void ProfilerStop() {}
-inline void HeapProfilerStart(const char*) {}
-inline void HeapProfilerDump(const char*) {}
-inline void HeapProfilerStop() {}
-#endif
 
 using apollo::cyber::common::GetFileName;
 using apollo::cyber::common::StringToUnixSeconds;

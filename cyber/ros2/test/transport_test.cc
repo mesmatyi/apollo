@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -221,6 +222,8 @@ TEST(TransportTest, TopologySeesWriters) {
 }  // namespace apollo
 
 int main(int argc, char** argv) {
+  // Channels that keep the protobuf wire format (see native_types_test.cc).
+  setenv("APOLLO_ROS_PROTO_CHANNELS", "^/test/protowire/", 1);
   ::testing::InitGoogleTest(&argc, argv);
   ::testing::AddGlobalTestEnvironment(new apollo::cyber::CyberEnv());
   int ret = RUN_ALL_TESTS();

@@ -23,6 +23,13 @@
  * translation units that include cyber headers do not pay for rclcpp headers.
  * Messages cross this boundary as std::shared_ptr<void> plus a TypeSupport
  * table that knows how to (de)serialize the concrete C++ type.
+ *
+ * Wire format: a channel whose protobuf type has a native ROS 2 interface
+ * (see cyber/ros2/native_types.h) is an ordinary typed ROS 2 topic, e.g.
+ * /apollo/planning [apollo_msgs/msg/PlanningADCTrajectory]. Types without
+ * one, and channels listed in APOLLO_ROS_PROTO_CHANNELS, use
+ * apollo_msgs/msg/ProtoMessage (serialized protobuf). Services work the same
+ * way with apollo_msgs/srv/<Request type> and apollo_msgs/srv/ProtoService.
  */
 
 #ifndef CYBER_ROS2_TRANSPORT_H_
@@ -35,6 +42,9 @@
 #include <string>
 #include <typeindex>
 #include <vector>
+
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/message.h"
 
 #include "cyber/proto/qos_profile.pb.h"
 #include "cyber/proto/role_attributes.pb.h"
@@ -49,6 +59,41 @@ namespace apollo {
 namespace cyber {
 namespace ros2 {
 
+namespace internal {
+
+/// Protobuf view of a message type; the primary template covers types that
+/// are not protobuf messages (RawMessage, plain C++ objects passed between
+/// components of one process).
+template <typename T,
+          bool = std::is_base_of<google::protobuf::Message, T>::value>
+struct ProtoAccess {
+  static const google::protobuf::Descriptor* Descriptor() { return nullptr; }
+  static const google::protobuf::Message* AsProto(const void*) {
+    return nullptr;
+  }
+  static std::shared_ptr<void> Create(google::protobuf::Message** proto) {
+    *proto = nullptr;
+    return nullptr;
+  }
+};
+
+template <typename T>
+struct ProtoAccess<T, true> {
+  static const google::protobuf::Descriptor* Descriptor() {
+    return T::descriptor();
+  }
+  static const google::protobuf::Message* AsProto(const void* msg) {
+    return static_cast<const T*>(msg);
+  }
+  static std::shared_ptr<void> Create(google::protobuf::Message** proto) {
+    auto msg = std::make_shared<T>();
+    *proto = msg.get();
+    return msg;
+  }
+};
+
+}  // namespace internal
+
 /// (De)serialization table of one concrete message type.
 struct TypeSupport {
   std::string type_name;
@@ -57,6 +102,12 @@ struct TypeSupport {
   bool is_raw;
   std::function<bool(const void* msg, std::vector<uint8_t>* out)> serialize;
   std::function<std::shared_ptr<void>(const uint8_t* data, size_t size)> parse;
+  /// Protobuf access, used to convert to and from native ROS 2 messages.
+  /// `descriptor()` is null for types that are not protobuf messages.
+  const google::protobuf::Descriptor* (*descriptor)();
+  const google::protobuf::Message* (*as_proto)(const void* msg);
+  /// Creates a new message and returns its protobuf view in `proto`.
+  std::shared_ptr<void> (*create)(google::protobuf::Message** proto);
 };
 
 template <typename MessageT>
@@ -80,7 +131,10 @@ const TypeSupport* GetTypeSupport() {
           return nullptr;
         }
         return m;
-      }};
+      },
+      &internal::ProtoAccess<MessageT>::Descriptor,
+      &internal::ProtoAccess<MessageT>::AsProto,
+      &internal::ProtoAccess<MessageT>::Create};
   return &ts;
 }
 
@@ -163,7 +217,7 @@ class ClientEndpoint {
       std::function<void(bool ok, const std::vector<uint8_t>& response)>;
   static std::shared_ptr<ClientEndpoint> Create(
       const std::shared_ptr<NodeHandle>& node, const std::string& service_name,
-      const std::string& request_type);
+      const std::string& request_type, const std::string& response_type);
   virtual ~ClientEndpoint() = default;
   /// Blocking call; false on timeout or failure.
   virtual bool Call(std::vector<uint8_t>&& request,
@@ -187,11 +241,23 @@ class TimerEndpoint {
   virtual void Cancel() = 0;
 };
 
-/// Remembers the protobuf type of a channel used in this process (the ROS 2
-/// graph only knows the wire type apollo_msgs/msg/ProtoMessage).
+/// Remembers the protobuf type of a channel used in this process (for
+/// channels on the protobuf wire format the ROS 2 graph only knows the
+/// wrapper type apollo_msgs/msg/ProtoMessage).
 void RegisterLocalChannelType(const std::string& channel,
                               const std::string& type_name);
 bool LookupLocalChannelType(const std::string& channel, std::string* type_name);
+
+/// Protobuf type of a channel: from the ROS 2 graph when the channel uses a
+/// native type, else from what this process learned about it. Empty when
+/// unknown.
+std::string ChannelProtoType(const std::string& channel);
+
+/// True when `ros_type` is a type Apollo channels use (a native type from
+/// the registry or apollo_msgs/msg/ProtoMessage).
+bool IsApolloTopicType(const std::string& ros_type);
+/// Same for service types.
+bool IsApolloServiceType(const std::string& ros_type);
 
 /// The process-wide helper node (spun by the Runtime background executor).
 std::shared_ptr<NodeHandle> AuxNodeHandle();

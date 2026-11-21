@@ -30,7 +30,8 @@ namespace service_discovery {
 /**
  * @class ChannelManager
  * @brief Channel topology (writers/readers of Apollo channels), read from
- * the ROS 2 graph. Only topics of type apollo_msgs/msg/ProtoMessage are
+ * the ROS 2 graph. Topics whose type is a native Apollo type (generated
+ * from an Apollo protobuf message) or apollo_msgs/msg/ProtoMessage are
  * reported as channels.
  */
 class ChannelManager : public Manager {

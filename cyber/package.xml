@@ -17,10 +17,14 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
+  <depend>ament_index_cpp</depend>
   <depend>apollo_msgs</depend>
   <depend>class_loader</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
+  <depend>rcpputils</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>rosidl_typesupport_introspection_cpp</depend>
   <depend>protobuf-dev</depend>
   <depend>libgoogle-glog-dev</depend>
   <depend>libgflags-dev</depend>
