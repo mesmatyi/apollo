@@ -584,7 +584,23 @@ class ClientImpl : public ClientEndpoint {
     req->type = request_type_;
     req->data = std::move(request);
     auto future = client_->async_send_request(req);
-    if (future.wait_for(timeout) != std::future_status::ready) {
+    // Wait in slices so a blocking call returns promptly on shutdown instead
+    // of sitting out its whole timeout.
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    bool ready = false;
+    while (rclcpp::ok()) {
+      auto now = std::chrono::steady_clock::now();
+      if (now >= deadline) {
+        break;
+      }
+      auto slice = std::min<std::chrono::nanoseconds>(
+          deadline - now, std::chrono::milliseconds(50));
+      if (future.wait_for(slice) == std::future_status::ready) {
+        ready = true;
+        break;
+      }
+    }
+    if (!ready) {
       client_->remove_pending_request(future);
       return false;
     }
