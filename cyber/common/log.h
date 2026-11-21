@@ -22,6 +22,7 @@
 #define CYBER_COMMON_LOG_H_
 
 #include <cstdarg>
+#include <ostream>
 #include <string>
 
 #include "glog/logging.h"
@@ -73,9 +74,24 @@
 #define AWARN_IF(cond) ALOG_IF(WARN, cond, MODULE_NAME)
 #define AERROR_IF(cond) ALOG_IF(ERROR, cond, MODULE_NAME)
 #define AFATAL_IF(cond) ALOG_IF(FATAL, cond, MODULE_NAME)
+namespace apollo {
+namespace cyber {
+namespace common {
+/// Discards a log stream in conditional log macros. glog keeps its own
+/// LogMessageVoidify in a different namespace in every release, so Cyber
+/// uses this one.
+class LogMessageVoidify {
+ public:
+  LogMessageVoidify() {}
+  void operator&(std::ostream&) {}
+};
+}  // namespace common
+}  // namespace cyber
+}  // namespace apollo
+
 #define ALOG_IF(severity, cond, module) \
   !(cond) ? (void)0                     \
-          : google::LogMessageVoidify() & ALOG_MODULE(module, severity)
+          : ::apollo::cyber::common::LogMessageVoidify() & ALOG_MODULE(module, severity)
 
 #define ACHECK(cond) CHECK(cond) << LEFT_BRACKET << MODULE_NAME << RIGHT_BRACKET
 

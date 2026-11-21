@@ -50,6 +50,10 @@ API is now implemented on `rclcpp`.
   2. Prefix `/` if the name is not absolute.
   3. Collapse repeated `/` and drop any trailing `/`.
   4. Prefix any `/`-separated token that starts with a digit with `_`.
+  5. Move names that ROS 2 reserves for standard types (`/tf`,
+     `/tf_static`, `/clock`, `/rosout`, `/parameter_events`) under
+     `/apollo`. For example, Apollo's `/tf` channel becomes `/apollo/tf`,
+     and `apollo_ros2_bridge` publishes real `tf2_msgs/TFMessage` on `/tf`.
 
   For example, `/apollo/sensor/lidar-16/PointCloud2` becomes
   `/apollo/sensor/lidar_16/PointCloud2`.

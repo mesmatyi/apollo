@@ -31,6 +31,10 @@ TEST(NamingTest, ChannelToTopic) {
   EXPECT_EQ("/a/_3d_obj", ChannelToTopic("/a/3d_obj"));
   EXPECT_EQ("", ChannelToTopic(""));
   EXPECT_EQ("/", ChannelToTopic("/"));
+  EXPECT_EQ("/apollo/tf", ChannelToTopic("/tf"));
+  EXPECT_EQ("/apollo/tf_static", ChannelToTopic("tf_static"));
+  EXPECT_EQ("/apollo/clock", ChannelToTopic("/clock"));
+  EXPECT_EQ("/tf/extra", ChannelToTopic("/tf/extra"));
 }
 
 TEST(NamingTest, ToNodeName) {

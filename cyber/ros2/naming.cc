@@ -64,6 +64,15 @@ std::string ChannelToTopic(const std::string& channel) {
   if (result.empty()) {
     result = "/";
   }
+  // ROS 2 reserves these names for standard message types; Apollo channels
+  // with the same names carry protobuf payloads and move under /apollo.
+  static const char* kReserved[] = {"/tf", "/tf_static", "/clock", "/rosout",
+                                    "/parameter_events"};
+  for (const char* reserved : kReserved) {
+    if (result == reserved) {
+      return "/apollo" + result;
+    }
+  }
   return result;
 }
 

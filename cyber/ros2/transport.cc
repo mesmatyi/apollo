@@ -163,6 +163,17 @@ class IntraSubscription : public rclcpp::Waitable {
     if (msg) {
       callback_(msg);
     }
+    // With a MultiThreadedExecutor another thread may have consumed the
+    // guard-condition trigger while this reader's (mutually exclusive)
+    // callback group was busy; wake the executor again if work remains.
+    bool more = false;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      more = !queue_.empty();
+    }
+    if (more) {
+      gc_.trigger();
+    }
   }
 
   void set_on_ready_callback(

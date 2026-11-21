@@ -16,6 +16,8 @@ option(CYBER_BUILD_EXAMPLES "Build the Cyber API examples" ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
+# Defines PYTHON_INSTALL_DIR and registers the PYTHONPATH environment hook.
+_ament_cmake_python_register_environment_hook()
 find_package(apollo_msgs REQUIRED)
 find_package(class_loader REQUIRED)
 find_package(rclcpp REQUIRED)

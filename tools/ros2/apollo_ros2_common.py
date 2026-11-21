@@ -28,6 +28,12 @@ _TOPIC_INVALID = re.compile(r'[^A-Za-z0-9_/]')
 _NODE_INVALID = re.compile(r'[^A-Za-z0-9_]')
 
 
+# Topic names that ROS 2 reserves for standard message types. Apollo channels
+# with these names carry protobuf payloads, so they are moved under /apollo
+# (the apollo_ros2_bridge republishes standard tf2_msgs / rosgraph_msgs).
+RESERVED_TOPICS = ('/tf', '/tf_static', '/clock', '/rosout', '/parameter_events')
+
+
 def channel_to_topic(channel):
     """Maps a Cyber channel name onto a valid ROS 2 topic/service name."""
     if not channel:
@@ -37,7 +43,10 @@ def channel_to_topic(channel):
         name = '/' + name
     tokens = [t for t in name.split('/') if t]
     tokens = ['_' + t if t[0].isdigit() else t for t in tokens]
-    return '/' + '/'.join(tokens)
+    topic = '/' + '/'.join(tokens)
+    if topic in RESERVED_TOPICS:
+        topic = '/apollo' + topic
+    return topic
 
 
 def to_node_name(name):

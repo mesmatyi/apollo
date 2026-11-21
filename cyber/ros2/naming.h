@@ -32,6 +32,8 @@ namespace ros2 {
  *  2. a leading '/' is added
  *  3. repeated '/' are collapsed and a trailing '/' removed
  *  4. tokens starting with a digit are prefixed with '_'
+ *  5. names ROS 2 reserves for standard types (/tf, /tf_static, /clock,
+ *     /rosout, /parameter_events) are moved under /apollo
  */
 std::string ChannelToTopic(const std::string& channel);
 
