@@ -1,6 +1,6 @@
 # Apollo modules on ROS 2: build and test status
 
-Generated 2026-11-21 18:13 UTC from the colcon/CMake build of package `apollo` (`modules/`), GCC 13, CPU only (no CUDA/TensorRT/libtorch/Paddle).
+Generated 2026-11-21 18:18 UTC from the colcon/CMake build of package `apollo` (`modules/`), GCC 13, CPU only (no CUDA/TensorRT/libtorch/Paddle).
 
 How to reproduce, per module `<m>` (build dir of package apollo, configured with `-DAPOLLO_BUILD_TESTS=ON`):
 
@@ -33,9 +33,9 @@ C++ targets = libraries, components, plugins, shared modules and binaries (tests
 | audio | 3 | 0 | 0 | 2 | 1 | 1 | 0 |
 | bridge | 7 | 0 | 0 | 3 | 3 | 0 | 0 |
 | contrib | 2 | 0 | 0 | 0 | - | - | 0 |
-| data | 0 | 2 | 0 | 0 | - | - | 0 |
-| dreamview | 4 | 0 | 0 | 5 | 4 | 2 | 0 |
-| dreamview_plus | 1 | 0 | 1 | 0 | 0 | 1 | 0 |
+| data | 0 | 0 | 2 | 0 | - | - | 0 |
+| dreamview | 4 | 0 | 0 | 5 | 4 | 1 | 1 |
+| dreamview_plus | 0 | 0 | 2 | 0 | 0 | 0 | 1 |
 | perception | 16 | 0 | 138 | 27 | 26 | 1 | 44 |
 | prediction_plugin | 0 | 0 | 4 | 0 | - | - | 0 |
 | statistics | 2 | 0 | 1 | 0 | - | - | 0 |
@@ -143,10 +143,9 @@ Failed tests:
 
 ### data
 
-Failed to build:
+Skipped C++ targets (2), by root cause:
 
-- `//modules/data/tools/smart_recorder:apollo_data_tools_smart_recorder` (cc_library): Cyber API gap: cyber/tools/cyber_recorder/recorder.h no longer compiles (apollo::cyber::service_discovery not declared: missing #include of cyber/service_discovery/topology_manager.h) and apollo::cyber::record::Recorder is not exported by libcyber
-- `//modules/data/tools/smart_recorder:smart_recorder` (cc_binary): Cyber API gap: see apollo_data_tools_smart_recorder
+- 2: //cyber/tools/cyber_recorder:recorder: not provided by package cyber (cyber/tools/cyber_recorder/recorder.h)
 
 ### dreamview
 
@@ -154,19 +153,15 @@ Failed tests:
 
 - `dreamview_backend_common__websocket_handler_test`: Failed - not resolved: WebSocketTest.IntegrationTest receives no messages (server-side mg_websocket_write fails) with civetweb 1.16 (Apollo used an older civetweb); other cases pass
 
-Tests that did not compile/link:
-
-- `//modules/dreamview/backend:simulation_world_service_test`
+Skipped tests (1): 1: //cyber/blocker:blocker: not provided by package cyber (cyber/blocker/blocker_manager.h)
 
 ### dreamview_plus
 
-Skipped C++ targets (1), by root cause:
+Skipped C++ targets (2), by root cause:
 
-- 1: missing library -ltcmalloc
+- 2: //cyber/tools/cyber_recorder:recorder: not provided by package cyber (cyber/tools/cyber_recorder/recorder.h)
 
-Tests that did not compile/link:
-
-- `//modules/dreamview_plus/backend:simulation_world_service_test`
+Skipped tests (1): 1: //cyber/tools/cyber_recorder:recorder: not provided by package cyber (cyber/tools/cyber_recorder/recorder.h)
 
 ### perception
 
