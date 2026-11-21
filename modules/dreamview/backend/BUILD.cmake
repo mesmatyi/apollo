@@ -9,6 +9,7 @@ apollo_target(cc_test simulation_world_service_test
     //modules/dreamview/backend:apollo_dreamview_backend
     //modules/common/math:math
     @com_google_googletest//:gtest_main
+    //cyber/blocker:blocker
 )
 
 apollo_target(cc_library apollo_dreamview_backend

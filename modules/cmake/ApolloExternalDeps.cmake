@@ -276,6 +276,31 @@ apollo_external("@rs_driver" MISSING "RoboSense rs_driver SDK not installed")
 apollo_external("@vanjee_driver" MISSING "Vanjee vanjee_driver SDK not installed")
 
 ###############################################################################
+# Parts of the original Cyber API that package cyber may not provide: probe
+# them (compile + link against cyber::cyber) instead of assuming //cyber/...
+###############################################################################
+function(_apollo_probe_cyber label header code)
+  string(MAKE_C_IDENTIFIER "APOLLO_CYBER_HAS_${label}" var)
+  if(TARGET cyber::cyber)
+    set(CMAKE_REQUIRED_LIBRARIES cyber::cyber)
+    set(CMAKE_REQUIRED_QUIET ON)
+    check_cxx_source_compiles("#include \"${header}\"\nint main() { ${code} return 0; }" ${var})
+  endif()
+  if(${var})
+    apollo_external("${label}" cyber::cyber)
+  else()
+    apollo_external("${label}" MISSING "not provided by package cyber (${header})")
+  endif()
+endfunction()
+include(CheckCXXSourceCompiles)
+_apollo_probe_cyber("//cyber/tools/cyber_recorder:recorder"
+  "cyber/tools/cyber_recorder/recorder.h"
+  "auto f = &apollo::cyber::record::Recorder::Start; (void)f;")
+_apollo_probe_cyber("//cyber/blocker:blocker"
+  "cyber/blocker/blocker_manager.h"
+  "auto f = &apollo::cyber::blocker::BlockerManager::Instance; (void)f;")
+
+###############################################################################
 # Vendored //third_party packages (see ApolloThirdParty.cmake)
 ###############################################################################
 apollo_external("//third_party/tf2:tf2" apollo_tf2)

@@ -1,6 +1,6 @@
 # Apollo modules on ROS 2: build and test status
 
-Generated 2026-11-21 18:06 UTC from the colcon/CMake build of package `apollo` (`modules/`), GCC 13, CPU only (no CUDA/TensorRT/libtorch/Paddle).
+Generated 2026-11-21 18:13 UTC from the colcon/CMake build of package `apollo` (`modules/`), GCC 13, CPU only (no CUDA/TensorRT/libtorch/Paddle).
 
 How to reproduce, per module `<m>` (build dir of package apollo, configured with `-DAPOLLO_BUILD_TESTS=ON`):
 
@@ -23,25 +23,25 @@ C++ targets = libraries, components, plugins, shared modules and binaries (tests
 | planning | 86 | 0 | 2 | 86 | 84 | 2 | 1 |
 | prediction | 17 | 0 | 0 | 36 | 32 | 4 | 0 |
 | localization | 3 | 0 | 13 | 1 | 1 | 0 | 24 |
-| monitor | 2 | 0 | 0 | 1 | 0 | 1 | 0 |
+| monitor | 2 | 0 | 0 | 1 | 1 | 0 | 0 |
 | guardian | 1 | 0 | 0 | 0 | - | - | 0 |
 | storytelling | 2 | 0 | 0 | 0 | - | - | 0 |
-| task_manager | 0 | 2 | 0 | 0 | - | - | 0 |
+| task_manager | 2 | 0 | 0 | 0 | - | - | 0 |
 | transform | 2 | 0 | 0 | 1 | 1 | 0 | 0 |
 | external_command | 18 | 0 | 0 | 0 | - | - | 0 |
-| drivers | 41 | 2 | 9 | 10 | 10 | 0 | 0 |
-| audio | 0 | not attempted (3) | 0 | not attempted | - | - | 0 |
-| bridge | 1 | not attempted (6) | 0 | not attempted | - | - | 0 |
-| contrib | 2 | n/a | 0 | 0 | - | - | 0 |
-| data | 0 | not attempted (2) | 0 | 0 | - | - | 0 |
-| dreamview | 1 | not attempted (3) | 0 | not attempted | - | - | 0 |
-| dreamview_plus | 0 | not attempted (1) | 1 | not attempted | - | - | 0 |
-| perception | 12 | not attempted (8) | 134 | not attempted | - | - | 43 |
-| prediction_plugin | 0 | n/a | 4 | 0 | - | - | 0 |
-| statistics | 2 | n/a | 1 | 0 | - | - | 0 |
-| third_party_perception | 2 | n/a | 0 | 0 | - | - | 0 |
-| tools | 2 | not attempted (2) | 0 | 0 | - | - | 0 |
-| v2x | 0 | n/a | 5 | 0 | - | - | 11 |
+| drivers | 41 | 0 | 11 | 10 | 10 | 0 | 0 |
+| audio | 3 | 0 | 0 | 2 | 1 | 1 | 0 |
+| bridge | 7 | 0 | 0 | 3 | 3 | 0 | 0 |
+| contrib | 2 | 0 | 0 | 0 | - | - | 0 |
+| data | 0 | 2 | 0 | 0 | - | - | 0 |
+| dreamview | 4 | 0 | 0 | 5 | 4 | 2 | 0 |
+| dreamview_plus | 1 | 0 | 1 | 0 | 0 | 1 | 0 |
+| perception | 16 | 0 | 138 | 27 | 26 | 1 | 44 |
+| prediction_plugin | 0 | 0 | 4 | 0 | - | - | 0 |
+| statistics | 2 | 0 | 1 | 0 | - | - | 0 |
+| third_party_perception | 2 | 0 | 0 | 0 | - | - | 0 |
+| tools | 4 | 0 | 0 | 0 | - | - | 0 |
+| v2x | 0 | 0 | 5 | 0 | - | - | 11 |
 
 ## Details
 
@@ -108,20 +108,11 @@ Skipped tests (24): 24: @localization_msf: proprietary localization_msf library 
 
 ### monitor
 
-Failed tests:
-
-- `monitor__recurrent_runner_test`: Failed - was: undefined absl::flags symbol (abseil flags components not linked) - fixed in ApolloExternalDeps.cmake
-
 ### guardian
 
 ### storytelling
 
 ### task_manager
-
-Failed to build:
-
-- `//modules/task_manager:apollo_task_manager` (cc_library)
-- `//modules/task_manager:libtask_manager_component.so` (component)
 
 ### transform
 
@@ -129,21 +120,22 @@ Failed to build:
 
 ### drivers
 
-Failed to build:
-
-- `//modules/drivers/lidar/rslidar:librslidar_component.so` (component)
-- `//modules/drivers/lidar/vanjeelidar:libvanjeelidar_component.so` (component)
-
-Skipped C++ targets (9), by root cause:
+Skipped C++ targets (11), by root cause:
 
 - 3: //third_party/camera_library/smartereye:smartereye: smartereye SDK libraries are not in the source tree
 - 2: @adv_plat: proprietary adv_plat library not available
 - 1: @local_config_cuda: requires CUDA/ROCm/TensorRT (no GPU support)
 - 1: missing library -lhesai2-driver
 - 1: missing library -llivox_lidar_sdk_shared
+- 1: @rs_driver: RoboSense rs_driver SDK not installed
 - 1: missing library -linnoclientsdk
+- 1: @vanjee_driver: Vanjee vanjee_driver SDK not installed
 
 ### audio
+
+Failed tests:
+
+- `audio__siren_detection_test`: Failed - environment: torch::jit::load() opens /apollo/modules/audio/data/torch_siren_detection_model.pt literally (no /apollo -> $APOLLO_ROOT remap in libtorch)
 
 ### bridge
 
@@ -151,7 +143,20 @@ Skipped C++ targets (9), by root cause:
 
 ### data
 
+Failed to build:
+
+- `//modules/data/tools/smart_recorder:apollo_data_tools_smart_recorder` (cc_library): Cyber API gap: cyber/tools/cyber_recorder/recorder.h no longer compiles (apollo::cyber::service_discovery not declared: missing #include of cyber/service_discovery/topology_manager.h) and apollo::cyber::record::Recorder is not exported by libcyber
+- `//modules/data/tools/smart_recorder:smart_recorder` (cc_binary): Cyber API gap: see apollo_data_tools_smart_recorder
+
 ### dreamview
+
+Failed tests:
+
+- `dreamview_backend_common__websocket_handler_test`: Failed - not resolved: WebSocketTest.IntegrationTest receives no messages (server-side mg_websocket_write fails) with civetweb 1.16 (Apollo used an older civetweb); other cases pass
+
+Tests that did not compile/link:
+
+- `//modules/dreamview/backend:simulation_world_service_test`
 
 ### dreamview_plus
 
@@ -159,14 +164,22 @@ Skipped C++ targets (1), by root cause:
 
 - 1: missing library -ltcmalloc
 
+Tests that did not compile/link:
+
+- `//modules/dreamview_plus/backend:simulation_world_service_test`
+
 ### perception
 
-Skipped C++ targets (134), by root cause:
+Skipped C++ targets (138), by root cause:
 
-- 129: @local_config_cuda: requires CUDA/ROCm/TensorRT (no GPU support)
-- 5: @local_config_rocm: requires CUDA/ROCm/TensorRT (no GPU support)
+- 136: @local_config_cuda: requires CUDA/ROCm/TensorRT (no GPU support)
+- 2: @local_config_rocm: requires CUDA/ROCm/TensorRT (no GPU support)
 
-Skipped tests (43): 41: @local_config_cuda: requires CUDA/ROCm/TensorRT (no GPU support); 2: @local_config_rocm: requires CUDA/ROCm/TensorRT (no GPU support)
+Failed tests:
+
+- `perception_common_base__blob_test`: Subprocess aborted***Exception: - environment: BlobSimpleTest.TestPointersCPUGPU needs a CUDA device (aborts without GPU)
+
+Skipped tests (44): 42: @local_config_cuda: requires CUDA/ROCm/TensorRT (no GPU support); 2: @local_config_rocm: requires CUDA/ROCm/TensorRT (no GPU support)
 
 ### prediction_plugin
 
@@ -191,4 +204,53 @@ Skipped C++ targets (5), by root cause:
 - 5: @com_github_grpc_grpc//:grpc++: CMake target(s) gRPC::grpc++ not found
 
 Skipped tests (11): 11: @com_github_grpc_grpc//:grpc++: CMake target(s) gRPC::grpc++ not found
+
+## Environment notes
+
+- **Tests** are plain gtest executables registered with `add_test()`, label =
+  module name. They run from the repository root with `APOLLO_ROOT=<repo>`,
+  `CYBER_PATH=<cyber>/share/cyber`, `APOLLO_PLUGIN_*` pointing at the build
+  tree, and `OMP_NUM_THREADS=1` (see MUMPS below). `/apollo/...` paths are
+  remapped only by the cyber file utilities; code that opens such paths
+  directly (sqlite, libtorch `torch::jit::load`) fails here although the files
+  exist in the source tree.
+- **MUMPS deadlock (affects runtime too):** conda-forge's MUMPS 5.8.2
+  (`mumps-seq`, IPOPT's linear solver) hangs forever in its OpenMP L0
+  factorization (`dmumps_perform_copies`) when more than one OpenMP thread is
+  used. Every IPOPT user (planning smoothers, open space) hangs unless
+  `OMP_NUM_THREADS=1`. The tests set it; launch files for planning should too
+  (or install a MUMPS build without OpenMP).
+- **libtorch:** CPU libtorch 2.7.1 from the PyPI wheel in `/opt/libtorch_cpu`
+  (`-DAPOLLO_LIBTORCH_ROOT`). Its `lib/` also holds stub `libcudart.so.12` /
+  `libcupti.so.12` that report "no CUDA device" (test environment only).
+  `@libtorch_gpu` resolves to the CPU libtorch when CUDA is off.
+- **PCL:** PCL 1.8.1 from conda-forge (the only build compatible with the
+  protobuf 3.21 pin). Its headers need `boost/detail/endian.hpp` (removed in
+  Boost 1.73), provided by `modules/ros2_compat/pcl`. **Its libraries are
+  linked against Boost 1.66 (`libboost_*.so.1.66.0`, not installed)**: PCL
+  users compile and link (conda's `--allow-shlib-undefined`), but cannot be
+  loaded at runtime until a matching PCL/Boost is available.
+- **ADOL-C** (planning IPOPT smoothers) and **civetweb** (dreamview, monitor,
+  task_manager) are not on conda-forge; they were built from the Ubuntu
+  source tarballs with `tools/ros2/install_adolc.sh` and
+  `tools/ros2/install_civetweb.sh` (on Ubuntu: `libadolc-dev`,
+  `libcivetweb-dev`).
+- **No CUDA/TensorRT/Paddle/gRPC**: targets needing them are skipped
+  automatically; C++ sources calling the CUDA API without a `USE_GPU` guard
+  (dependency missing from the BUILD file) are detected by the generator.
+
+## Cyber API gaps hit by the modules
+
+- `apollo::cyber::blocker::BlockerManager` (`cyber/blocker/`, removed):
+  dreamview / dreamview_plus `simulation_world_service_test`.
+- `apollo::cyber::record::Recorder` (`cyber/tools/cyber_recorder/recorder.h`):
+  not exported by libcyber, and the header misses
+  `#include "cyber/service_discovery/topology_manager.h"`:
+  `modules/data/tools/smart_recorder`.
+- `apollo::cyber::record::Player` (`cyber/tools/cyber_recorder/player/`):
+  undefined in `libapollo_dreamview_plus_backend` (links, cannot load).
+- Headers of the new cyber no longer pull in some transitive includes the old
+  ones did (`cyber/task/task.h`, `cyber/common/util.h`,
+  `cyber/service_discovery/topology_manager.h`); the module sources now
+  include them directly.
 

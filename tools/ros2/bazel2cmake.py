@@ -112,23 +112,24 @@ _CUDA_API = re.compile(
     r'#\s*include\s*[<"](c10/cuda|ATen/cuda)/')
 
 
-# Vendor SDKs that some BUILD files use without declaring them (they come
-# from the Apollo docker image): include prefix -> external label.
-UNDECLARED_SDK_INCLUDES = {
-    'rs_driver/': '@rs_driver//:rs_driver',
-    'vanjee_driver/': '@vanjee_driver//:vanjee_driver',
-}
-_SDK_INCLUDE = re.compile(r'#\s*include\s*[<"](%s)' % '|'.join(
-    re.escape(k) for k in UNDECLARED_SDK_INCLUDES))
+# Requirements some sources have without a BUILD dependency: vendor SDKs
+# from the Apollo docker image, and parts of the old Cyber API that the ROS 2
+# cyber package may not provide (CMake checks those). (regex, label)
+UNDECLARED_REQUIREMENTS = [
+    (re.compile(r'#\s*include\s*[<"]rs_driver/'), '@rs_driver//:rs_driver'),
+    (re.compile(r'#\s*include\s*[<"]vanjee_driver/'), '@vanjee_driver//:vanjee_driver'),
+    (re.compile(r'#\s*include\s*"cyber/blocker/|\bblocker::BlockerManager\b'),
+     '//cyber/blocker:blocker'),
+]
 
 
-def undeclared_sdks(path):
+def undeclared_requirements(path):
     try:
         with open(path, encoding='utf-8', errors='replace') as f:
             text = f.read()
     except OSError:
         return []
-    return sorted(set(UNDECLARED_SDK_INCLUDES[m.group(1)] for m in _SDK_INCLUDE.finditer(text)))
+    return sorted(set(label for rx, label in UNDECLARED_REQUIREMENTS if rx.search(text)))
 
 
 def uses_cuda_api(path):
@@ -870,7 +871,7 @@ class Model(object):
                             if (CUDA_REQUIREMENT, ()) not in t.values['deps']:
                                 t.values['deps'].append((CUDA_REQUIREMENT, ()))
                         if not conds and v.endswith(CC_SRC_EXT + ('.h', '.hpp')):
-                            for sdk in undeclared_sdks(os.path.join(self.root, p)):
+                            for sdk in undeclared_requirements(os.path.join(self.root, p)):
                                 if (sdk, ()) not in t.values['deps']:
                                     t.values['deps'].append((sdk, ()))
                 if t.kind == 'proto':
