@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-tf2-msgs \
       ros-${ROS_DISTRO}-visualization-msgs ros-${ROS_DISTRO}-rosbag2 \
       ros-${ROS_DISTRO}-launch-ros \
+      ros-${ROS_DISTRO}-rmw-cyclonedds-cpp ros-${ROS_DISTRO}-rosidl-runtime-py \
+      ros-${ROS_DISTRO}-rosgraph-msgs ros-${ROS_DISTRO}-ros2cli-common-extensions \
       libprotobuf-dev protobuf-compiler \
       libgoogle-glog-dev libgflags-dev libgtest-dev libgmock-dev \
       nlohmann-json3-dev libtinyxml2-dev uuid-dev libncurses-dev \
