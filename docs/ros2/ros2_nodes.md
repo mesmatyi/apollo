@@ -96,6 +96,30 @@ The process node does not publish its (thousands of) parameters on
 parameters of the process node off; flags given as parameters at start still
 apply.
 
+## Cyber parameters are parameters
+
+Cyber has its own small parameter service (`apollo::cyber::ParameterServer`
+and `ParameterClient`, also in Python). The parameters of a `ParameterServer`
+are ordinary ROS 2 parameters of its node as well:
+
+```bash
+$ ros2 param get /my_node max_speed
+Double value is: 12.5
+$ ros2 param set /my_node max_speed 20.0      # ParameterServer::GetParameter() now returns 20.0
+```
+
+Bool, int, double and string parameters map directly; a protobuf parameter
+appears as a byte array. A parameter given to the node at start (launch file,
+`--ros-args -p max_speed:=33.0`) takes the place of the first value the
+program sets, so a launch file can configure a module that publishes its
+settings through a `ParameterServer`.
+
+Cyber's own protocol is still there for `ParameterClient`s, in a sub-namespace
+of the node so that it does not collide with the standard services:
+`<node>/cyber_parameters/get_parameter`, `.../set_parameter` and
+`.../list_parameters`, with native service types
+(`apollo_msgs/srv/CyberProtoParamName`, ...).
+
 ## Simulation time
 
 When `use_sim_time` is true on any Apollo node of a process, Cyber's clock
@@ -146,11 +170,20 @@ own log files, and nothing is printed twice on a console.
 | `APOLLO_ROSOUT_LEVEL` | lowest glog level forwarded to `/rosout` |
 | `APOLLO_EXECUTOR_THREADS`, `APOLLO_TASK_THREADS` | thread pool sizes |
 
+## Python
+
+Nodes made with `cyber_py3` are ordinary ROS 2 nodes too: parameter services,
+`use_sim_time`, and the ROS arguments of the command line (remapping,
+namespace, parameters; `-r __node:=` names the otherwise hidden process node).
+Python has no gflags, and `cyber_time.Time.now()` is the system clock as
+`apollo::cyber::Time::Now()` is in C++.
+
 ## Tests
 
-`cyber_ros2_test --gtest_filter=Ros2FeaturesTest.*` drives all of the above
-from a plain rclcpp node (parameter client, `/clock` publisher, `/rosout`
-subscription). `cyber/ros2/test/cli_interop_test.sh` does it with the `ros2`
-command line tools against `cyber_example_talker`, `cyber_example_listener`,
-`cyber_example_service` and `mainboard`: 21 checks, run with Fast DDS and
-with Cyclone DDS.
+`cyber_ros2_test --gtest_filter=Ros2FeaturesTest.*` (8 tests) drives all of
+the above from a plain rclcpp node (parameter client, `/clock` publisher,
+`/rosout` subscription). `cyber/ros2/test/cli_interop_test.sh` does it with
+the `ros2` command line tools against `cyber_example_talker`,
+`cyber_example_listener`, `cyber_example_service`, `mainboard` and the
+transport tests started with remapping rules: 22 checks, run with Fast DDS
+and with Cyclone DDS. `cyber/python/cyber_py3/test` covers the Python side.

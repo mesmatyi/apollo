@@ -208,7 +208,7 @@ writing `.record` files with protobuf payloads and descriptors, and
 |---|---|
 | `cyber_ros2_test` (C++, `NativeTypesTest.*`, 10 tests) | registry; all 801 types × 6 random messages round-trip protobuf → ROS 2 → CDR → ROS 2 → protobuf; presence, NaN-default and oneof rules; a mismatching definition falls back |
 | `cyber_ros2_test` (C++, `NativeTransportTest.*`, 10 tests) | Cyber writers, readers, raw readers/writers, latched channels, services and clients against plain rclcpp publishers, subscriptions, services and clients in the same process; no duplicates; fallback to `ProtoMessage` |
-| `cyber/ros2/test/cli_interop_test.sh` (21 checks per RMW) | the stock `ros2 topic`, `ros2 service`, `ros2 interface`, `ros2 param` tools against Cyber executables |
+| `cyber/ros2/test/cli_interop_test.sh` (22 checks per RMW) | the stock `ros2 topic`, `ros2 service`, `ros2 interface`, `ros2 param` tools against Cyber executables |
 | `cyber/python/cyber_py3/test/native_types_test.py` (24 tests) | the same conversion rules in Python for all 801 types; plain rclpy peers; C++ talker → Python reader, Python writer → C++ listener, Python client → C++ service; a random `ADCTrajectory` written by Python, recorded and played back by the C++ `cyber_recorder`, arrives unchanged |
 
 All of them pass with `rmw_fastrtps_cpp` and `rmw_cyclonedds_cpp`.
