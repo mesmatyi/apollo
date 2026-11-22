@@ -21,6 +21,9 @@
 #
 # Usage: cli_interop_test.sh [directory with the cyber executables
 #                             [example dag [library directory]]]
+# The composition check (an Apollo component in a standard component
+# container, started with `ros2 launch`) needs the cyber package installed
+# and is skipped otherwise.
 # The ROS 2 environment (and the apollo_msgs install) must be sourced. Without
 # arguments the installed cyber package is tested; the build passes its own
 # directories. Uses ROS_DOMAIN_ID (default 87) and both installed RMW
@@ -37,6 +40,7 @@ if [[ -n "${3:-}" ]]; then
   export APOLLO_LIB_PATH="$3${APOLLO_LIB_PATH:+:${APOLLO_LIB_PATH}}"
 fi
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-87}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK_DIR="$(mktemp -d)"
 cd "${WORK_DIR}" || exit 2
 PIDS=()
@@ -44,25 +48,36 @@ PASSED=0
 FAILED=0
 
 cleanup() {
+  # Each process was started in its own process group (`ros2 launch` starts
+  # more processes): interrupt the groups, then make sure they are gone.
   for pid in "${PIDS[@]:-}"; do
-    [[ -n "${pid}" ]] && kill "${pid}" 2>/dev/null
+    [[ -n "${pid}" ]] && kill -INT -- "-${pid}" 2>/dev/null
+  done
+  sleep 1
+  for pid in "${PIDS[@]:-}"; do
+    [[ -n "${pid}" ]] && kill -KILL -- "-${pid}" 2>/dev/null
   done
   wait 2>/dev/null
   PIDS=()
 }
 trap 'cleanup; rm -rf "${WORK_DIR}"' EXIT
 
-start() {  # start <log> <command...>
+start() {  # start <log> <command...>, in a process group of its own
   local log="$1"
   shift
-  "$@" > "${log}" 2>&1 &
+  setsid "$@" > "${log}" 2>&1 &
   PIDS+=("$!")
 }
 
-check() {  # check <description> <command...>: passes when the command does
+# check <description> <command...>: passes when the command does. The ROS 2
+# command line tools start a new process with an empty view of the graph for
+# every call, so a check is repeated for up to CHECK_TIMEOUT seconds before
+# it counts as failed.
+CHECK_TIMEOUT="${CHECK_TIMEOUT:-30}"
+check() {
   local description="$1"
   shift
-  if "$@" > check.out 2>&1; then
+  if retry "${CHECK_TIMEOUT}" "$@" > check.out 2>&1; then
     PASSED=$((PASSED + 1))
     echo "  ok    ${description}"
   else
@@ -153,6 +168,27 @@ run_suite() {
       -r /test/history:=/renamed/history \
       -r /test/history_raw:=/renamed/history_raw \
       -r /test/topology:=/renamed/topology
+  fi
+
+  # --- an Apollo component in a standard component container ------------------
+  if ros2 pkg prefix cyber > /dev/null 2>&1 && \
+     ros2 pkg prefix rclcpp_components > /dev/null 2>&1; then
+    start compose.log ros2 launch "${SCRIPT_DIR}/compose_test.launch.py"
+    check "an Apollo component loads into component_container_mt" \
+      retry 40 bash -c "timeout 30 ros2 node list --no-daemon 2>/dev/null | grep -qx /common"
+    check "a remapping of the launch file renames the channel" \
+      retry 20 bash -c "timeout 30 ros2 topic list -t --no-daemon 2>/dev/null | grep -qF '/renamed/prediction [apollo_msgs/msg/'"
+    check "the other channel keeps its name" \
+      bash -c "timeout 30 ros2 topic list --no-daemon 2>/dev/null | grep -qx /apollo/test"
+    check "a gflag given as a launch parameter is applied" \
+      bash -c "timeout 30 ros2 param get --no-daemon /common gflags.minloglevel 2>/dev/null | grep -q 'Integer value is: 2'"
+    check "the process node of a container is <container>_cyber and lists the flags" \
+      bash -c "timeout 30 ros2 param get --no-daemon /apollo_compose_test_cyber gflags.minloglevel 2>/dev/null | grep -q 'Integer value is: 2'"
+    check "the container keeps its own node" \
+      bash -c "timeout 30 ros2 node list --no-daemon 2>/dev/null | grep -qx /apollo_compose_test"
+    check "use_sim_time of the component makes the process follow /clock" \
+      bash -c "timeout 30 ros2 topic info --no-daemon /clock 2>/dev/null | grep -q 'Subscription count: [1-9]'"
+    cleanup
   fi
 
   # --- parameter file, use_sim_time, mainboard ---------------------------------

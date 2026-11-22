@@ -17,7 +17,8 @@ Cyclone DDS.
   its gflags as parameters, its `/rosout` publisher, its `/clock`
   subscription. It is called `apollo_cyber_<pid>`, or whatever the command
   line says with `-r __node:=<name>` (which is how `launch_ros` names a
-  process).
+  process). In a component container, whose own node already has that name,
+  it is `<name>_cyber`.
 
 All of them have the standard parameter services and `use_sim_time`.
 

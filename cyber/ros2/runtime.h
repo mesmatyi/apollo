@@ -73,7 +73,9 @@ class Runtime {
   /// The process node, spun by the background executor: used for service
   /// clients, standalone timers and graph queries, and the ROS 2 face of the
   /// process (its gflags as parameters, /rosout, /clock). Named
-  /// `apollo_cyber_<pid>` unless the command line has `-r __node:=<name>`.
+  /// `apollo_cyber_<pid>` unless the command line has `-r __node:=<name>`:
+  /// then `<name>`, or `<name>_cyber` inside a component container (whose
+  /// own node is called `<name>`).
   std::shared_ptr<NodeHandle> AuxNode();
 
   /// NodeOptions of nodes created by the Cyber API: ordinary ROS 2 nodes

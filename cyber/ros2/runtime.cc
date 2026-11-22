@@ -219,9 +219,13 @@ std::shared_ptr<NodeHandle> Runtime::AuxNode() {
       return aux_node_;
     }
   }
-  const std::string name = process_node_name_.empty()
-                               ? "apollo_cyber_" + std::to_string(getpid())
-                               : process_node_name_;
+  // `-r __node:=<name>` names the process. When the process is somebody
+  // else's (a component container, whose own node has that name) the process
+  // node is called <name>_cyber.
+  std::string name = "apollo_cyber_" + std::to_string(getpid());
+  if (!process_node_name_.empty()) {
+    name = owns_rclcpp_ ? process_node_name_ : process_node_name_ + "_cyber";
+  }
   auto aux = NodeHandle::CreateProcessNode(name);
   bool created = false;
   {
