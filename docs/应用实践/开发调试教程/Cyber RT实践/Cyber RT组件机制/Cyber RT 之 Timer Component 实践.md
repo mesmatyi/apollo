@@ -1,22 +1,22 @@
-## 实验内容
+## Experiment Content
 
-Component 是 Cyber RT 提供的用来构建功能模块的基础类，Component 有两种类型，分别为 Component 和 TimerComponent。相较于 Component，TimerComponent 不提供消息融合，也不由消息触发运行，而是由系统定时调用，可用来执行一些例行任务。本实验将编写一个 TimerComponent 实例，来模拟传感器产生数据。
+Component is the base class provided by Cyber RT for building functional modules. There are two types: Component and TimerComponent. Compared with Component, TimerComponent provides no message fusion and is not triggered by messages; instead it is called periodically by the system and can be used to perform routine tasks. In this experiment, you will write a TimerComponent example that simulates a sensor producing data.
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/36
 
-## 实验目的
+## Experiment Objectives
 
-- 深入理解 TimerComponent 的特性。
+- Gain a deep understanding of the characteristics of TimerComponent.
 
-- 掌握实现 TimerComponent 的方法及流程。
+- Master the method and workflow for implementing a TimerComponent.
 
-## 实验流程
+## Experiment Procedure
 
-### 1. 创建TimerComponent模板实例
+### 1. Create a TimerComponent Template Instance
 
-1. 在终端中，执行以下指令，在 component 文件夹下生成 timer_component_sensor 模板实例（功能包）。
+1. In the terminal, run the following command to generate the timer_component_sensor template instance (package) under the component folder.
 
    ```bash
    buildtool create --template timer_component component/timer_component_sensor
@@ -24,15 +24,15 @@ https://apollo.baidu.com/community/course/36
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3bc1b05.png)
 
-2. 使用 cd 指令，切换目录到生成的`timer_component_sensor`目录下，使用 tree 命令查看生成的 component 功能包的目录结构。
+2. Use the cd command to change to the generated `timer_component_sensor` directory, and use the tree command to view the directory structure of the generated component package.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_b89bc55.png)
 
-   其中，BUILD 文件为 TimerComponent 的源码编译的规则文件；conf 目录下，`timer_component_sensor.conf`为全局变量配置文件，`timer_component_sensor.pb.txt`为用户在 proto 文件中定义的可配置项的配置文件；`cyberfile.xml`为`timer_component_sensor`功能包的描述文件；dag 目录下的`timer_component_sensor.dag`文件中描述了`timer_component_sensor`功能包的依赖关系；launch 文件夹下的`timer_component_sensor.launch`为`timer_component_sensor`功能包的 launch 启动文件；proto 文件夹下的 BUILD 为用户在 proto 文件夹下定义的 protobuffer 文件的编译规则文件，`timer_component_sensor.proto`文件中用户可以定义自己的消息结构；`timer_component_sensor.cc`和`timer_component_sensor.h`两个文件为 TimerComponent 的源文件和头文件。
+   Among them, the BUILD file is the build rules file for the TimerComponent source code; under the conf directory, `timer_component_sensor.conf` is the global variable configuration file and `timer_component_sensor.pb.txt` is the configuration file for the configurable items the user defines in the proto file; `cyberfile.xml` is the description file of the `timer_component_sensor` package; the `timer_component_sensor.dag` file in the dag directory describes the dependencies of the `timer_component_sensor` package; `timer_component_sensor.launch` in the launch folder is the launch file of the `timer_component_sensor` package; BUILD in the proto folder is the build rules file for the protobuffer files the user defines in the proto folder, and in the `timer_component_sensor.proto` file the user can define their own message structures; `timer_component_sensor.cc` and `timer_component_sensor.h` are the source file and header file of the TimerComponent.
 
-### 2. 定义TimerComponent消息结构
+### 2. Define the TimerComponent Message Structure
 
-1. 在`timer_component_sensor.proto`中，添加以下消息数据结构。
+1. In `timer_component_sensor.proto`, add the following message data structures.
 
    ```bash
    syntax = "proto2";
@@ -54,11 +54,11 @@ https://apollo.baidu.com/community/course/36
     };
    ```
 
-   在 **TimerComponentSensorMsg** 中添加 content、msg_id 和 timestamp 3 项，分别表示消息内容，消息编号和消息发出时的时间戳。
+   In **TimerComponentSensorMsg**, add three items, content, msg_id and timestamp, which represent the message content, the message number and the timestamp when the message was sent, respectively.
 
-   在 **TimerComponentSensorConfig** 中添加可配置项 name 和 sensor_topic，用来配置`timer_component_sensor`的名称和输出数据的 channel。
+   In **TimerComponentSensorConfig**, add the configurable items name and sensor_topic, which configure the name of `timer_component_sensor` and the channel for the output data.
 
-2. 在 proto 文件夹下的 BUILD 文件中，添加 protobuffer 文件的编译规则。
+2. In the BUILD file in the proto folder, add the build rules for the protobuffer file.
 
    ```bash
        load("//tools:apollo_package.bzl", "apollo_package")
@@ -77,22 +77,22 @@ https://apollo.baidu.com/community/course/36
     cpplint()
    ```
 
-   由于没有新增 proto 文件，这里无需修改 BUILD 文件，如若新增 proto 文件，可参考 BUILD 文件中已有的配置规则，添加对应 proto 的编译规则。
+   Since no new proto file is added, the BUILD file does not need to be modified here. If you add a new proto file, refer to the existing rules in the BUILD file and add the corresponding build rule for that proto file.
 
-### 3. 配置TimerComponent的配置文件
+### 3. Configure the TimerComponent Configuration Files
 
-由于本实验没有涉及全局变量，这里无需对`timer_component_sensor.conf`文件进行修改；在`timer_component_sensor.pb.txt`中，配置`timer_component_sensor.proto`文件中定义的可配置项。
+Since this experiment does not involve global variables, the `timer_component_sensor.conf` file does not need to be modified here. In `timer_component_sensor.pb.txt`, configure the items defined in the `timer_component_sensor.proto` file.
 
 ```bash
 name: "sensor_first"
 sensor_topic:"/sensor/first"
 ```
 
-将`timer_component_sensor.proto`文件中 **TimerComponentSensorConfig** 消息中定义的 name 配置为`sensor_first`，将`sensor_topic`配置为`/sensor/first`。
+Configure name in the **TimerComponentSensorConfig** message defined in the `timer_component_sensor.proto` file as `sensor_first`, and configure `sensor_topic` as `/sensor/first`.
 
-### 4. 编写TimerComponent的源文件
+### 4. Write the TimerComponent Source Files
 
-1.  修改`timer_component_sensor.h`文件：
+1.  Modify the `timer_component_sensor.h` file:
 
     ```bash
     #pragma once
@@ -125,9 +125,9 @@ sensor_topic:"/sensor/first"
      } // namespace apollo
     ```
 
-        在`timer_component_sensor.h`文件中使用 **using** 引入将 **apollo::cyber** 命名空间下的 **Time** 和 **Write** 注入当前作用域中，在 **TimerComponentSensor** 类的中增加私有成员 **sensor_write**，**sensor_write** 是智能指针，指向 **Writer** 对象，**Writer** 对象可以写出 **TimerComponentSensorMsg** 数据。
+        In the `timer_component_sensor.h` file, use **using** to bring **Time** and **Writer** from the **apollo::cyber** namespace into the current scope, and add a private member **sensor_writer_** to the **TimerComponentSensor** class. **sensor_writer_** is a smart pointer to a **Writer** object, which can write out **TimerComponentSensorMsg** data.
 
-2.  修改`timer_component_sensor.cc`文件。
+2.  Modify the `timer_component_sensor.cc` file.
 
     ```bash
     #include "component/timer_component_sensor/timer_component_sensor_component.h"
@@ -165,11 +165,11 @@ sensor_topic:"/sensor/first"
      } // namespace apollo
     ```
 
-    在 Init 函数中增加智能指针 **sensor_write** 的初始化，
+    In the Init function, add initialization of the smart pointer **sensor_writer_**,
 
-    在 Proc 函数中创建 **TimerComponentSensorMsg** 消息，并通过 **sensor_writer** 发出消息到对应的 channel。
+    In the Proc function, create a **TimerComponentSensorMsg** message and send it to the corresponding channel through **sensor_writer_**.
 
-3.  修改 BUILD 文件。
+3.  Modify the BUILD file.
 
     ```bash
         load("//tools:apollo_package.bzl", "apollo_cc_library", "apollo_cc_binary", "apollo_package", "apollo_component")
@@ -207,11 +207,11 @@ sensor_topic:"/sensor/first"
      cpplint()
     ```
 
-    由于没有包含其它 proto 文件或者头文件，这里的 BUILD 文件无需修改。
+    Since no other proto files or header files are included, the BUILD file does not need to be modified here.
 
-### 5. 编译TimerComponent功能包
+### 5. Compile the TimerComponent Package
 
-在终端中，执行以下指令，编译 **timer_component_sensor** 功能包。
+In the terminal, run the following command to compile the **timer_component_sensor** package.
 
 ```bash
 buildtool build -p  component/timer_component_sensor
@@ -221,11 +221,11 @@ buildtool build -p  component/timer_component_sensor
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_acc4b93.png)
 
-编译成功，没有报错，若编译报错，请按照报错提示，修改代码后，重新编译，直到编译成功。
+The build succeeds without errors. If the build reports errors, modify the code according to the error messages and recompile until it succeeds.
 
-### 6. 修改TimerComponent的dag文件
+### 6. Modify the TimerComponent dag File
 
-在`timer_component_sensor.dag`文件中，将 interval 项的值改为 500，即每 500ms 运行一次。interval 值为 TimerComponent 的运行时间间隔。
+In the `timer_component_sensor.dag` file, change the value of the interval item to 500, i.e. run once every 500 ms. The interval value is the running time interval of the TimerComponent.
 
 ```bash
 module_config {
@@ -242,9 +242,9 @@ module_config {
 }
 ```
 
-### 7. 修改TimerComponent的launch文件
+### 7. Modify the TimerComponent launch File
 
-在<dag_conf>标签内的 dag 文件路径前加上“ ./ ” 。由于目前 cyber 与 apollo 绑定的比较紧密，编译完成后，系统会把编译产出及配置文件拷贝到 apollo 相应目录下，且执行文件时，系统会优先执行 apollo 目录下的文件，这样就会导致此处的配置无法起作用，这里加上“ ./ ”，就是告诉系统使用此处的 dag 文件来运行 component。
+Add "./" before the dag file path inside the <dag_conf> tag. Because cyber is currently tightly coupled with apollo, after compilation the system copies the build outputs and configuration files into the corresponding apollo directories, and when executing files it gives priority to the files in the apollo directory, so the configuration here would not take effect. Adding "./" tells the system to use the dag file here to run the component.
 
 ```bash
 <cyber>
@@ -256,11 +256,11 @@ module_config {
 </cyber>
 ```
 
-### 8. 运行TimerComponent
+### 8. Run the TimerComponent
 
-#### 方式一：使用mainboard运行timer_component_sensor.dag文件
+#### Method 1: Use mainboard to run the timer_component_sensor.dag file
 
-在终端中，输入以下指令，使用 mainboard 工具运行`timer_component_sensor.dag`文件，运行`timer_component_sensor`功能包。
+In the terminal, enter the following command to use the mainboard tool to run the `timer_component_sensor.dag` file and run the `timer_component_sensor` package.
 
 ```bash
 mainboard -d ./component/timer_component_sensor/dag/timer_component_sensor.dag
@@ -268,12 +268,12 @@ mainboard -d ./component/timer_component_sensor/dag/timer_component_sensor.dag
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_715e7a7.png)
 
-> 注意：执行命令时，切记不要漏掉 " ./ "。
-> 原因：由于目前 cyber 与 apollo 绑定的比较紧密，编译完成后，系统会把编译产出及配置文件拷贝到 apollo 相应目录下，且执行文件时，系统会优先执行 apollo 目录下的文件，这样就会导致此处的配置无法起作用，这里加上“ ./ ”，就是告诉系统使用此处的 dag 文件来运行 component。
+> Note: Do not forget the "./" when executing the command.
+> Reason: Because cyber is currently tightly coupled with apollo, after compilation the system copies the build outputs and configuration files into the corresponding apollo directories, and when executing files it gives priority to the files in the apollo directory, so the configuration here would not take effect. Adding "./" tells the system to use the dag file here to run the component.
 
-#### 方式二：使用cyber_launch运行timer_component_sensor.launch文件
+#### Method 2: Use cyber_launch to run the timer_component_sensor.launch file
 
-在终端中，也可以使用 cyber_launch 工具运行`timer_component_sensor.launch`文件，运行`timer_component_sensor`功能包。
+In the terminal, you can also use the cyber_launch tool to run the `timer_component_sensor.launch` file and run the `timer_component_sensor` package.
 
 ```bash
 cyber_launch start component/timer_component_sensor/launch/timer_component_sensor.launch
@@ -281,11 +281,11 @@ cyber_launch start component/timer_component_sensor/launch/timer_component_senso
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_cb25079.png)
 
-### 9. 查看TimerComponent运行结果
+### 9. View the TimerComponent Results
 
-#### 方式一：使用cyber_monitor工具查看timer_component_sensor运行结果。
+#### Method 1: Use the cyber_monitor tool to view the timer_component_sensor results.
 
-新启一个终端窗口，在终端中输入执行 cyber_monitor 命令，启动cyber_monitor工具。
+Open a new terminal window and run the cyber_monitor command to start the cyber_monitor tool.
 
 ```bash
 cyber_monitor
@@ -295,18 +295,18 @@ cyber_monitor
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_6f6ff13.png)
 
-在 cyber_monitor 工具中，可以看到有一条 channel 名为 `/sensor/first`，帧率为 2Hz 的消息，这条消息即为`timer_component_sensor`功能包发出的数据，可以按键盘的 **右方向** 键进入此 channel，查看消息内容。
+In the cyber_monitor tool, you can see a channel named `/sensor/first` with a frame rate of 2 Hz. This message is the data sent by the `timer_component_sensor` package. Press the **Right arrow** key on the keyboard to enter this channel and view the message content.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a60877d.png)
 
-在`/sensor/first` channel 中，可以看到消息的类型、帧率、消息数据大小以及消息的具体内容。
+In the `/sensor/first` channel, you can see the message type, frame rate, message data size and the specific message content.
 
-#### 方式二：使用cyber_channel工具查看timer_component_sensor运行结果。
+#### Method 2: Use the cyber_channel tool to view the timer_component_sensor results.
 
-在终端中，也可以使用 cyber_channel 命令查看输出消息。
+In the terminal, you can also use the cyber_channel command to view the output messages.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_dab2f2c.png)
 
-上图中，使用了`cyber_channel list`命令，列出存在的 channel；使用`cyber_channel hz /sensor/first`查看运行时间间隔；使用`cyber_channel echo /sensor/first`命令，打印消息内容。至于，其它 cyber_channel 指令，可以使用`cyber_channel -h`查看使用介绍。
+In the figure above, the `cyber_channel list` command is used to list the existing channels; `cyber_channel hz /sensor/first` is used to view the running time interval; and the `cyber_channel echo /sensor/first` command is used to print the message content. For other cyber_channel commands, use `cyber_channel -h` to see the usage instructions.
 
-好的，本次实验到此结束。
+Well, this concludes the experiment.

@@ -1,5 +1,5 @@
-# 计划列表
-这里列出会在未来添加的新功能，和已经完成的功能
+# Plan List
+Here are listed the new features that will be added in the future, along with the features that have been completed
 
-- [X] 已完成
-- [ ] 未完成
+- [X] Completed
+- [ ] Not completed

@@ -1,14 +1,14 @@
 
 # Panel
 
-## 摘要
-Panel组件是Dreamview中所有面板的容器，为各个面板提供了数据订阅（有Channel订阅与无Channel订阅），添加订阅Channel，更新订阅Channel，取消订阅，面板全屏，快捷键注册，面板大小监听以及其他相关信息。
+## Summary
+The Panel component is the container of all panels in Dreamview. It provides each panel with data subscription (subscription with a Channel and subscription without a Channel), adding a subscribed Channel, updating a subscribed Channel, unsubscribing, panel full screen, shortcut key registration, panel size listening, and other related information.
 
-## 数据订阅
-面板数据订阅包含面板初始化订阅，添加或更新Channel订阅以及取消订阅。
+## Data Subscription
+Panel data subscription includes the panel's initial subscription, adding or updating a Channel subscription, and unsubscribing.
 
-### 面板初始化订阅
-面板初始化订阅相关代码如下：
+### Panel Initial Subscription
+The code related to the panel's initial subscription is as follows:
 ```TypeScript
 useEffect(() => {
     if (!isMainConnected || metadata.length <= 0) return noop;
@@ -25,7 +25,7 @@ useEffect(() => {
             }
 
             const connectedSubj: CountedSubject<unknown> = handleSubscribe(curSubcibe);
-            // 2.若包含channel => subcribeToDataWithChannel => obs.push
+            // 2. If it contains a channel => subcribeToDataWithChannel => obs.push
             if (connectedSubj) {
                 connectedSubjectsRef.current.push({
                     name,
@@ -64,15 +64,15 @@ useEffect(() => {
 }, [metadata, isMainConnected]);
 ```
 
-该useEffect作用是处理面板初始化传入的订阅信息。主要过程如下：
-1. 遍历订阅信息subscribeInfo，过滤掉metadata中不存在相关name的订阅信息
-2. 调用handleSubscribe来处理数据订阅，handleSubscribe可以处理不同的订阅类型：无Channel订阅，有明确Channel名称的订阅，Channel为default的订阅
-3. 将handleSubscribe处理得到的CountedSubject存入connectedSubjectsRef
-4. 遍历connectedSubjectsRef，为每个CountedSubject声明面板提供的对应的订阅函数，完成初始化数据订阅
+This useEffect handles the subscription information passed in when the panel is initialized. The main process is as follows:
+1. Traverse the subscription information subscribeInfo and filter out the subscription information whose name does not exist in metadata
+2. Call handleSubscribe to handle the data subscription. handleSubscribe can handle different subscription types: subscription without a Channel, subscription with an explicit Channel name, and subscription where the Channel is default
+3. Store the CountedSubject obtained from handleSubscribe in connectedSubjectsRef
+4. Traverse connectedSubjectsRef and declare, for each CountedSubject, the corresponding subscription function provided by the panel, completing the initial data subscription
 
-### 添加订阅Channel & 更新订阅Channel
+### Adding a Subscribed Channel & Updating a Subscribed Channel
 
-添加Channel和更新Channel的主要逻辑都在addChannel函数中：
+The main logic for adding a Channel and updating a Channel is in the addChannel function:
 ```TypeScript
 const addChannel = useCallback(
     (newChannelInfo: SubscribeInfo) => {
@@ -86,7 +86,7 @@ const addChannel = useCallback(
             });
 
             if (targetSubjectIndex === -1) {
-                // 不存在 => 新增订阅
+                // Does not exist => add a new subscription
                 const newConnectedSubj: CountedSubject<unknown> = handleSubscribe(newChannelInfo);
                 if (newConnectedSubj) {
                     const subscription = newConnectedSubj.subscribe((val) => {
@@ -111,7 +111,7 @@ const addChannel = useCallback(
                     });
                 }
             } else {
-                // 存在 => 重新订阅
+                // Exists => resubscribe
                 const subscriptionIndex = subscriptionsRef.current.findIndex(
                     (subscription) => subscription.name === newChannelInfo.name,
                 );
@@ -132,7 +132,7 @@ const addChannel = useCallback(
                         }
                     });
 
-                    // 2.2替换掉connectedSubjectsRef.current数组中对应的subject
+                    // 2.2 Replace the corresponding subject in the connectedSubjectsRef.current array
                     curSubjects[targetSubjectIndex] = {
                         name: newChannelInfo.name,
                         connectedSubject: newConnectedSubj,
@@ -150,20 +150,20 @@ const addChannel = useCallback(
 );
 ```
 
-addChannel可以处理添加和更新Channel信息，主要流程如下：
-1. 遍历connectedSubjectsRef查找当前新Channel对应name是否已经订阅
-2. 若未订则调用handleSubscribe来新增订阅，若已订阅则重新订阅
+addChannel can handle adding and updating Channel information. The main flow is as follows:
+1. Traverse connectedSubjectsRef to find whether the name corresponding to the current new Channel is already subscribed
+2. If it is not subscribed, call handleSubscribe to add a new subscription; if it is already subscribed, resubscribe
 
-addChannel在Panel中有两处使用：
+addChannel is used in two places in Panel:
 ```TypeScript
 useNotifyInitialChanel(panelId, addChannel);
 useUpdateChannel(panelId, addChannel);
 ```
-useNotifyInitialChanel是用于ChannelSlector（Channel下拉框选择器）初始选择默认Channel
-useUpdateChannel是用于更新Channel
+useNotifyInitialChanel is used for the ChannelSlector (Channel drop-down selector) to initially select the default Channel
+useUpdateChannel is used to update the Channel
 
-### 取消订阅
-取消订阅的逻辑在closeSubcription中：
+### Unsubscribing
+The unsubscribe logic is in closeSubcription:
 
 ```TypeScript
 const closeSubcription = useCallback(
@@ -191,14 +191,14 @@ const closeSubcription = useCallback(
     [isMainConnected],
 );
 ```
-取消订阅逻辑如下：
-1. 在connectedSubjectsRef查找要取消订阅的name，若存在则进行取消操作
-2. 找到对应subscription，执行curSubscription.subscription.unsubscribe();
-3. 更新subscriptionsRef（保存已订阅的subscription[]）与connectedSubjectsRef（保存已订阅的Subject[]）
+The unsubscribe logic is as follows:
+1. Find the name to unsubscribe in connectedSubjectsRef, and if it exists, perform the cancellation
+2. Find the corresponding subscription and execute curSubscription.subscription.unsubscribe();
+3. Update subscriptionsRef (which stores the subscribed subscription[]) and connectedSubjectsRef (which stores the subscribed Subject[])
 
-## 面板大小监听
+## Panel Size Listening
 
-面板全屏功能是基于react-resize-detector完成的，面板开发者可使用onPanelResize来监听面板的宽高：
+The panel full-screen feature is implemented based on react-resize-detector, and panel developers can use onPanelResize to listen to the panel's width and height:
 ```TypeScript
 const { ref: panelRootRef } = useResizeDetector({
     onResize: (width: number, height: number) => {
@@ -224,12 +224,12 @@ const onPanelResize = useCallback((onResize: OnResizeCallback) => {
     }
 }, []);
 ```
-其中panelRootRef为PanelRoot组件的ref
+Here panelRootRef is the ref of the PanelRoot component
 
-## 面板全屏
+## Panel Full Screen
 
-面板全屏逻辑的代码位于modules/dreamview_plus/frontend/packages/dreamview-core/src/components/panels/base/RenderTile/index.tsx
-进入全屏的相关代码如下：
+The code of the panel full-screen logic is located at modules/dreamview_plus/frontend/packages/dreamview-core/src/components/panels/base/RenderTile/index.tsx
+The code related to entering full screen is as follows:
 
 ```TypeScript
 const enterFullScreen = useCallback(async () => {
@@ -256,9 +256,9 @@ const enterFullScreen = useCallback(async () => {
 }, [inFullScreen, panelId]);
 ```
 
-进入和退出全屏主要通过调用_setFullScreen更新全屏状态。
-此外，还支持进入和退出全屏的钩子函数的配置。主要通过hooksManager来管理不同面板的进入和退出全屏钩子函数。
-在Panel中通过使用registerFullScreenHooks来注册相关钩子函数：
+Entering and exiting full screen mainly update the full-screen state by calling _setFullScreen.
+In addition, configuration of hook functions for entering and exiting full screen is also supported. The hooksManager is mainly used to manage the enter and exit full-screen hook functions of different panels.
+In Panel, the related hook functions are registered by using registerFullScreenHooks:
 
 ```TypeScript
 const registerFullScreenHooks = useCallback((hookConfig: FullScreenHookConfig) => {
@@ -266,7 +266,7 @@ const registerFullScreenHooks = useCallback((hookConfig: FullScreenHookConfig) =
 }, []);
 ```
 
-通过<PanelTileProvider />传入enterFullScreen与exitFullScreen：
+Pass in enterFullScreen and exitFullScreen through <PanelTileProvider />:
 
 ```TypeScript
 <PanelTileProvider
@@ -279,15 +279,15 @@ const registerFullScreenHooks = useCallback((hookConfig: FullScreenHookConfig) =
 </PanelTileProvider>
 ```
 
-在Panel中通过usePanelTileContext获取：
+Obtain them in Panel through usePanelTileContext:
 ```TypeScript
   const { enterFullScreen, exitFullScreen, fullScreenFnObj } = usePanelTileContext();
 ```
 
-## 快捷键注册
+## Shortcut Key Registration
 
-面板的快捷键注册相关接口主要有setKeyDownHandlers与removeKeyDownHandlers。
-setKeyDownHandlers的作用是保存当前Panel的快捷键状态与store中的状态：
+The interfaces related to a panel's shortcut key registration are mainly setKeyDownHandlers and removeKeyDownHandlers.
+setKeyDownHandlers saves the current Panel's shortcut key state and the state in the store:
 
 ```TypeScript
 const setKeyDownHandlers = useCallback((handlers: KeyHandlers[]) => {
@@ -305,7 +305,7 @@ const setKeyDownHandlers = useCallback((handlers: KeyHandlers[]) => {
 }, []);
 ```
 
-快捷键注册实现逻辑主要在<KeyListener />组件中，快捷键注册主要依赖于rxjs的fromEvent实现：
+The shortcut key registration logic is mainly implemented in the <KeyListener /> component, and the registration mainly relies on rxjs's fromEvent:
 ```TypeScript
 useEffect(() => {
     if (keyDownHandlers) {
@@ -327,7 +327,7 @@ useEffect(() => {
     }
 
     return () => {
-        // 想要清空keyDownEventRef.current注册的所有回调
+        // Want to clear all callbacks registered in keyDownEventRef.current
         for (const sp of subscriptionsRef.current) {
             sp.unsubscribe();
         }
@@ -336,15 +336,15 @@ useEffect(() => {
     };
 }, [keyDownHandlers]);
 ```
-上述代码主要逻辑如下：
-1. 通过fromEvent拿到keydown事件
-2. 通过getMultiPressedKey获得一个可以配置快捷键事件回调的setKeyDown
-3. 使用setKeyDown配置相关快捷键与对应回调函数（当前面板选中即activeRef.current时回调逻辑才会执行）
-4. getMultiPressedKey的作用类似工厂函数，用于生产各事件的快捷键配置函数
+The main logic of the above code is as follows:
+1. Get the keydown event through fromEvent
+2. Obtain a setKeyDown that can configure shortcut key event callbacks through getMultiPressedKey
+3. Use setKeyDown to configure the related shortcut keys and the corresponding callback functions (the callback logic is executed only when the current panel is selected, that is, activeRef.current)
+4. getMultiPressedKey acts like a factory function, used to produce the shortcut key configuration functions for each event
 
-## 面板选中
+## Panel Selection
 
-面板选中/激活依赖 <PanelRoot id={panelId} style={style} onClick={onPanleClick} ref={panelRootRef} /> 的onClick事件，处理逻辑如下：
+Panel selection/activation relies on the onClick event of <PanelRoot id={panelId} style={style} onClick={onPanleClick} ref={panelRootRef} />, and the handling logic is as follows:
 
 ```TypeScript
 const onPanleClick: React.MouseEventHandler<HTMLDivElement> = useCallback(() => {
@@ -354,8 +354,8 @@ const onPanleClick: React.MouseEventHandler<HTMLDivElement> = useCallback(() => 
 }, [isSelected, panelInfoDispatch]);
 ```
 
-更新面板激活态通过更新PanelInfoStore中的selectedPanelId实现。
-UI逻辑位置：modules/dreamview_plus/frontend/packages/dreamview-core/src/components/panels/base/RenderTile/index.tsx
+Updating the panel's activated state is implemented by updating selectedPanelId in PanelInfoStore.
+UI logic location: modules/dreamview_plus/frontend/packages/dreamview-core/src/components/panels/base/RenderTile/index.tsx
 
 ```TypeScript
 const isSelected = useMemo(() => panelInfoState?.selectedPanelIds?.has(panelId) ?? false, [panelInfoState]);
@@ -369,10 +369,10 @@ const finalCls = `${cx(classes['panel-item-container'], {
 })}`;
 ```
 
-## Channel选择器
+## Channel Selector
 
-Channel选择器为Panel提供了切换Channel的功能。
-主要逻辑位于：modules/dreamview_plus/frontend/packages/dreamview-core/src/components/panels/base/ChannelSelect/demo.tsx
+The Channel selector provides Panel with the ability to switch Channels.
+The main logic is located at: modules/dreamview_plus/frontend/packages/dreamview-core/src/components/panels/base/ChannelSelect/demo.tsx
 
 ```TypeScript
 function DemoChannelSelect(props: RenderToolbarProps) {
@@ -426,5 +426,5 @@ function DemoChannelSelect(props: RenderToolbarProps) {
 }
 ```
 
-主要逻辑为每次切换时缓存，并调用updateChannel发布更新Channel的事件，通知Pannel更新Channel。
-当首次加载时，优先取缓存Channel其次取channels数组中第一个作为默认值。
+The main logic is to cache on every switch and call updateChannel to publish an event to update the Channel, notifying Pannel to update the Channel.
+On the first load, the cached Channel is taken first, and otherwise the first one in the channels array is taken as the default value.

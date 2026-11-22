@@ -18,6 +18,8 @@
 
 #include <termios.h>
 
+#include <iomanip>
+
 #include "cyber/init.h"
 
 namespace apollo {

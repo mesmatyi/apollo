@@ -1,41 +1,41 @@
-### 如何使用gdb工具调试？
+### How to Debug with gdb?
 
 ![](images/gdb_mind.png)
 
-#### GDB概述
+#### GDB Overview
 
-GDB，GNU项目调试器，允许您查看另一个程序在执行时“内部”发生了什么，或者其他程序在崩溃时正在做什么。
+GDB, the GNU Project debugger, allows you to see what is going on "inside" another program while it executes, or what another program was doing at the moment it crashed.
 
-GDB可以做四种主要的事情（加上其他支持这些事情的事情）来帮助您在行动中捕捉错误：
+GDB can do four main kinds of things (plus other things in support of these) to help you catch bugs in the act:
 
-- 启动程序，指定任何可能影响其行为的内容
-- 使程序在指定条件下停止
-- 检查程序停止时发生了什么
-- 更改程序中的内容，以便您可以尝试纠正一个错误的影响，然后继续了解另一个错误
+- Start your program, specifying anything that might affect its behavior
+- Make your program stop on specified conditions
+- Examine what has happened when your program has stopped
+- Change things in your program, so you can experiment with correcting the effects of one bug and go on to learn about another
 
-这些程序可能与GDB（本地）在同一台机器上执行，也可能在另一台机器（远程）上执行，或者在模拟器上执行。GDB可以在大多数流行的UNIX和Microsoft Windows变体以及macOS上运行。
+These programs may be executed on the same machine as GDB (native), on another machine (remote), or on a simulator. GDB can run on most popular UNIX and Microsoft Windows variants, as well as on macOS.
 
-#### 下载gdb工具
+#### Download the gdb Tool
 
-在apollo容器中没有内置gdb调试工具，需要用户自行下载
+The gdb debugging tool is not built into the apollo container, so users need to download it themselves
 
 ```shell
 sudo apt install gdb
 ```
 
-#### 使用gdb编译Apollo代码
+#### Compile Apollo Code with Debug Information
 
-在使用buildtool工具编译代码时，可通过参数--dbg将调试信息加到编译结果中
+When compiling code with the buildtool tool, you can add debug information to the build output with the --dbg parameter
 
 ```shell
 buildtool build --dbg 
 ```
 
-#### 启动GDB
+#### Start GDB
 
 ##### gdb program
 
-在Apollo中，启动一个模块通常是通过mainboard+dag文件的方式启动，所以我们可以将mainboard作为progarm, dag文件作为参数传入
+In Apollo, a module is usually started via mainboard plus a dag file, so we can use mainboard as the program and pass the dag file as an argument
 
 ```shell
 gdb --args mainboard -d modules/my_component/dag/my_component.dag
@@ -43,15 +43,15 @@ gdb --args mainboard -d modules/my_component/dag/my_component.dag
 
 ![](images/gdb_mainboard.png)
 
-输出 "Reading symbols from mainboard...done." 表明程序已加载
+The output "Reading symbols from mainboard...done." indicates that the program has been loaded
 
-#### 调试程序
+#### Debug the Program
 
-##### 设置断点
+##### Set a Breakpoint
 
-设置断点的命令是break, 缩写形式为b
+The command to set a breakpoint is break, abbreviated b
 
-- 设置断点在MyComponent::Init()函数入口处
+- Set a breakpoint at the entry of the MyComponent::Init() function
   
   ```shell
   (gdb) b MyComponent::Init
@@ -59,23 +59,23 @@ gdb --args mainboard -d modules/my_component/dag/my_component.dag
 
 ![](images/gdb_b_init.png)
 
-注：命令行会提示“Function "MyComponent::Init" not defined”，这是因为我们想要调试的程序是动态库，此时还没有被调用。下一行“Make breakpoint pending on future shared library load? (y or [n])”会询问在之后共享库加载后设置断点，此时输入"y"即可
+Note: The command line will prompt "Function "MyComponent::Init" not defined". This is because the program we want to debug is a dynamic library that has not been loaded yet. The next line, "Make breakpoint pending on future shared library load? (y or [n])", asks whether to set the breakpoint once the shared library is loaded later; enter "y" at this point
 
-##### 查看断点信息
+##### View Breakpoint Information
 
-查看断点信息的命令是info break, 缩写形式为i b
+The command to view breakpoint information is info break, abbreviated i b
 
 ```shell
 (gdb) info break
 ```
 
-在上一步中我们在MyComponent::Init函数处设置了断点，通过info break，我们可以看到设置的断点信息
+In the previous step we set a breakpoint at the MyComponent::Init function. With info break, we can see the information about the breakpoints that were set
 
 ![](images/gdb_info_command.png)
 
-##### 运行程序
+##### Run the Program
 
-当我们设置好断点后，此时我们再次运行，断点等信息即可加入到调试中
+After the breakpoints are set, run again and the breakpoint information will be included in the debugging session
 
 ```shell
 (gdb) r
@@ -83,15 +83,15 @@ gdb --args mainboard -d modules/my_component/dag/my_component.dag
 
 ![](images/gdb_r_command.png)
 
-程序运行到断点处(MyComponent::Init)
+The program runs to the breakpoint (MyComponent::Init)
 
-##### 单条语句执行
+##### Execute Single Statements
 
-单条运行程序命令是next和step,缩写形式为n和s
+The commands for running the program one statement at a time are next and step, abbreviated n and s
 
-next: 单步执行程序，跳过函数调用
+next: execute the program one step at a time, stepping over function calls
 
-step: 单步执行程序，进入函数调用
+step: execute the program one step at a time, stepping into function calls
 
 ```shell
 (gdb) n
@@ -103,9 +103,9 @@ step: 单步执行程序，进入函数调用
 
 ![](images/gdb_n_command.png)
 
-##### 查看函数堆栈信息
+##### View the Function Call Stack
 
-查看函数堆栈信息的命令是backtrace, 缩写形式为bt
+The command to view the function call stack is backtrace, abbreviated bt
 
 ```shell
 (gdb) bt
@@ -113,7 +113,7 @@ step: 单步执行程序，进入函数调用
 
 ![](images/gdb_bt_command.png)
 
-##### 继续运行，直到结束
+##### Continue Running Until the End
 
 ```shell
 (gdb) c
@@ -121,4 +121,4 @@ step: 单步执行程序，进入函数调用
 
 ![](images/gdb_third_c_command.png)
 
-这时我们已经简单的调试了我们的程序，如果您有更多的调试项，可参考[gdb官方文档](https://www.sourceware.org/gdb/documentation/)
+At this point we have done some simple debugging of our program. If you want more debugging options, refer to the [official gdb documentation](https://www.sourceware.org/gdb/documentation/)

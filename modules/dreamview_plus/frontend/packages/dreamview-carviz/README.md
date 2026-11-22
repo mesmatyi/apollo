@@ -7,59 +7,59 @@
 [![NPM downloads](http://img.shields.io/npm/dm/dreamview-carviz.svg?style=flat-square)](http://www.npmtrends.com/dreamview-carviz)
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/hxj1234/dreamview-carviz.svg)](http://isitmaintained.com/project/hxj1234/dreamview-carviz "Percentage of issues still open")
 
-最好用的 `JS|TS` 第三方库脚手架
+The best scaffold for `JS|TS` third-party libraries
 
-## :star: 特性
+## :star: Features
 
-- 支持ES6+或TypeScript编写源码，编译生成生产代码
-- 多环境支持（支持浏览器原生，支持AMD，CMD，支持Webpack，Rollup，fis等，支持Node）
-- 集成[jsmini](https://github.com/jsmini)
+- Supports writing source code in ES6+ or TypeScript, compiled to produce production code
+- Multi-environment support (supports native browsers, AMD, CMD, Webpack, Rollup, fis, etc., and Node)
+- Integrates [jsmini](https://github.com/jsmini)
 
-> 注意: 如果不同时使用 `export` 与 `export default` 可打开 `legacy模式`，`legacy模式` 下的模块系统可以兼容 `ie6-8`，见rollup配置文件
+> Note: If you do not use `export` and `export default` at the same time, you can turn on `legacy mode`. The module system in `legacy mode` is compatible with `ie6-8`; see the rollup configuration file
 
-## :pill: 兼容性
-单元测试保证支持如下环境：
+## :pill: Compatibility
+Unit tests ensure support for the following environments:
 
 | IE   | CH   | FF   | SF   | OP   | IOS  | Android   | Node  |
 | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----- |
 | 6+   | 29+ | 55+  | 9+   | 50+  | 9+   | 4+   | 4+ |
 
-**注意：编译代码依赖ES5环境，对于ie6-8需要引入[es5-shim](http://github.com/es-shims/es5-shim/)才可以兼容，可以查看[demo/demo-global.html](./demo/demo-global.html)中的例子**
+**Note: The compiled code depends on an ES5 environment. For ie6-8, you need to include [es5-shim](http://github.com/es-shims/es5-shim/) for compatibility; see the example in [demo/demo-global.html](./demo/demo-global.html)**
 
-## :open_file_folder: 目录介绍
+## :open_file_folder: Directory Introduction
 
 ```
 .
-├── demo 使用demo
-├── dist 编译产出代码
-├── doc 项目文档
-├── src 源代码目录
-├── test 单元测试
-├── CHANGELOG.md 变更日志
-└── TODO.md 计划功能
+├── demo usage demo
+├── dist compiled output code
+├── doc project documentation
+├── src source code directory
+├── test unit tests
+├── CHANGELOG.md changelog
+└── TODO.md planned features
 ```
 
-## :rocket: 使用者指南
+## :rocket: User Guide
 
-通过npm下载安装代码
+Download and install the code through npm
 
 ```bash
 $ npm install --save dreamview-carviz
 ```
 
-如果你是node环境
+If you are in a node environment
 
 ```js
 var base = require('dreamview-carviz');
 ```
 
-如果你是webpack等环境
+If you are in a webpack or similar environment
 
 ```js
 import base from 'dreamview-carviz';
 ```
 
-如果你是requirejs环境
+If you are in a requirejs environment
 
 ```js
 requirejs(['node_modules/dreamview-carviz/dist/index.aio.js'], function (base) {
@@ -67,54 +67,54 @@ requirejs(['node_modules/dreamview-carviz/dist/index.aio.js'], function (base) {
 })
 ```
 
-如果你是浏览器环境
+If you are in a browser environment
 
 ```html
 <script src="node_modules/dreamview-carviz/dist/index.aio.js"></script>
 ```
 
-## :bookmark_tabs: 文档
+## :bookmark_tabs: Documentation
 [API](./doc/api.md)
 
-## :kissing_heart: 贡献者指南
-首次运行需要先安装依赖
+## :kissing_heart: Contributor Guide
+For the first run, install the dependencies first
 
 ```bash
 $ npm install
 ```
 
-一键打包生成生产代码
+Build the production code with one command
 
 ```bash
 $ npm run build
 ```
 
-运行单元测试:
+Run the unit tests:
 
 ```bash
 $ npm test
 ```
 
-> 注意：浏览器环境需要手动测试，位于`test/browser`
+> Note: The browser environment needs to be tested manually, located in `test/browser`
 
-修改 package.json 中的版本号，修改 README.md 中的版本号，修改 CHANGELOG.md，然后发布新版
+Modify the version number in package.json, the version number in README.md, and CHANGELOG.md, then release the new version
 
 ```bash
 $ npm run release
 ```
 
-将新版本发布到npm
+Publish the new version to npm
 
 ```bash
 $ npm publish
 ```
 
-## 贡献者列表
+## Contributors
 
 [contributors](https://github.com/hxj1234/dreamview-carviz/graphs/contributors)
 
-## :gear: 更新日志
+## :gear: Changelog
 [CHANGELOG.md](./CHANGELOG.md)
 
-## :airplane: 计划列表
+## :airplane: Plan List
 [TODO.md](./TODO.md)

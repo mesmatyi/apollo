@@ -1,17 +1,17 @@
-### 问题描述:
+### Problem Description:
 
-编译报错: collect2: error: ld returned 1 exit status，并且出现glibc符号
+Compilation fails with: collect2: error: ld returned 1 exit status, and glibc symbols appear in the error.
 
 ![](images/build_error_ld.png)
 
-### 问题原因:
+### Cause:
 
-在arm架构下的nvidia-docker-runtime，会将宿主机的和gpu相关的一些动态库挂载进容器内。
-目前apollo适配的ubuntu系统版本是20.04，对应glibc版本是2.31，当用户使用22.04的ubuntu时，对应的glibc版本是2.33+，容器内缺少这些符号，导致链接这些动态库的时候ld报错。
+On the ARM architecture, nvidia-docker-runtime mounts some GPU-related dynamic libraries from the host machine into the container.
+The Ubuntu version that Apollo currently supports is 20.04, which corresponds to glibc 2.31. When the user uses Ubuntu 22.04, the corresponding glibc version is 2.33+, and the container lacks these symbols, so ld reports an error when linking these dynamic libraries.
 
 
-### 解决方案:
+### Solution:
 
-arm架构下，目前apollo支持的版本是ubuntu 20.04，建议用户使用这一版本的ubuntu
-x86则没有这个问题
+On the ARM architecture, the version Apollo currently supports is Ubuntu 20.04, and users are advised to use this version of Ubuntu.
+x86 does not have this problem.
 

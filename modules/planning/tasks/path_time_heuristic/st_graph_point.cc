@@ -18,6 +18,8 @@
  * @file: st_graph_point.cc
  **/
 
+#include <cstdint>
+
 #include "modules/planning/tasks/path_time_heuristic/st_graph_point.h"
 
 #include "modules/planning/planning_base/gflags/planning_gflags.h"

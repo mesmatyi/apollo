@@ -1,25 +1,25 @@
-### paddle inference推理接口flag解释
+### Explanation of the Paddle Inference Interface Flags
 
 ```plain
 // lidar_center_point
-DECLARE_bool(use_trt);  // 是否使用tensorrt推理接口
-DECLARE_int32(trt_precision); // fp32、int8以及fp16推理精度标志位 , 0: kFloat32, 1: kInt8, 2: kHalf
-DECLARE_int32(trt_use_static); // 是否使用序列化文件，1代表使用，首次加载会生成序列化文件，后续再次加载会反序列化该文件，提升模型加载速度
-DECLARE_bool(use_calibration); // 是否使用标定表，int8精度推理时需要开启
-DECLARE_bool(use_dynamicshape); // 是否加载动态图文件
-DECLARE_bool(collect_shape_info); // 收集动态图文件
-DECLARE_string(dynamic_shape_file); // 动态图文件生成以及读取路径
+DECLARE_bool(use_trt);  // Whether to use the tensorrt inference interface
+DECLARE_int32(trt_precision); // Flag for fp32, int8 and fp16 inference precision, 0: kFloat32, 1: kInt8, 2: kHalf
+DECLARE_int32(trt_use_static); // Whether to use the serialized file; 1 means use it. The serialized file is generated on first load, and on later loads the file is deserialized to speed up model loading
+DECLARE_bool(use_calibration); // Whether to use the calibration table; it must be enabled for int8 precision inference
+DECLARE_bool(use_dynamicshape); // Whether to load the dynamic shape file
+DECLARE_bool(collect_shape_info); // Collect the dynamic shape file
+DECLARE_string(dynamic_shape_file); // Path for generating and reading the dynamic shape file
 ```
 
-### 如何使用（生成动态图文件以及序列化文件）：
+### How to Use (Generating the Dynamic Shape File and the Serialized File):
 
-#### 为什么需要使用生成的动态图：
+#### Why the Generated Dynamic Shape File Is Needed:
 
-PaddlePaddle采用子图的形式对TensorRT进行集成，当模型加载后，神经网络可以表示为由变量和运算节点组成的计算图。Paddle TensorRT实现的功能是对整个图进行扫描，发现图中可以使用TensorRT优化的子图，并使用TensorRT节点替换它们。在模型的推断期间，如果遇到TensorRT节点，Paddle会调用TensorRT库对该节点进行优化，其他的节点调用Paddle的原生实现。TensorRT在推断期间能够进行Op的横向和纵向融合，过滤掉冗余的Op，并对特定平台下的特定的Op选择合适的kernel等进行优化，能够加快模型的预测速度。
+PaddlePaddle integrates TensorRT in the form of subgraphs. After a model is loaded, the neural network can be represented as a computation graph made up of variables and operator nodes. What Paddle TensorRT does is scan the whole graph, find the subgraphs that can be optimized with TensorRT, and replace them with TensorRT nodes. During model inference, when a TensorRT node is encountered, Paddle calls the TensorRT library to optimize that node, while the other nodes call Paddle's native implementation. During inference, TensorRT can perform horizontal and vertical fusion of Ops, filter out redundant Ops, and choose suitable kernels for specific Ops on specific platforms, among other optimizations, which speeds up model prediction.
 
-#### 步骤一：生成动态图
+#### Step 1: Generate the Dynamic Shape File
 
-将flag设置如下：
+Set the flags as follows:
 
 ```plain
 ###########################################################################
@@ -30,19 +30,19 @@ PaddlePaddle采用子图的形式对TensorRT进行集成，当模型加载后，
 --use_dynamicshape=false
 ```
 
-注意：collect_shape_info和use_dynamicshape不能同时设置为true开启，应该先收集动态图再使用生成出的动态图文件。
+Note: collect_shape_info and use_dynamicshape cannot both be set to true at the same time. You should first collect the dynamic shape file and then use the generated file.
 
-flag设置完成后，启动lidar感知流程，并播放数据包，程序结束后动态图文件会存放在开发者自己设置的dynamic_shape_file路径下。
+After setting the flags, start the lidar perception pipeline and play the data package. After the program ends, the dynamic shape file is stored under the dynamic_shape_file path set by the developer.
 
 ```plain
 cyber_launch start modules/perception/launch/perception_lidar.launch
 ```
 
-tips:播放数据包收集到的动态图文件范围可能会有限，这样加载该动态图文件的模型实际运行时可能会出现报错，建议在实车测试环境下运行上述lidar感知流程，收集更加具体的动态图范围。
+tips: The range covered by the dynamic shape file collected by playing a data package may be limited, so a model that loads this dynamic shape file may report errors at actual runtime. It is recommended to run the above lidar perception pipeline in a real-vehicle test environment to collect a more complete dynamic shape range.
 
-#### 步骤二：加载生成的动态图文件
+#### Step 2: Load the Generated Dynamic Shape File
 
-flag设置如下：建议将trt_use_static设置为1，如果不使用生成好的序列化文件，每次模型加载时间很长（约5分钟左右），trt_use_static设置为1，第一次模型加载时间较长，但是会生成相应的序列化文件，生成的序列化文件目录为_opt_cache，该目录自动放在模型目录路径下，后续模型加载时会直接反序列化该目录中的文件，极大程度降低模型加载时间（约5秒钟）。
+Set the flags as follows. It is recommended to set trt_use_static to 1. If the generated serialized file is not used, every model load takes a long time (about 5 minutes). With trt_use_static set to 1, the first model load takes longer but generates the corresponding serialized file. The generated serialized file directory is _opt_cache, which is placed automatically under the model directory path. Later model loads directly deserialize the files in this directory, greatly reducing model loading time (about 5 seconds).
 
 ```plain
 ###########################################################################
@@ -54,4 +54,4 @@ flag设置如下：建议将trt_use_static设置为1，如果不使用生成好�
 --use_dynamicshape=true
 ```
 
-注意：如果想要使用int8量化方式，将步骤一中的trt_precision值改为1即可。
+Note: If you want to use int8 quantization, change the trt_precision value in Step 1 to 1.

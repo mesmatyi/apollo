@@ -1,152 +1,152 @@
-## Cyber RT 介绍
+## Introduction to Cyber RT
 
-Apollo Cyber RT 是一个开源、高性能的运行时框架，专为自动驾驶场景而设计。针对自动驾驶的高并发、低延迟、高吞吐量进行了大幅优化。
+Apollo Cyber RT is an open-source, high-performance runtime framework designed specifically for autonomous driving scenarios. It is heavily optimized for the high concurrency, low latency, and high throughput of autonomous driving.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_8_0/image_36f0fb8.png)
 
-使用 Apollo Cyber RT 的主要好处：
+Main benefits of using Apollo Cyber RT:
 
-- 加速开发
-  - 具有数据融合功能的定义明确的任务接口
-  - 一系列开发工具
-  - 大量传感器驱动程序
-- 简化部署
-  - 高效自适应的消息通信
-  - 具有资源意识的可配置用户级调度程序
-  - 可移植，依赖更少
-- 赋能自动驾驶
-  - 默认的开源运行时框架
-  - 为自动驾驶搭建专用模块
+- Accelerate development
+  - Well-defined task interfaces with data fusion functionality
+  - A series of development tools
+  - A large number of sensor drivers
+- Simplify deployment
+  - Efficient and adaptive message communication
+  - Configurable user-level scheduler with resource awareness
+  - Portable, with fewer dependencies
+- Empower autonomous driving
+  - The default open-source runtime framework
+  - Purpose-built modules for autonomous driving
 
-### 常用术语
+### Common Terms
 
 #### Component
 
-在自动驾驶系统中，模块（如感知、定位、控制系统...）在 Cyber RT 下以 Component 的形式存在。不同 Component 之间通过 Channel 进行通信。Component 概念不仅解耦了模块，还为将模块拆分为多个子模块提供了灵活性。
+In an autonomous driving system, modules (such as perception, localization, and control) exist in the form of Components under Cyber RT. Different Components communicate with each other through Channels. The Component concept not only decouples modules, but also provides the flexibility to split a module into multiple submodules.
 
 #### Channel
 
-Channel 用于管理 Cyber RT 中的数据通信。用户可以发布/订阅同一个 Channel，实现 p2p 通信。
+Channels are used to manage data communication in Cyber RT. Users can publish/subscribe to the same Channel to achieve p2p communication.
 
 #### Task
 
-Task 是 Cyber RT 中异步计算任务的抽象描述。
+Task is the abstract description of an asynchronous computing task in Cyber RT.
 
 #### Node
 
-Node 是 Cyber RT 的基本组成部分；每个模块都包含一个 Node 并通过 Node 进行通信。通过在节点中定义 Reader/Writer 或 Service/Client，模块可以具有不同类型的通信形式。
+Node is the basic building block of Cyber RT; every module contains a Node and communicates through it. By defining Readers/Writers or Services/Clients in a node, a module can have different types of communication.
 
 #### Reader/Writer
 
-Reader/Writer 通常在 Node 内创建，作为 Cyber RT 中的主要消息传输接口。
+Readers/Writers are usually created within a Node and serve as the main message transmission interfaces in Cyber RT.
 
 #### Service/Client
 
-除了 Reader/Writer 之外，Cyber RT 还提供了用于模块通信的 Service/Client 模式。它支持节点之间的双向通信。当对服务发出请求时，客户端节点将收到响应。
+In addition to Reader/Writer, Cyber RT also provides the Service/Client pattern for module communication. It supports two-way communication between nodes. When a request is made to a service, the client node receives a response.
 
 #### Parameter
 
-参数服务在 Cyber RT 中提供了全局参数访问接口。它是基于 Service/Client 模式构建的。
+The parameter service provides a global parameter access interface in Cyber RT. It is built on the Service/Client pattern.
 
-#### 服务发现
+#### Service Discovery
 
-作为一个去中心化的框架，Cyber RT 没有用于服务注册的主/中心节点。所有节点都被平等对待，可以通过“服务发现”找到其他服务节点。使用`UDP`用来服务发现。
+As a decentralized framework, Cyber RT has no master/central node for service registration. All nodes are treated equally and can find other service nodes through "service discovery". `UDP` is used for service discovery.
 
 #### CRoutine
 
-参考协程（Coroutine）的概念，Cyber RT 实现了 Coroutine 来优化线程使用和系统资源分配。
+Referring to the concept of coroutines, Cyber RT implements Coroutines to optimize thread usage and system resource allocation.
 
 #### Scheduler
 
-为了更好地支持自动驾驶场景，Cyber RT 提供了多种资源调度算法供开发者选择。
+To better support autonomous driving scenarios, Cyber RT provides a variety of resource scheduling algorithms for developers to choose from.
 
 #### Message
 
-Message 是 Cyber RT 中用于模块之间数据传输的数据单元。
+Message is the data unit used for data transmission between modules in Cyber RT.
 
-#### Dag文件
+#### DAG File
 
-Dag 文件是模块拓扑关系的配置文件。您可以在 dag 文件中定义使用的 Component 和上游/下游通道。
+A DAG file is the configuration file for the topology of modules. In a dag file you can define the Components used and the upstream/downstream channels.
 
-#### Launch文件
+#### Launch File
 
-Launch 文件提供了一种启动模块的简单方法。通过在launch文件中定义一个或多个 dag 文件，可以同时启动多个模块。
+A Launch file provides a simple way to start modules. By defining one or more dag files in a launch file, multiple modules can be started at the same time.
 
-#### Record文件
+#### Record File
 
-Record 文件用于记录从 Cyber RT 中的 Channel 发送/接收的消息。回放 Record 文件可以帮助重现Cyber RT之前操作的行为。
+Record files are used to record messages sent/received on Channels in Cyber RT. Replaying a Record file helps reproduce the behavior of previous Cyber RT operations.
 
 #### Mainboard
 
-Cyber RT 的主入口，可以通过`mainboard -d xxx.dag`来启动一个模块进程。
+The main entry point of Cyber RT. A module process can be started with `mainboard -d xxx.dag`.
 
-### 开发工具
+### Development Tools
 
-CyberRT 框架同时也提供了一系列实用的工具用来辅助日常开发, 包括命令行工具 cyber_monitor cyber_recorder 等。
+The CyberRT framework also provides a series of practical tools to assist daily development, including command-line tools such as cyber_monitor and cyber_recorder.
 
-> 说明：这些工具需要运行在 Apollo Docker 环境内。
+> Note: These tools need to run inside the Apollo Docker environment.
 
-所有上述工具都依赖于 CyberRT 软件库，所以在使用这些工具之前，你需要通过如下方式来配置 CyberRT 工具的运行环境：
+All the tools above depend on the CyberRT software library, so before using them you need to configure the runtime environment of the CyberRT tools as follows:
 
 ```bash
 username@computername:~$: source /apollo/cyber/setup.bash
 ```
 
-下面将着重介绍 cyber_monitor 的使用方法。
+The following focuses on how to use cyber_monitor.
 
-#### 使用 Cyber Monitor 查看 Channel 数据实践
+#### Viewing Channel Data with Cyber Monitor in Practice
 
-命令行工具`cyber_monitor`提供了终端中实时显示channel信息列表的功能。
+The command-line tool `cyber_monitor` provides the ability to display a real-time list of channel information in the terminal.
 
-##### 运行 Cyber Monitor
+##### Running Cyber Monitor
 
-在 Apollo Docker 环境中执行如下命令运行`cyebr_monitor`：
+Run `cyebr_monitor` with the following command in the Apollo Docker environment:
 
 ```bash
 username@computername:~$: cyber_monitor
 ```
 
-##### 实用命令
+##### Useful Commands
 
-可以通过 `-h` 选项来获取帮助信息：
+You can get help information with the `-h` option:
 
 ```bash
 username@computername:~$: cyber_monitor -h
 ```
 
-使用 `-c` 选项，可以让 `cyber_monitor` 只监测一个指定的 channel 信息：
+With the `-c` option, you can make `cyber_monitor` monitor only one specified channel:
 
 ```bash
 username@computername:~$: cyber_monitor -c ChannelName
 ```
 
-##### 熟悉 Cyber Monitor 界面
+##### Getting Familiar with the Cyber Monitor Interface
 
-在启动`cyber_monitor`之后，会在终端中显示一个交互界面。`cyber_monitor`自动从拓扑中收集所有 channel 的信息并分两列显示（channel 名称，数据频率）
+After `cyber_monitor` starts, an interactive interface is displayed in the terminal. `cyber_monitor` automatically collects information about all channels from the topology and displays it in two columns (channel name, data frequency).
 
-channel 信息默认显示为红色，当有数据流经 channel 时，对应的行就会显示成绿色，如下图所示：
+Channel information is displayed in red by default. When data flows through a channel, the corresponding row is displayed in green, as shown in the figure below:
 
 ![cyber_monitor.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/cyber_monitor_4365395.png)
 
-##### 与 Cyber Monitor 交互
+##### Interacting with Cyber Monitor
 
-###### 命令介绍
+###### Command Introduction
 
 ```
-ESC | q key ---- 退出
-Backspace ---- 后退
-h | H ---- 显示帮助页
-PageDown | Ctrl+d ---- 上一页
-PageUp | Ctrl+u ---- 下一页
-Up, down or w, s keys ---- 上下移动当前的高亮行
-Right arrow or d key ---- 进入高亮行, 显示高亮行数据的详细信息
-Left arrow or a key ---- 从当前界面返回上一层界面
-Enter key ---- 与d键相同
-f | F ---- 显示数据帧频率
-t | T ---- 显示channel消息类型
-Space ---- 关闭|开启 channel (仅在channel有数据到达时有效; channel关闭后会变成黄色)
-i | I ---- 显示channel的Reader和Writer信息
-b | B ---- 显示channel消息内容
-n | N ---- 显示消息中RepeatedField的下一条数据
-m | M ---- 显示消息中RepeatedField的上一条数据
+ESC | q key ---- Exit
+Backspace ---- Go back
+h | H ---- Show the help page
+PageDown | Ctrl+d ---- Previous page
+PageUp | Ctrl+u ---- Next page
+Up, down or w, s keys ---- Move the currently highlighted row up or down
+Right arrow or d key ---- Enter the highlighted row and show the detailed information of its data
+Left arrow or a key ---- Return from the current screen to the previous screen
+Enter key ---- Same as the d key
+f | F ---- Show the data frame frequency
+t | T ---- Show the channel message type
+Space ---- Close|open a channel (only effective when data arrives on the channel; a closed channel turns yellow)
+i | I ---- Show the Reader and Writer information of the channel
+b | B ---- Show the channel message content
+n | N ---- Show the next item of a RepeatedField in the message
+m | M ---- Show the previous item of a RepeatedField in the message
 ```

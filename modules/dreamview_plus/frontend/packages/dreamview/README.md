@@ -3,18 +3,18 @@
 > Declaration file and proto type for dreamview data
 
 ## Usage
-生成的JavaScript文件（dreamview_proto_bundle.js）是一个 CommonJS 模块，可以在 Node.js 环境中或者在支持 CommonJS 的前端打包工具（如 webpack、Browserify）中使用。
+The generated JavaScript file (dreamview_proto_bundle.js) is a CommonJS module that can be used in a Node.js environment or in front-end bundlers that support CommonJS (such as webpack and Browserify).
 
 ```
 const protobuf = require('dreamview');
 
-// 现在你可以使用 protobuf 对象来访问你的 .proto 文件中定义的所有方法和类型。
-// 例如，假设你有一个名为 `planning` 的消息类型：
-let message = protobuf.planning.create({ /* 你的数据 */ });
+// Now you can use the protobuf object to access all methods and types defined in your .proto files.
+// For example, suppose you have a message type named `planning`:
+let message = protobuf.planning.create({ /* your data */ });
 
-// 序列化消息到二进制格式
+// Serialize the message to binary format
 let buffer = protobuf.planning.encode(message).finish();
 
-// 从二进制格式反序列化消息
+// Deserialize from binary format
 let decodedMessage = protobuf.planning.decode(buffer);
 ```

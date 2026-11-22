@@ -1,27 +1,27 @@
-# Apollo 研发工具 - aem
+# Apollo Development Tool - aem
 
-## 综述
+## Overview
 
-`aem` 是一个命令行工具(全称 `apollo environment manager`)，提供管理 Apollo 容器的能力。
+`aem` is a command-line tool (short for `apollo environment manager`) that provides the ability to manage Apollo containers.
 
-## 安装
+## Installation
 
-### 1. 安装依赖软件
+### 1. Install Dependencies
 
 ```shell
 sudo apt-get update
 sudo apt-get install ca-certificates curl gnupg
 ```
 
-### 2. 在宿主机添加 Apollo 软件源的 gpg key，并设置好源和更新
+### 2. Add the Apollo software source gpg key on the host, then set up the source and update
 
 ```shell
-# 添加 gpg key
+# Add the gpg key
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://apollo-pkg-beta.cdn.bcebos.com/neo/beta/key/deb.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/apolloauto.gpg
 sudo chmod a+r /etc/apt/keyrings/apolloauto.gpg
 
-# 设置源并更新
+# Set up the source and update
 echo \
     "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/apolloauto.gpg] https://apollo-pkg-beta.cdn.bcebos.com/apollo/core"\
     $(. /etc/os-release && echo "$VERSION_CODENAME") "main" | \
@@ -29,23 +29,23 @@ echo \
 sudo apt-get update
 ```
 
-> 注：如果之前已经安装过8.0版本的apollo的话，在宿主机上的`/etc/apt/sources.list`文件中会有形如
-> `deb https://apollo-pkg-beta.cdn.bcebos.com/neo/beta bionic main`的配置，可以直接删除，宿主机上的apollo源配置仅用于安
-> 装`aem`工具
+> Note: If Apollo 8.0 has been installed before, the `/etc/apt/sources.list` file on the host may contain an entry like
+> `deb https://apollo-pkg-beta.cdn.bcebos.com/neo/beta bionic main`, which can be deleted directly. The Apollo source configuration on the host is only used to install
+> the `aem` tool.
 
-### 3. 安装aem：
+### 3. Install aem:
 
 ```shell
 sudo apt install apollo-neo-env-manager-dev --reinstall
 ```
 
-安装成功后即可使用
+After a successful installation, you can use
 
 ```shell
 aem -h
 ```
 
-看到类似如下输出即代表安装成功
+Seeing output similar to the following means the installation succeeded
 
 ```shell
 
@@ -67,31 +67,31 @@ Options:
     list : list all apollo development container.
 ```
 
-## 快速入门
+## Quick Start
 
-本段内容主要介绍`aem`工具使用流程及规范。
+This section mainly describes the workflow and conventions for using the `aem` tool.
 
-### 1.克隆工程目录
-Apollo9.0不再通过aem init的方式初始化工作空间，推荐按照教程克隆github的工程
+### 1. Clone the Project Directory
+Apollo 9.0 no longer initializes the workspace through aem init. It is recommended to clone the GitHub project by following the tutorial.
 
-Apollo 目前提供了3个示例工程，您可以根据需要选择其一
+Apollo currently provides 3 example projects, and you can choose one as needed
 
-- [application-core](https://github.com/ApolloAuto/application-core) , 包含 Apollo 所有开源软件包，可以基于此工程搭建自己的应用
+- [application-core](https://github.com/ApolloAuto/application-core) , which contains all Apollo open-source packages and can be used as a basis for building your own applications
 
-- [application-pnc](https://github.com/ApolloAuto/application-pnc) , 仅包含规划控制相关的软件包，适合仅关注规划控制方向的用户
+- [application-pnc](https://github.com/ApolloAuto/application-pnc) , which contains only planning and control related packages, suitable for users who focus only on planning and control
 
-- [application-perception](https://github.com/ApolloAuto/application-perception) , 仅包含感知相关的软件包，适合仅关注感知方向的用户
+- [application-perception](https://github.com/ApolloAuto/application-perception) , which contains only perception related packages, suitable for users who focus only on perception
 
-注：在克隆工程目录时如遇网络问题，可参考 [拉取工程目录FAQ](https://apollo.baidu.com/community/article/1158)
+Note: If you encounter network problems when cloning the project directory, refer to the [FAQ on pulling the project directory](https://apollo.baidu.com/community/article/1158)
 
-### 2.启动一个Apollo容器
+### 2. Start an Apollo Container
 
-使用以下命令自动拉取镜像和启动容器：
+Use the following command to automatically pull the image and start the container:
 aem start
-以上命令适合第一次进入容器的时候使用，假如您已经启动过了 Apollo 环境容器，该命令会尝试重启之前存在的 Apollo 环境容器
-如果您想强制删除之前的容器并启动全新的容器，请使用以下命令：
+The above command is suitable for entering the container for the first time. If you have already started an Apollo environment container, this command will try to restart the previously existing Apollo environment container.
+If you want to forcibly delete the previous container and start a brand-new one, use the following command:
 aem start -f
-程序输入如下表示容器启动成功：
+The following output indicates that the container started successfully:
 
 ```shell
 [ OK ] Congratulations! You have successfully finished setting up Apollo Dev Environment.
@@ -100,103 +100,103 @@ aem start -f
 [ OK ] Enjoy!
 ```
 
-### 3.进入容器
+### 3. Enter the Container
 
-容器启动后，可以通过以下命令进入容器：
+After the container starts, you can enter it with the following command:
 aem enter
-进入容器后，会进入到apollo_workspace目录下，此目录常作为apollo的工作空间，之后的操作都位于此目录下
+After entering the container, you will be in the apollo_workspace directory. This directory is commonly used as Apollo's workspace, and all subsequent operations take place in it.
 
-### 4.下载安装源码
+### 4. Download and Install Source Code
 
-对模块进行二次开发还需要通过以下命令下载模块的源码及依赖：
-aem install xx(模块名称)
-下载模块源码,下载完毕后，工作空间会自动创建一些文件夹，其中，xx源码位于工作空间的 module/xx 路径下
+For secondary development of a module, you also need to download the module's source code and dependencies with the following command:
+aem install xx (module name)
+This downloads the module's source code. After the download completes, the workspace automatically creates some folders, and the source code of xx is located under the module/xx path in the workspace.
 
-### 5.编译安装源码
+### 5. Compile and Install Source Code
 
-修改模块源码后，需要对修改后的模块进行编译安装
+After modifying the module source code, the modified module needs to be compiled and installed:
 aem build -p modules/xx
 
-### 6.运行和调试
+### 6. Run and Debug
 
-编译安装成功后，启动dreamview进行调试
+After compilation and installation succeed, start dreamview for debugging:
 aem bootstrap start
 
-注：首次启动需下载dreamview和monitor模块
+Note: The dreamview and monitor modules need to be downloaded for the first start:
 aem install dreamview-plus monitor
 
-### 7.停止容器
+### 7. Stop the Container
 
-在宿主机执行aem stopall可停止Apollo容器，停止后的容器可通过aem enter再次启动
+Run aem stopall on the host to stop the Apollo container. A stopped container can be started again with aem enter.
 
-### 8.删除容器
+### 8. Delete the Container
 
-在宿主机执行aem remove可删除Apollo容器，容器删除后，容器内挂载的工程配置依然会存在于宿主机workspace目录中。再次执行aem start启动命令后，当前目录下所有配置会重新挂载到新容器中。如不需要挂载当前配置，请先手动删除。
+Run aem remove on the host to delete the Apollo container. After the container is deleted, the project configuration mounted in the container still remains in the host's workspace directory. After running the aem start command again, all configuration in the current directory is mounted into the new container. If you do not want to mount the current configuration, please delete it manually first.
 
-## 使用说明
+## Usage
 
-### 子命令
+### Subcommands
 
-类似于 git 或 apt 等常见的命令行工具，aem 的功能被组织成子命令，如 start 负责启动一个容器， enter 负责进入一个已启动的容器等等。
-子命令可能需要一些参数，你可以在子命令后输入-h、-help来查看详细的参数。
+Like common command-line tools such as git or apt, aem's functionality is organized into subcommands. For example, start starts a container, enter enters a started container, and so on.
+A subcommand may require some arguments; you can type -h or -help after the subcommand to see the detailed arguments.
 
 ### start, start_gpu
 
-该子命令启动一个Apollo 环境容器。该命令将检查apollo容器是否已经被启动，如果容器已经被启动或停止，它将使用已经启动的容器；如果容器从未被启动，它将启动一个新容器。
+This subcommand starts an Apollo environment container. It checks whether the apollo container has already been started. If the container has been started or stopped, it uses the existing container; if the container has never been started, it starts a new one.
 
-#### 用法
+#### Usage
 
-##### 启动一个容器:
+##### Start a container:
 
 ```shell
 aem start
 ```
 
-##### 启动一个支持 gpu 的容器，你可以在其中构建或运行需要 gpu 支持的模块:
+##### Start a container with gpu support, in which you can build or run modules that need gpu support:
 
 ```
 aem start_gpu
 ```
 
-> 注意：必须正确安装NVIDIA图形驱动和nvidia container toolkit。
+> Note: The NVIDIA graphics driver and the nvidia container toolkit must be installed correctly.
 
-##### 使用本地镜像启动容器:
+##### Start a container using a local image:
 
 ```shell
 aem start_gpu -l
 ```
 
-##### 强制启动一个新容器:
+##### Forcibly start a new container:
 
 ```shell
 aem start_gpu -f
 ```
 
-> 注意：这个命令将删除容器，但会保留之前在容器内容安装过的 Apollo 模块，若想完全删除，请使用 `remove` 命令。
+> Note: This command deletes the container, but keeps the Apollo modules previously installed in the container. To delete everything completely, use the `remove` command.
 
-##### 为启动的容器指定名字:
+##### Specify a name for the started container:
 
 ```shell
 aem start_gpu -n apollo_container
 ```
 
-> 如果不指定容器名，会默认使用当前用户名作为容器名
+> If no container name is specified, the current username is used as the container name by default
 
-> start命令会读取当前路径的.env文件，该文件指定了容器的名称以及使用的镜像等，例如.env文件内容为：
+> The start command reads the .env file in the current path, which specifies the container name, the image to use, and so on. For example, if the content of the .env file is:
 > APOLLO*ENV_NAME=pnc
 > APOLLO_ENV_WORKLOCAL=1
 > APOLLO_ENV_CONTAINER_REPO='registry.baidubce.com/apollo/apollo-env-gpu'
 > APOLLO_ENV_CONTAINER_TAG='9.0-latest'
-> aem会使用registry.baidubce.com/apollo/apollo-env-gpu:9.0-latest镜像来启动一个名叫apollo_neo_pnc的容器
-> 当前路径没有.env文件时，会使用默认镜像（8.0镜像）启动一个名叫apollo_neo*${USER}的容器
+> aem uses the registry.baidubce.com/apollo/apollo-env-gpu:9.0-latest image to start a container named apollo_neo_pnc
+> When there is no .env file in the current path, the default image (the 8.0 image) is used to start a container named apollo_neo*${USER}
 
-##### 指定挂载点:
+##### Specify the mount point:
 
 ```shell
 aem start_gpu -m /home/apollo/workspace:/apollo_workspace
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 Usage: aem start [options] ...
@@ -215,32 +215,32 @@ OPTIONS:
 
 ### enter
 
-这个子命令用来进入 Apollo 环境容器.
+This subcommand is used to enter the Apollo environment container.
 
-#### 用法
+#### Usage
 
-##### 进入容器
+##### Enter the container
 
 ```shell
 aem enter
 ```
 
-##### 指定容器名称
+##### Specify the container name
 
 ```shell
 aem enter -n apollo_container
 ```
 
-##### 以指定用户进入容器
+##### Enter the container as a specified user
 
 ```shell
 aem enter -n apollo_container --user root
 ```
 
-> 该命令与start命令一致，都会尝试读取当前路径下的.env文件，根据文件中定义的APOLLO*ENV_NAME，进入相应名称的容器
-> 假如当前路径没有.env文件，aem会尝试进入名叫apollo_neo*${USER}的容器
+> This command is the same as the start command: it also tries to read the .env file in the current path and enters the container with the corresponding name according to the APOLLO*ENV_NAME defined in the file
+> If there is no .env file in the current path, aem tries to enter the container named apollo_neo*${USER}
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 Usage: aem enter [options] ...
@@ -252,21 +252,21 @@ OPTIONS:
 
 ### remove
 
-这个命令用于删除环境容器
+This command is used to delete the environment container
 
-#### 用法
+#### Usage
 
-##### 删除指定名字的容器
+##### Delete the container with a specified name
 
 ```shell
-# 删除名字为 `pnc` 的容器
+# Delete the container named `pnc`
 aem remove --name pnc
 ```
 
-> 该命令与start命令一致，都会尝试读取当前路径下的.env文件，根据文件中定义的APOLLO*ENV_NAME，删除相应名称的容器
-> 假如当前路径没有.env文件，aem会尝试删除名叫apollo_neo*${USER}的容器
+> This command is the same as the start command: it also tries to read the .env file in the current path and deletes the container with the corresponding name according to the APOLLO*ENV_NAME defined in the file
+> If there is no .env file in the current path, aem tries to delete the container named apollo_neo*${USER}
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 Usage: aem remove [options] ...
@@ -277,33 +277,33 @@ OPTIONS:
     --worklocal                   env data is store in workspace
 ```
 
-注意：开发者如要删除宿主机中的工程目录,需先执行aem remove删除容器后方可再删除工程，否则会造成依赖丢失的问题。
+Note: If developers want to delete the project directory on the host, they must first run aem remove to delete the container before deleting the project. Otherwise, dependencies will be lost.
 
 ### bootstrap
 
-这个子命令用来启动`dreamview 1.0`或`dreamview 2.0`
+This subcommand is used to start `dreamview 1.0` or `dreamview 2.0`
 
-#### 用法
+#### Usage
 
-##### 在容器内启动 dreamview 1.0
+##### Start dreamview 1.0 inside the container
 
 ```shell
 aem bootstrap start
 ```
 
-##### 在容器内启动 dreamview 2.0
+##### Start dreamview 2.0 inside the container
 
 ```shell
 aem bootstrap start --plus
 ```
 
-##### 停止目前容器内已经启动的 dreamview 1.0 或 dreamview 2.0
+##### Stop the dreamview 1.0 or dreamview 2.0 currently started in the container
 
 ```shell
 aem bootstrap stop
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 Usage: aem bootstrap [options] [argument] ...
@@ -315,44 +315,44 @@ OPTIONS:
 
 ### list
 
-这个子命令会列出所有由aem工具启动的容器
+This subcommand lists all containers started by the aem tool
 
-#### 用法
+#### Usage
 
 ```shell
 aem list
 ```
 
-上述命令会有以下输出
+The above command produces the following output
 
 ```
 [INFO] Environment containers:
 apollo_neo_dev /home/apollo/sample/.aem
 ```
 
-表示当前aem启动了一个容器，名称叫`apollo_neo_dev`，容器工程路径位于`/home/apollo/sample`下
+This means aem currently has one container started, named `apollo_neo_dev`, and the container's project path is under `/home/apollo/sample`
 
 ### profile
 
-这个子命令用于选择使用的配置文件
+This subcommand is used to select the configuration profile to use
 
-#### 用法
+#### Usage
 
-以下命令列出工程下有什么可选的配置文件集
+The following command lists which configuration profile sets are available in the project
 
 ```shell
 aem profile list
 ```
 
-上述命令会有以下输出
+The above command produces the following output
 
 ```
 sample
 ```
 
-表示当前可以使用名叫sample的配置文件
+This means the configuration profile named sample can currently be used
 
-以下命令使用名叫sample的配置文件集
+The following command uses the configuration profile set named sample
 
 ```shell
 aem profile use sample
@@ -360,21 +360,21 @@ aem profile use sample
 
 ### build
 
-这个子命令是 buildtool build action 的一个简单包装。详细用法请参考 [buildtool 文档](../框架设计/命令行工具/buildtool.md)。
+This subcommand is a simple wrapper around the buildtool build action. For detailed usage, refer to the [buildtool documentation](../框架设计/命令行工具/buildtool.md).
 
 ### install
 
-这个子命令是 buildtool install action的一个简单包装。详细用法请参考 [buildtool 文档](../框架设计/命令行工具/buildtool.md)。
+This subcommand is a simple wrapper around the buildtool install action. For detailed usage, refer to the [buildtool documentation](../框架设计/命令行工具/buildtool.md).
 
-### 环境变量
+### Environment Variables
 
-aem 在执行子命令的时候会使用到一些环境变量，部分不支持参数控制的功能也可以通用修改这些环境变量来实现，aem 运行时，如果当前目录下有 `.env` 文件，则会加载该文件
+aem uses some environment variables when executing subcommands. Some features that cannot be controlled through parameters can also be achieved by modifying these environment variables. When aem runs, if there is a `.env` file in the current directory, it loads that file.
 
-| 变量                        | 说明                                                                           |
+| Variable                    | Description                                                                  |
 | --------------------------- |------------------------------------------------------------------------------|
-| `APOLLO_ENVS_ROOT`          | 容器相关目录创建位置，默认为 `$HOME/.aem/envs`                                             |
-| `APOLLO_ENV_NAME`           | 容器名，默认是当前用户的用户名                                                              |
-| `APOLLO_ENV_WORKROOT`       | 容器内的工作目录路径，默认是 `/apollo_workspace`                                           |
-| `APOLLO_ENV_WORKLOCAL`      | 创建容器相关的目录是存放在当前目录下，`1` 为是 `0` 为否，否，则创建在 `$APOLLO_ENVS_ROOT` 下                |
-| `APOLLO_ENV_CONTAINER_REPO` | 创建容器使用的镜像 repo ，默认为 `registry.baidubce.com/apollo/apollo-env-gpu` 可以通过这个修为改自定义镜像 |
-| `APOLLO_ENV_CONTAINER_TAG`  | 创建容器使用的镜像 tag ，默认为 `latest`                                                  |
+| `APOLLO_ENVS_ROOT`          | Location where container-related directories are created, `$HOME/.aem/envs` by default |
+| `APOLLO_ENV_NAME`           | Container name, the current user's username by default                       |
+| `APOLLO_ENV_WORKROOT`       | Path of the working directory inside the container, `/apollo_workspace` by default |
+| `APOLLO_ENV_WORKLOCAL`      | Whether the container-related directories are stored under the current directory: `1` for yes, `0` for no; if no, they are created under `$APOLLO_ENVS_ROOT` |
+| `APOLLO_ENV_CONTAINER_REPO` | The image repo used to create the container, `registry.baidubce.com/apollo/apollo-env-gpu` by default; a custom image can be used by changing this |
+| `APOLLO_ENV_CONTAINER_TAG`  | The image tag used to create the container, `latest` by default              |

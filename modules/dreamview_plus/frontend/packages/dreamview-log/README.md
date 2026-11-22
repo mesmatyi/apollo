@@ -2,9 +2,9 @@
 
 > description
 
-这个模块是一个用于创建和管理日志的库。它基于开源库 loglevel 来实现日志记录功能，并且提供了一个 Logger 类，用于创建和管理各种不同的日志记录器。
+This module is a library for creating and managing logs. It is built on the open-source library loglevel and provides a Logger class for creating and managing a variety of loggers.
 
-Logger 类的每个实例都可以独立地设置日志级别，并且可以输出带有时间戳和日志级别的日志消息。这个类是单例的，也就是说，对于每个给定的名称，Logger.getInstance(name) 始终返回同一个 Logger 实例。这个实例在第一次请求时创建，并在后续的请求中重复使用。
+Each instance of the Logger class can have its log level set independently and can output log messages with timestamps and log levels. The class is a singleton per name: for any given name, Logger.getInstance(name) always returns the same Logger instance. The instance is created on first request and reused in subsequent requests.
 
 
 

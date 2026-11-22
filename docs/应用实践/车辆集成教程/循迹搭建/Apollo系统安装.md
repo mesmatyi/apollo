@@ -1,52 +1,52 @@
-<!---操作指南使用对象：高级开发者。以装车测试为目的开发者。本文档不涉及源代码的修改和解读，只偏向于使用。-->
+<!---Audience of this guide: advanced developers who develop for on-vehicle testing. This document does not involve modifying or interpreting source code, and focuses on usage only.-->
 
-<!---本文档是模板-->
+<!---This document is a template-->
 
-<!---模板的使用：段落的临近处都有写作指导，写之前先看指导。-->
+<!---Using the template: writing guidance is given next to each paragraph; read the guidance before writing.-->
 
-<!---标题与段落，段落之间留出一行的空行。-->
+<!---Leave one blank line between headings and paragraphs, and between paragraphs.-->
 
-<!--md文件的文件名为默认的一级标题-->
+<!--The file name of the md file is the default level-1 heading-->
 
-<!--整个文档开始之前，推荐给出一个图片描述之后要讲的内容的整体框架，例如该模块在整体系统中的哪个位置-->
+<!--Before the whole document begins, it is recommended to give a picture describing the overall framework of what follows, for example where this module sits in the overall system-->
 
-<!---一级标题为文档名称，文档内以二级标题为最高级标题。-->
+<!---The level-1 heading is the document name; within the document, level-2 headings are the highest-level headings.-->
 
-<!---还可以写应用场景、前置条件、注意事项、多个子任务的逻辑关系。-->
+<!---You can also write application scenarios, prerequisites, precautions, and the logical relationships among multiple subtasks.-->
 
-<!---所有标题应采用动宾结构，例如：创建仿真场景，下载分支库。-->
+<!---All headings should use a verb-object structure, for example: Create a simulation scenario, Download the branch repository.-->
 
-<!---当二级任务有子任务时，可以再继续写到三级标题任务。四级标题尽量少用。如内容过多可以考虑，另启一个文档-->
+<!---When a level-2 task has subtasks, continue with level-3 heading tasks. Use level-4 headings as little as possible. If there is too much content, consider starting another document-->
 
-<!---所有的图片符合截图规范；可以多个步骤使用一张截图。-->
+<!---All pictures must conform to the screenshot conventions; one screenshot may cover multiple steps.-->
 
-<!---不会使用链接时，可参见Markdown速查表，链接包括：页内链接，页间链接，其他产品链接，图片链接-->
+<!---If you do not know how to use links, see the Markdown cheat sheet; links include: in-page links, inter-page links, links to other products, and image links-->
 
-<!---最后一步必须要给出能够查看的结果,直观的进行验收最终步骤。-->
+<!---The last step must give a viewable result, so that the final step can be accepted intuitively.-->
 
-<!--标题名称：准备符合 Apollo 协议的底盘 -->
+<!--Title: Prepare a chassis that conforms to the Apollo protocol -->
 
-<!--内容超过10页的情况下，推荐分成几个文件进行说明-->
+<!--If the content exceeds 10 pages, it is recommended to split it into several files-->
 
-<!--# Apollo软件集成教程-->
+<!--# Apollo Software Integration Tutorial-->
 
-本文档以 Lincoln MKZ 作为目标车辆，介绍 Apollo 软件系统的集成安装，您可以了解到如何在车辆计算单元 Hardware3.0（HW3.0）上完成 Apollo 自动驾驶软件系统的集成安装和配置。本文档针对于 Apollo 6.0 及以上版本。
+This document takes the Lincoln MKZ as the target vehicle and describes the integrated installation of the Apollo software system. You will learn how to complete the integrated installation and configuration of the Apollo autonomous driving software system on the vehicle computing unit Hardware 3.0 (HW3.0). This document applies to Apollo 6.0 and above.
 
-## 前提条件
+## Prerequisites
 
-在 MKZ 上进行软件集成安装之前，您需要先按照 [车辆集成](../应用实践/车辆集成教程/循迹搭建/车辆集成.md) 完成车辆硬件集成。
+Before installing the software on the MKZ, you need to complete the vehicle hardware integration by following [Vehicle Integration](../应用实践/车辆集成教程/循迹搭建/车辆集成.md).
 
-## 软件集成安装
+## Software Integration and Installation
 
-请按照以下步骤进行软件集成安装。
+Follow the steps below to integrate and install the software.
 
-### 1. 安装 Ubuntu 系统
+### 1. Install the Ubuntu System
 
-请参考安装指南步骤安装 Ubuntu 系统。
+Refer to the steps in the installation guide to install the Ubuntu system.
 
-### 2. 安装实时内核
+### 2. Install the Real-Time Kernel
 
-您可以按照 [ROS2: 构建实时 Linux](https://docs.ros.org/en/foxy/Tutorials/Building-Realtime-rt_preempt-kernel-for-ROS-2.html) 构建一个实时内核，或者直接安装使用我们预构建的版本：
+You can build a real-time kernel by following [ROS2: Building Real-Time Linux](https://docs.ros.org/en/foxy/Tutorials/Building-Realtime-rt_preempt-kernel-for-ROS-2.html), or directly install the prebuilt version we provide:
 
 ```bash
 wget https://apollo-system.cdn.bcebos.com/release_installer/linux-kernel-5.4.115-apollo-rt.zip
@@ -55,11 +55,11 @@ cd linux-kernel-5.4.115-apollo-rt
 sudo dpkg -i *.deb
 ```
 
-### 3. 安装 CANBUS 驱动
+### 3. Install the CANBUS Driver
 
-1. 下载 [apollo-contrib](https://github.com/ApolloAuto/apollo-contrib/tree/master/baidu) 下的源码在本地编译，编译完生成 basa.ko 模块文件。
+1. Download the source code under [apollo-contrib](https://github.com/ApolloAuto/apollo-contrib/tree/master/baidu) and compile it locally; after compiling, the basa.ko module file is generated.
 
-2. 设置系统上电自动加载驱动：
+2. Configure the system to load the driver automatically at power-on:
 
 ```bash
 sudo su
@@ -70,11 +70,11 @@ depmod -a
 modprobe basa
 ```
 
-### 4. 安装实时内核下的 Nvidia 驱动
+### 4. Install the Nvidia Driver under the Real-Time Kernel
 
-请先参考安装指南步骤中的方法完成 Nvidia 驱动的初步安装。
+First refer to the method in the installation guide steps to complete the preliminary installation of the Nvidia driver.
 
-注意：由于 Nvidia 驱动不支持实时内核，在上面执行 `sudo apt-get install nvidia-driver-455` 时会报如下错误消息：
+Note: Because the Nvidia driver does not support real-time kernels, running `sudo apt-get install nvidia-driver-455` above reports the following error message:
 
 ```
 The kernel you are installing for is a PREEMPT_RT kernel!
@@ -89,15 +89,15 @@ NVIDIA kernel module again.
 *** Failed PREEMPT_RT sanity check. Bailing out! ***
 ```
 
-您可以通过在编译 Nvidia 驱动的时候设置 `IGNORE_PREEMPT_RT_PRESENCE=1` 来绕过这 一点。步骤如下：
+You can get around this by setting `IGNORE_PREEMPT_RT_PRESENCE=1` when compiling the Nvidia driver. The steps are as follows:
 
-1. 运行如下命令来编译 Nvidia 驱动：
+1. Run the following commands to compile the Nvidia driver:
 
 ```bash
-# 切换到Nvidia 驱动的源码目录
+# Switch to the Nvidia driver source directory
 cd "$(dpkg -L nvidia-kernel-source-455 | grep -m 1 "nvidia-drm" | xargs dirname)"
 
-# 设置 IGNORE_PREEMPT_RT_PRESENCE=1 来编译Nvidia 驱动
+# Set IGNORE_PREEMPT_RT_PRESENCE=1 to compile the Nvidia driver
 sudo env NV_VERBOSE=1 \
     make -j8 NV_EXCLUDE_BUILD_MODULES='' \
     KERNEL_UNAME=$(uname -r) \
@@ -112,36 +112,27 @@ sudo mv *.ko /lib/modules/$(uname -r)/updates/dkms/
 sudo depmod -a
 ```
 
-2. 重启系统。
+2. Restart the system.
 
-3. 运行 `nvidia-smi` 来检查 `Nvidia` 驱动是否正常工作。
+3. Run `nvidia-smi` to check whether the `Nvidia` driver works normally.
 
-### 5. 安装其他必备软件
+### 5. Install Other Required Software
 
-请先参考安装指南中的方法安装 Docker Engine 和 Nvidia Container Toolkit。
+First refer to the method in the installation guide to install Docker Engine and the Nvidia Container Toolkit.
 
-### 6. 安装 Apollo 系统
+### 6. Install the Apollo System
 
-参考安装指南进行安装。
+Install by following the installation guide.
 
-### 7. 系统配置
+### 7. System Configuration
 
-在运行 Apollo 软件之前，建议先对系统的一些配置进行修改。
+Before running the Apollo software, it is recommended to modify some system configurations first.
 
-- 禁止软件自动更新
+- Disable automatic software updates
   
-  Ubuntu 默认没有关闭软件自动更新选项，软件自动更新有时会带来一些难以预知的后果。比如，内核的自动升级会让已安装的一些驱动失效。您可以通过修改配置文件来禁止软件自动更新。
+  Ubuntu does not turn off the automatic software update option by default, and automatic software updates sometimes bring unpredictable consequences. For example, an automatic kernel upgrade can invalidate some installed drivers. You can disable automatic software updates by modifying configuration files.
 
-对于修改 `/etc/apt/apt.conf.d/10periodic` 为以下内容：
-
-```
-APT::Periodic::Update-Package-Lists "0";
-APT::Periodic::Download-Upgradeable-Packages "0";
-APT::Periodic::AutocleanInterval "0";
-APT::Periodic::Unattended-Upgrade "0";
-```
-
-修改 `/etc/apt/apt.conf.d/20auto-upgrades` 为以下内容：
+Modify `/etc/apt/apt.conf.d/10periodic` to the following content:
 
 ```
 APT::Periodic::Update-Package-Lists "0";
@@ -150,11 +141,20 @@ APT::Periodic::AutocleanInterval "0";
 APT::Periodic::Unattended-Upgrade "0";
 ```
 
-- 设置固定 IP
+Modify `/etc/apt/apt.conf.d/20auto-upgrades` to the following content:
 
-IP 的频繁变动不利于调试。
+```
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "0";
+```
 
-对于 Hardware3.0，可以修改 `/etc/netplan/01-network-manager-all.yaml` 为如下内容：
+- Set a fixed IP
+
+Frequent IP changes are not conducive to debugging.
+
+For Hardware 3.0, you can modify `/etc/netplan/01-network-manager-all.yaml` to the following content:
 
 ```
 # Let NetworkManager manage all devices on this system

@@ -16,6 +16,8 @@
 
 #include "cyber/class_loader/utility/class_loader_utility.h"
 
+#include "cyber/ros2/parameters.h"
+
 namespace apollo {
 namespace cyber {
 namespace class_loader {
@@ -234,6 +236,9 @@ bool LoadLibrary(const std::string& library_path, ClassLoader* loader) {
     AERROR << "shared library failed: " << library_path;
     return false;
   }
+  // The library may define gflags: apply the ones given as ROS 2 parameters
+  // and let the process node list the new flags.
+  ros2::ApplyFlagOverrides();
 
   auto num_lib_objs = GetAllClassFactoryObjectsOfLibrary(library_path).size();
   if (num_lib_objs == 0) {

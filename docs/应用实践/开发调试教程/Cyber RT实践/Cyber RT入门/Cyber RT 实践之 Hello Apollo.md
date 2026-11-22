@@ -1,34 +1,34 @@
-## 实践内容
+## Practice Content
 
-对全局配置参数的理解以及修改。
+Understand and modify the global configuration parameters.
 
-本实验将使用 Dreamview+ 进行 Scenario_Sim，仿真交通灯场景。将通过修改软件参数，实现主车在检测到前方红灯时的停车避让距离，待绿灯后通过。
+This experiment uses Dreamview+ to run Scenario_Sim and simulate a traffic light scenario. By modifying software parameters, you will set the stopping distance at which the ego vehicle avoids the red light ahead and then passes once the light turns green.
 
-- 目标：通过调整 Traffic Rules 配置参数，使得主车在监测到前方为红灯时，能够准确停车在距离停止线 2 米至 2.5 米的位置，不得超过停止线。当交通灯变为绿色后，主车能够顺利通过红绿灯路口。
+- Goal: By adjusting the Traffic Rules configuration parameters, make the ego vehicle stop accurately at a position 2 m to 2.5 m from the stop line, without crossing it, when it detects a red light ahead. After the traffic light turns green, the ego vehicle should pass through the intersection smoothly.
 
-- 方法：在 planning2.0 中找到 Traffic Rules 配置的相关文件，并调整配置参数，以满足红绿灯场景的要求。
+- Method: Find the Traffic Rules configuration files in planning 2.0 and adjust the configuration parameters to meet the requirements of the traffic light scenario.
 
-- 结果：在 Apollo 的 Dreamview+ 仿真环境中，观察主车在红绿灯场景下的行驶情况，验证是否能够在红灯时停车在合适位置，并在绿灯后通过红绿灯路口。
+- Result: In the Apollo Dreamview+ simulation environment, observe the ego vehicle's behavior in the traffic light scenario and verify that it stops at a suitable position at the red light and passes through the intersection after the light turns green.
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/19
 
-## 实验目的
+## Experiment Objectives
 
-- 熟悉 Planing 模块中决策功能的运行流程，掌握交规决策的调试方法；
+- Become familiar with the workflow of the decision function in the Planning module and master how to debug traffic rule decisions;
 
-- 通过运行 Planning 模块，详细观察并分析主车在监测到前方为红灯时的停车避让策略及其效果。
+- By running the Planning module, observe and analyze in detail the stopping and avoidance strategy of the ego vehicle, and its effect, when it detects a red light ahead.
 
-## 前置条件
+## Prerequisites
 
-本实验需要请您在 Apollo Studio 工作台仿真中创建场景集，场景集需包含以下系统场景：
+For this experiment, please create a scenario set in the Apollo Studio workbench simulation. The scenario set must contain the following system scenario:
 
-- 场景名称：xh-contest-交通灯路口
+- Scenario name: `xh-contest-交通灯路口` (traffic light intersection; the literal name of the system scenario)
 
-## 实验流程
+## Experiment Procedure
 
-1. 在终端中，执行 DreamView+ 启动指令，执行成功后，点击菜单栏 dreamview+ 按钮，进入 dreamview+ 界面。
+1. In the terminal, run the DreamView+ startup command. After it succeeds, click the dreamview+ button in the menu bar to enter the dreamview+ interface.
    
    ```bash
    aem bootstrap start --plus
@@ -36,64 +36,64 @@ https://apollo.baidu.com/community/course/19
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_1563a05.png)
    
-   当出现如下，即表示 dreamview+ 启动成功了。
+   The following screen indicates that dreamview+ has started successfully.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_023df8d.png)
 
-2. 点击左下角 **个人中心** > **设置** > **通用设置** ，可以选择界面语言类型。
+2. Click **Personal Center** > **Settings** > **General Settings** in the lower left corner to choose the interface language.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_0987230.png)
 
-3. 左侧导航栏打开 **Mode Settings** 面板， **Mode** 选择 **PnC** ， **Operations** 选择 **Scenario_Sim** ，进入场景仿真。
+3. Open the **Mode Settings** panel in the left navigation bar, select **PnC** for **Mode** and **Scenario_Sim** for **Operations** to enter scenario simulation.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_cdbd0fe.png)
 
-4. 左侧导航栏打开 **Resource Manager** 面板，下载相应场景集。
+4. Open the **Resource Manager** panel in the left navigation bar and download the corresponding scenario set.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_8f326a6.png)
 
-> 注意：本次实验以demo场景集为例。
+> Note: This experiment uses the demo scenario set as an example.
 
-5. 回到 **Mode Settings** 面板， **Enviroment Resources** 中选择 demo 中的 **Brake on the sidewalk to avoid collision** 作为仿真场景， **ADS Resources** 中选择车辆参数为 **Mkz Example** 车辆。
+5. Go back to the **Mode Settings** panel, select **Brake on the sidewalk to avoid collision** from demo in **Enviroment Resources** as the simulation scenario, and select the **Mkz Example** vehicle as the vehicle parameters in **ADS Resources**.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3cd8dd4.png)
 
-6. 在 **Modules** 菜单栏中点击 planning 和 prediction 按钮，启动相应模块，并点击左下角开始运行仿真按钮。
+6. In the **Modules** menu bar, click the planning and prediction buttons to start the corresponding modules, and click the start-simulation button in the lower left corner.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_9fa69ab.png)
 
-7. 观察仿真效果红线是 routing 模块在地图中搜索出的路径，浅蓝色的轨迹是 planning 模块实时规划的局部路径。在默认情况下停止墙距离交通灯停止距离为 1.0 米。
+7. Observe the simulation. The red line is the path found by the routing module on the map, and the light blue trajectory is the local path planned in real time by the planning module. By default, the distance between the stop wall and the traffic light stop line is 1.0 m.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_f706c5b.png)
 
-根据实验要求我们需要停止在停止线 2-2.5米 内停车，待绿灯后通过。因此，在默认情况下我们不能满足实验要求，接下来我们通过在线编辑器修改代码，实现该功能。
+According to the experiment requirements, we need to stop within 2-2.5 m of the stop line and pass after the light turns green. By default, the experiment requirements are therefore not met. Next, we will modify the code with the online editor to implement this.
 
-## 参数调整实践
+## Parameter Adjustment Practice
 
-### Traffic_light配置参数同步
+### Synchronize Traffic_light Configuration Parameters
 
-**局部配置参数同步**
+**Synchronize Local Configuration Parameters**
 
-1. 打开新的终端窗口，输入配置参数同步指令，系统将自动将 planning 模块的 Traffic_light 配置参数复制到 profile 的 default 目录中：
+1. Open a new terminal window and enter the configuration parameter synchronization command. The system will automatically copy the Traffic_light configuration parameters of the planning module into the default directory of the profile:
    
    ```bash
    buildtool profile config init --package planning-traffic-rules-traffic-light --profile=default
    ```
    
-   使用 default 目录这份配置：
+   Use the configuration in the default directory:
    
    ```bash
-    # 使用名字叫default的这份配置
+    # Use the configuration named default
     aem profile use default
    ```
    
-   查看 profile 插件目录结构：
+   View the profile plugin directory structure:
    
    ```bash
    tree profiles/default/modules/planning/traffic_rules/
    ```
    
-   目录结构：
+   Directory structure:
    
    ```bash
    profiles/default/modules/planning/traffic_rules/
@@ -102,23 +102,23 @@ https://apollo.baidu.com/community/course/19
         `-- default_conf.pb.txt
    ```
 
-### 调整交通灯场景停止距离
+### Adjust the Stopping Distance in the Traffic Light Scenario
 
-1. 打开在线编辑器：
+1. Open the online editor:
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_90fdbbb.png)
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_e889136.png)
 
-2. 在 apollo_workspace 工作目录找到`profiles/default/modules/planning/traffic_rules/traffic_light/conf/default_conf.pb.txt`配置文件，调整红绿灯场景停止配置参数，达到我们期望停车效果。
+2. In the apollo_workspace working directory, find the configuration file `profiles/default/modules/planning/traffic_rules/traffic_light/conf/default_conf.pb.txt` and adjust the traffic light stop configuration parameter to achieve the desired stopping effect.
 
 ```bash
- #原始
+ # Original
  stop_distance: 1.0
- #修改后
+ # Modified
  stop_distance: 2.2
 ```
 
-3. 保存修改后，回到 dreamview+，在 Modules 中重启 Planning 模块（让系统重新加载 Planing 参数)，重新选择红绿灯场景场景，观察主车遇到红灯场景时调整前后停车距离的变化。
+3. After saving the changes, go back to dreamview+ and restart the Planning module in Modules (so that the system reloads the Planning parameters). Select the traffic light scenario again and observe how the stopping distance of the ego vehicle at a red light changes before and after the adjustment.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a0b0d74.png)

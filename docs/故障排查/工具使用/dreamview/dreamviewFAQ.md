@@ -1,108 +1,108 @@
-# 1.场景集同步
+# 1. Scenario Set Synchronization
 
-## 为什么在 studio 上制作的场景集在 Dreamview+ 中没有显示？
+## Why does a scenario set created on Studio not appear in Dreamview+?
 
-### 问题现象
+### Symptom
 
-用户创建如下场景集
+The user created the following scenario set
 ![](images/scenario_studio_list.png)
-在Dreamview+ 的resource manager中并没有显示该场景集
+but it does not appear in the resource manager of Dreamview+
 ![](images/scenario_dv_list.png)
 
-### 原因解析
+### Analysis
 
-创建场景集时，场景类型选择了“线上评测”，Dreamview+ 插件只同步线下仿真类型的场景集，线上评测类型的场景集在本地不一定可用。
+When the scenario set was created, the scenario type "Online Evaluation" was selected. The Dreamview+ plugin only synchronizes scenario sets of the offline simulation type; scenario sets of the online evaluation type are not necessarily usable locally.
 
-### 解决方法
+### Solution
 
-请重新创建该场景集，并将场景类型选择为“线下仿真”。
+Please recreate the scenario set and select "Offline Simulation" as the scenario type.
 ![](images/scenario_created.png)
 
-## 为什么下载某个场景集后，场景集中的相关场景没有加载出来/无法选择？
+## Why are the scenarios in a scenario set not loaded or selectable after the scenario set is downloaded?
 
-### 问题现象
+### Symptom
 
-选择某个场景集里的某个场景，无法触发选中态，查看**data/log/dreamview_plus.INFO**，报出类似如下图的log
+When selecting a scenario in a scenario set, the selected state cannot be triggered. Checking **data/log/dreamview_plus.INFO** shows a log like the following
 ![](images/scenario_select_log.png)
 
-### 原因解析
+### Analysis
 
-本地没有场景匹配的地图
+The map that matches the scenario does not exist locally.
 
-### 解决方法
+### Solution
 
-- 如果是apollo的默认下载的地图，而地图缺失，请通过命令**buildtool reinstall map**重新下载所需要的地图
-- 如果是用户创建的地图，请在容器中将地图放入**/apollo/modules/map/data**目录下
+- If it is a map downloaded by default by Apollo and it is missing, re-download the required map with the command **buildtool reinstall map**
+- If it is a map created by the user, place the map in the **/apollo/modules/map/data** directory inside the container
 
-# 2.场景仿真
+# 2. Scenario Simulation
 
-## 为什么开启场景仿真，选择场景启动后没有障碍物？
+## Why are there no obstacles after enabling scenario simulation and starting a scenario?
 
-### 问题现象
+### Symptom
 
-启动场景仿真时，车辆启动，但没有障碍物
+When scenario simulation starts, the vehicle starts, but there are no obstacles.
 
-### 原因解析
+### Analysis
 
-- 场景中没有障碍物
-- 未安装sim_obstacle
-- sim_obstacle进程因为某些原因退出
+- The scenario contains no obstacles
+- sim_obstacle is not installed
+- The sim_obstacle process exited for some reason
 
-### 解决方法
+### Solution
 
-- 场景中没有障碍物
+- The scenario contains no obstacles
 
-步骤一：在Dreamview+ 中打开前端控制台，打开后刷新页面
+Step 1: Open the front-end console in Dreamview+, then refresh the page after opening it
 ![](images/console_start.png)
 
-步骤二：选择名称为websocket的socket
+Step 2: Select the socket named websocket
 
 ![](images/console_message.png)
 
-步骤三：点击没有障碍物的场景，在前端控制台中会出现一条action为CHANGE_SCENARIO的消息，点击该消息并展开，其中value的第一个值为场景集id，第二个值为场景id
-这里我们的场景集id为6513c9a72026b08081b3784e，场景id为5bdd8355195cc4004461bc03
+Step 3: Click the scenario that has no obstacles. A message with the action CHANGE_SCENARIO appears in the front-end console. Click the message and expand it. The first value in value is the scenario set ID, and the second value is the scenario ID.
+Here our scenario set ID is 6513c9a72026b08081b3784e and the scenario ID is 5bdd8355195cc4004461bc03
 
 ![](images/console_change_scenario.png)
 
-步骤四：进入该场景集目录，并输出该场景的内容
+Step 4: Enter the scenario set directory and print the content of the scenario
 
 `cd	 ~/.apollo/resources/scenario_sets/6513c9a72026b08081b3784e/scenarios`
 `cat 5bdd8355195cc4004461bc03.json`
 
-步骤五：通过查看agent字段是否有内容判断该场景是否存在障碍物，如果存在内容，则说明场景有障碍物，否则没有
+Step 5: Check whether the agent field has content to determine whether the scenario has obstacles. If it has content, the scenario has obstacles; otherwise it does not.
 
 ![](images/scenario_attribute.png)
 
-- 未安装sim_obstacle
+- sim_obstacle is not installed
 
-请在容器中通过命令**ls /opt/apollo/neo/bin/sim_obstacle**查看是否存在sim_obstacle，若不存在，则通过**buildtool reinstall --legacy sim-obstacle**命令安装
+Check whether sim_obstacle exists in the container with the command **ls /opt/apollo/neo/bin/sim_obstacle**. If it does not exist, install it with the command **buildtool reinstall --legacy sim-obstacle**
 
-- sim_obstacle进程因为某些原因退出
+- The sim_obstacle process exited for some reason
 
-若场景中存在障碍物，且sim_obstacle存在，则通过命令**ps -ef | grep sim_obstacle**查看是否存在sim_obstacle进程，
-若不存在，则说明sim_obstacle进程异常退出，通过命令**tail -500f data/log/sim_obstacle.INFO**输出报错信息，并及时联系我们，我们将进行排查
+If the scenario has obstacles and sim_obstacle exists, check whether the sim_obstacle process exists with the command **ps -ef | grep sim_obstacle**.
+If it does not exist, the sim_obstacle process exited abnormally. Print the error messages with the command **tail -500f data/log/sim_obstacle.INFO** and contact us promptly, and we will investigate.
 
-# 3.插件
+# 3. Plugins
 
-## 为什么插件没同步成功？
+## Why did the plugin synchronization fail?
 
-### 问题现象
+### Symptom
 
-已经从studio下载了插件，但是打开Dreamview+ 并没有显示resource manager的入口
+The plugin has been downloaded from Studio, but the resource manager entry does not appear when Dreamview+ is opened
 ![](images/resource_manager_entry.png)
 
-### 原因解析
+### Analysis
 
-可能是因为没有安装Dreamview+ 插件或者插件为旧版本
+The Dreamview+ plugin may not be installed, or the plugin may be an old version.
 
-### 解决方法
+### Solution
 
-步骤一：登录**Apollo Studio**工作台
+Step 1: Log in to the **Apollo Studio** workbench
 ![](images/work_station.png)
-步骤二：在账户信息中，单击**我的服务**
+Step 2: In the account information, click **My Services**
 ![](images/work_station_service.png)
-步骤三：选择**仿真**页签，在插件安装中单击**生成**
+Step 3: Select the **Simulation** tab and click **Generate** under plugin installation
 ![](images/work_station_simulation.png)
-步骤四：单击**一键复制**，之后在您的docker环境中运行该指令，插件同步（Dreamview+的登录）就完成了
+Step 4: Click **One-Click Copy**, then run the command in your docker environment, and the plugin synchronization (Dreamview+ login) is complete
 ![](images/work_station_copy.png)
-重新启动并进入Dreamview+，左下角出现头像和资源中心按钮，即插件同步成功，可以开始资源下载了
+Restart and enter Dreamview+. If an avatar and the resource center button appear in the lower-left corner, the plugin has been synchronized successfully and you can start downloading resources.

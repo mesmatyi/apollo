@@ -1,11 +1,11 @@
-### 问题描述:
+### Problem Description:
 
-启动容器报错: docker setting cgroup config for prochooks process caused
+Starting the container fails with: docker setting cgroup config for prochooks process caused
 
-### 问题原因:
+### Cause:
 
-linux内核太老
+The Linux kernel is too old.
 
-### 解决方案:
+### Solution:
 
-参考https://my-take-on.tech/2021/05/07/fix-docker-cgroup-errors-after-systemd-248-update/
+Refer to https://my-take-on.tech/2021/05/07/fix-docker-cgroup-errors-after-systemd-248-update/

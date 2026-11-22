@@ -446,7 +446,9 @@ void LaneScanningEvaluator::LoadModel() {
   }
   torch::set_num_threads(1);
   torch_lane_scanning_model_ =
-      torch::jit::load(FLAGS_torch_vehicle_lane_scanning_file, device_);
+      torch::jit::load(apollo::cyber::common::ResolvePath(
+                           FLAGS_torch_vehicle_lane_scanning_file),
+                       device_);
 }
 
 void LaneScanningEvaluator::ModelInference(

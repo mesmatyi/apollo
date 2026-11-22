@@ -1,134 +1,134 @@
-## 性能分析能力介绍
+## Introduction to Performance Analysis Capabilities
 
-随着自动驾驶系统复杂度的增加，越来越多性能问题出现在实际开发、路测的流程中，性能优化已成为整个过程中不可或缺的一环。但是如何发现、分析、定位和解决性能问题相对有一定门槛，并且需要付出额外的工作量/为了解决此类痛点，新版本cyber对框架进行了改造，开发了性能可视化工具，建立了性能分析的能力。cyber的性能分析能力有以下特点：
+As the complexity of autonomous driving systems increases, more and more performance problems appear in the actual development and road-test process, and performance optimization has become an indispensable part of the whole process. However, finding, analyzing, locating, and solving performance problems has a certain threshold and requires extra workload. To address such pain points, the new version of cyber has reworked the framework, developed a performance visualization tool, and established performance analysis capabilities. The performance analysis capabilities of cyber have the following features:
 
-**多维数据采集，全面监控，无所遁形：**
+**Multi-dimensional data collection and comprehensive monitoring, with nothing hidden:**
 
-cyber性能分析工具能够监测自动驾驶系统关键的性能指标，包括：
+The cyber performance analysis tool can monitor the key performance metrics of the autonomous driving system, including:
 
 <table>
   <thead>
     <tr>
-      <th>分类</td>
-      <th colspan="2">指标</td>
-      <th>系统级别</td>
-      <th>进程级别</td>
+      <th>Category</td>
+      <th colspan="2">Metric</td>
+      <th>System level</td>
+      <th>Process level</td>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>CPU</td>
-      <td colspan="2">CPU使用率</td>
+      <td colspan="2">CPU utilization</td>
       <td>√</td>
       <td>√</td>
     </tr>
     <tr>
       <td>GPU</td>
-      <td colspan="2">GPU使用率</td>
+      <td colspan="2">GPU utilization</td>
       <td>√</td>
       <td> </td>
     </tr>
     <tr>
-      <td>内存</td>
-      <td colspan="2">内存使用大小</td>
+      <td>Memory</td>
+      <td colspan="2">Memory usage</td>
       <td>√</td>
       <td>√</td>
     </tr>
     <tr>
-      <td>显存</td>
-      <td colspan="2">显存使用大小</td>
+      <td>GPU memory</td>
+      <td colspan="2">GPU memory usage</td>
       <td>√</td>
       <td>√</td>
     </tr>
     <tr>
       <td rowspan="6">IO</td>
-      <td rowspan="4">块设备</td>
-      <td>读写速率</td>
+      <td rowspan="4">Block device</td>
+      <td>Read/write rate</td>
       <td>√</td>
       <td>√</td>
     </tr>
     <tr>
-      <td>设备等待时间</td>
+      <td>Device wait time</td>
       <td>√</td>
       <td> </td>
     </tr>
     <tr>
-      <td>设备IOPS</td>
+      <td>Device IOPS</td>
       <td>√</td>
       <td> </td>
     </tr>
     <tr>
-      <td>设备等待队列长度</td>
+      <td>Device wait queue length</td>
       <td>√</td>
       <td> </td>
     </tr>
     <tr>
-      <td rowspan="2">网卡</td>
-      <td>读写速率</td>
+      <td rowspan="2">Network card</td>
+      <td>Read/write rate</td>
       <td>√</td>
       <td>√</td>
     </tr>
     <tr>
-      <td>设备带宽使用率</td>
+      <td>Device bandwidth utilization</td>
       <td>√</td>
       <td> </td>
     </tr>
   </tbody>
 </table>
 
-通过对这些关键指标的实时跟踪，您可以快速识别出自动驾驶系统中影响性能的瓶颈进程所在。
+By tracking these key metrics in real time, you can quickly identify the bottleneck processes that affect performance in the autonomous driving system.
 
-**直观的性能可视化界面，洞察一目了然：**
+**Intuitive performance visualization interface, with insights at a glance:**
 
-cyber的性能分析能力提供了用户友好的可视化界面，为您展示了所有性能数据的直观视图。借助清晰的图表和报告，您可以轻松解读性能分析结果，指明优化方向。
+The performance analysis capabilities of cyber provide a user-friendly visualization interface that gives you an intuitive view of all performance data. With clear charts and reports, you can easily interpret the performance analysis results and identify the direction for optimization.
 
-**进程级别分析，宏观洞察，精准定位：**
+**Process-level analysis, macro insight, precise localization:**
 
 ![cyber_performance_analysis_1](./images/cyber_performance_analysis_1.png)
 
-可视化界面提供实时数据允许您观察到每一个进程的性能表现。这种宏观的视角让您可以确定哪一个或哪些进程可能会拖慢整个应用的运行速度，从而作出相应的调整。
+The visualization interface provides real-time data that lets you observe the performance of every process. This macro view lets you determine which process or processes may be slowing down the whole application, so that you can make corresponding adjustments.
 
-**函数级别分析，微观解析，深度调优：**
+**Function-level analysis, micro-level parsing, deep tuning:**
 
 ![cyber_performance_analysis_2](./images/cyber_performance_analysis_2.png)
 
-更进一步，cyber的性能分析能力中，提供了对自动驾驶系统各模块的进程级别分析，通过这一个功能，能够对每个进程生成cpu、内存以及gpu各项指标（依赖于nvidia nsight系列工具）相应的火焰图、有向图等，您可以识别出代码中最需要优化的部分。这种粒度的分析帮助开发者进行深度优化。
+Going further, the performance analysis capabilities of cyber provide process-level analysis of each module of the autonomous driving system. With this feature, flame graphs, directed graphs, and so on can be generated for each process for the cpu, memory, and gpu metrics (relying on the nvidia nsight series of tools), so you can identify the parts of the code that most need optimization. This granularity of analysis helps developers perform deep optimization.
 
-## 功能使用
+## Using the Features
 
-### 前序工作：部署Apollo
+### Prerequisite: Deploy Apollo
 
-要使用新版本cyber的性能分析功能，只需部署最新版本的Apollo即可，整理流程与之前的Apollo部署流程一致
+To use the performance analysis features of the new version of cyber, you only need to deploy the latest version of Apollo. The overall process is the same as the previous Apollo deployment process
 
-#### 源码
+#### Source Code
 
-clone Apollo最新代码
+Clone the latest Apollo code
 
 ```bash
 git clone https://github.com/ApolloAuto/apollo.git
 ```
 
-使用脚本启动并进入容器
+Use the script to start and enter the container
 
 ```bash
 bash docker/scripts/dev_start.sh
 ```
 
-编译Apollo
+Compile Apollo
 
 ```bash
 bash apollo.sh build
 ```
 
-#### 包管理
+#### Package Management
 
-clone 最新Apollo工程
+Clone the latest Apollo project
 
 ```bash
 git clone https://github.com/ApolloAuto/application-core.git
 ```
 
-安装aem，启动并进入容器
+Install aem, then start and enter the container
 
 ```bash
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -143,54 +143,54 @@ sudo apt install apollo-neo-env-manager-dev --reinstall
 aem start
 ```
 
-安装Apollo软件包
+Install the Apollo packages
 
 ```bash
 buildtool build
 ```
 
-### 自动驾驶系统中模块级别的性能分析
+### Module-Level Performance Analysis in the Autonomous Driving System
 
-cyber会记录所有基于cyber的component、可执行的二进制程序的各项性能指标，并且可以实时查看。通过cyber的可视化工具，可以很容易找到定位到自动驾驶系统中对硬件资源占用高的模块，启动可视化界面也很简单：
+cyber records the performance metrics of all cyber-based components and executable binaries, and they can be viewed in real time. With cyber's visualization tool, it is easy to locate the modules in the autonomous driving system that use a lot of hardware resources. Starting the visualization interface is also simple:
 
 ```bash
 cyber_performance
 ```
 
-启动完毕后，浏览器输入 localhost:5000，即可看见类似下面的网页：
+After it starts, enter localhost:5000 in a browser and you will see a page similar to the following:
 
 ![cyber_performance_analysis_3](./images/cyber_performance_analysis_3.png)
 
-其中左上角的按钮可以用来选择显示的进程，通常是以下的的格式：mainboard.xxx.dag，其中xxx.dag为模块启动的dag名称，例如control模块叫做mainboard.control.dag。另外有两个特例，system表示系统的性能指标，而bvar.python3表示的是cyber_performance这个软件的性能指标。
+The button in the upper left corner can be used to select the process to display, usually in the following format: mainboard.xxx.dag, where xxx.dag is the name of the dag used to start the module; for example, the control module is called mainboard.control.dag. There are also two special cases: system represents the system's performance metrics, and bvar.python3 represents the performance metrics of the cyber_performance software itself.
 
-选择进程后，会有多个图表分别以xx - yy - zz 或者 xx - yy 命名，其中xx代表的是指标的类型，目前有：
+After selecting a process, there will be multiple charts named xx - yy - zz or xx - yy, where xx represents the type of metric. Currently the types are:
 
-- BASIC：记录基础的性能指标，包括cpu占用、gpu占用、内存占用、显存占用
-- BLOCK_DEVICE_IO：记录块设备相关IO的指标
-- ETHERNET_DEVICE_IO：记录网卡设备IO的指标
-- E2E_LATENCY：模块Proc函数的时延
+- BASIC: records basic performance metrics, including cpu usage, gpu usage, memory usage, and gpu memory usage
+- BLOCK_DEVICE_IO: records metrics related to block device IO
+- ETHERNET_DEVICE_IO: records metrics of network card device IO
+- E2E_LATENCY: latency of the module's Proc function
 
-yy指的是指标名字，而zz只会存在BLOCK_DEVICE_IO和ETHERNET_DEVICE_IO这两个类型中，代表的是实际是设备的名称。
+yy refers to the metric name, while zz only exists in the BLOCK_DEVICE_IO and ETHERNET_DEVICE_IO types and represents the actual name of the device.
 
-通过上述图表，可以迅速判断自动驾驶系统中，不同进程对cpu、gpu、内存，显存和IO分别占用了多少，帮助定位自动驾驶中的进程瓶颈。
+Through the above charts, you can quickly determine how much cpu, gpu, memory, gpu memory, and IO different processes in the autonomous driving system use, which helps locate process bottlenecks in autonomous driving.
 
-> 可视化界面显示的是实时值，cyber会将性能数据dump到data目录下。如果需要计算均值，可以使用/apollo/scripts中的performance_parse.py脚本解析：
+> The visualization interface shows real-time values, and cyber dumps the performance data to the data directory. If you need to calculate the mean value, you can parse it with the performance_parse.py script in /apollo/scripts:
 >
 > python3 /apollo/scripts/performance_parse.py -f data/performance_dumps.07-29-2024.json
 >
-> 其中：
+> Where:
 >
-> - -f 指定的是落盘的性能监控文件，目前会生成在工程目录的data目录下
+> - -f specifies the performance monitoring file written to disk, which is currently generated in the data directory of the project directory
 
-### 自动驾驶系统中函数级别的性能分析
+### Function-Level Performance Analysis in the Autonomous Driving System
 
-#### cpu及内存
+#### CPU and Memory
 
-cyber的性能分析功能可以对cpu和内存使用情况进行采样，最终生成热力图或者有向图进行分析。
+The performance analysis feature of cyber can sample cpu and memory usage and finally generate heat maps or directed graphs for analysis.
 
-#### 使用方式
+#### Usage
 
-##### mainboard 新增了以下参数：
+##### mainboard has the following new parameters:
 
 ```bash
 I0409 16:54:22.506175 18008 module_argument.cc:113] []command: mainboard -h
@@ -209,15 +209,15 @@ Description:
     -O, --heapprofile_filename=filename: the filename to dump the profile to, default value is ${process_group}_mem.prof. Only work with -c option
 ```
 
-其中 -c 声明开启 cpu 采样功能，-H 开启内存采样功能，可以通过以下命令启动模块：
+Here -c enables the cpu sampling feature and -H enables the memory sampling feature. The module can be started with the following command:
 
 ```bash
 mainboard -d /apollo/modules/planning/planning_component/dag/planning.dag -c -H
 ```
 
-默认会在当前路径下生成 ${process_group}\_cpu.prof 和 ${process_group}\_mem.prof 两个采样文件。
+By default, two sampling files, ${process_group}\_cpu.prof and ${process_group}\_mem.prof, are generated in the current path.
 
-采样功能也可以在launch文件中添加，例如planning的launch
+The sampling feature can also be added in the launch file, for example planning's launch
 
 ```xml
 
@@ -233,230 +233,230 @@ mainboard -d /apollo/modules/planning/planning_component/dag/planning.dag -c -H
 </cyber>
 ```
 
-添加 cpuprofile 与 memprofile 标签，运行该launch后会在/apollo路径下生成planning_cpu.prof、planning_mem.prof的采样文件。
+Add the cpuprofile and memprofile tags. After running this launch, the sampling files planning_cpu.prof and planning_mem.prof are generated under the /apollo path.
 
-> cpu采样时只会生成一个prof文件，而内存采样时会生成多个prof文件，每个prof文件代表生成时候进程内存使用的情况：
+> CPU sampling generates only one prof file, while memory sampling generates multiple prof files, each of which represents the process's memory usage at the time it was generated:
 
 ![cyber_performance_analysis_4](./images/cyber_performance_analysis_4.png)
 
-> 由于内存和cpu采样会对性能造成影响，不太建议同时开启两种采样，建议一次启动只开启一种
+> Because memory and cpu sampling affect performance, it is not recommended to enable both types of sampling at the same time; it is recommended to enable only one per launch
 
-##### 生成可视化结果
+##### Generating Visualization Results
 
-CPU：使用以下命令对采样结果可视化，生成火焰图：
+CPU: Use the following commands to visualize the sampling results and generate a flame graph:
 
-源码：
+Source code:
 
 ```bash
 bash scripts/sampling.sh planning_cpu.prof
 ```
 
-包管理：
+Package management:
 
 ```bash
 buildtool sampling planning_cpu.prof
 ```
 
-内存：根据需求生成内存采样的有向无环图或者火焰图
+Memory: Generate a directed acyclic graph or flame graph of the memory sampling as needed
 
-分析内存热点：找出哪些代码路径或函数导致了大量的内存分配
+Analyzing memory hotspots: find out which code paths or functions cause large memory allocations
 
 ```bash
-pprof --svg $(which mainboard) planning_mem.prof.0001.heap > a.svg # 生成有向图
+pprof --svg $(which mainboard) planning_mem.prof.0001.heap > a.svg # Generate a directed graph
 ```
 
-> 有向图会带有内存信息，更加明确哪个函数分配了多少内存，而火焰图更加直观，开发者根据习惯选择生成何种类型的图即可
+> A directed graph carries memory information, which makes it clearer which function allocated how much memory, while a flame graph is more intuitive. Developers can choose which type of graph to generate according to their habits
 
-分析两个时刻之间哪个函数分配了多少内存，通常用于内存泄漏问题排查
+Analyze how much memory each function allocated between two moments, which is usually used to troubleshoot memory leak problems
 
 ```bash
 pprof --svg --base planning_mem.prof.0005.heap $(which mainboard) planning_mem.prof.0001.heap > a.svg
 ```
 
-##### 分析
+##### Analysis
 
 cpu
 
 ![cyber_performance_analysis_5](./images/cyber_performance_analysis_5.png)
 
-上述为cyber示例通信程序的火焰图，从下到上代表函数调用栈，长度代表函数在整个进程中占用的CPU资源百分比，例如上图中的ReadMessage，占比81.82%，可以看出这部分占用了绝大部分的内存，因此通过火焰图可以得知需要对图中的顶部、较长的函数（占比高）进行优化，从而减少进程对cpu的占用
+The above is the flame graph of the cyber example communication program. From bottom to top it represents the function call stack, and the length represents the percentage of CPU resources occupied by the function in the whole process. For example, ReadMessage in the figure above accounts for 81.82%, so it can be seen that this part occupies the vast majority of the memory. Therefore, the flame graph tells us that we need to optimize the functions at the top of the graph and the longer ones (with a high percentage), so as to reduce the process's cpu usage
 
-内存
+Memory
 
-内存热点分析
+Memory hotspot analysis
 
-通过热力图或有向图找到内存热点分配
+Find memory hotspot allocations through heat maps or directed graphs
 
 ![cyber_performance_analysis_6](./images/cyber_performance_analysis_6.png)
 ![cyber_performance_analysis_7](./images/cyber_performance_analysis_7.png)
 
-热力图和有向图均可找到内存热点分配，同样，热力图从下到上代表函数调用栈，长度代表函数在整个进程中分配的内存百分比；
+Both heat maps and directed graphs can find memory hotspot allocations. Likewise, a heat map represents the function call stack from bottom to top, and the length represents the percentage of memory allocated by the function in the whole process;
 
-而有向图部分：
+while for the directed graph:
 
-- 有向图的左上角说明了进程在当前快照时间点中一共分配了多少内存
-- 框代表实际的函数，每个框有两个数字：
-  - 第一个数字代表当前函数分配了多少内存
-  - 第二个数字代表调用的函数分别了多少内存
-  - 线代表调用链
+- The upper left corner of the directed graph shows how much memory the process has allocated in total at the current snapshot point in time
+- Boxes represent the actual functions, and each box has two numbers:
+  - The first number represents how much memory the current function allocated
+  - The second number represents how much memory the functions it calls allocated
+  - Lines represent the call chain
 
-通过上述方式可以迅速定位到内存热点分配所在的函数以及相应的调用链。
+In this way, you can quickly locate the functions where memory hotspots are allocated and the corresponding call chains.
 
-内存泄漏分析：
+Memory leak analysis:
 
-内存泄漏通常基于以下命令比较不同时间点的内存分配diff情况：
+Memory leaks are usually analyzed by comparing the memory allocation diff at different points in time with the following command:
 
 ```bash
 pprof --svg --base planning_mem.prof.0005.heap $(which mainboard) planning_mem.prof.0001.heap > a.svg
 ```
 
-上述命令会生成两个时间点内存diff的有向图，假如发现某个函数在不同时间点的分配的大小一直增加，说明可能存在内存泄露：
+The above command generates a directed graph of the memory diff between two points in time. If you find that the allocation size of a function keeps increasing at different points in time, there may be a memory leak:
 
 ![cyber_performance_analysis_8](./images/cyber_performance_analysis_8.png)
 
-### gpu及显存
+### GPU and GPU Memory
 
-GPU的分析需要基于NVIDIA Nsight Systems工具，分别为：
+GPU analysis needs to be based on the NVIDIA Nsight Systems tools, namely:
 
-- nsys system：用于查找性能瓶颈、理解应用程序结构、识别同步和并发问题以及优化整体性能
-- nsys compute：关注于单个 CUDA 核函数的性能分析，用于调整 CUDA 核函数参数、分析寄存器使用、共享内存使用、执行路径和内存访问模式以提高核函数性能
+- nsys system: used to find performance bottlenecks, understand application structure, identify synchronization and concurrency problems, and optimize overall performance
+- nsys compute: focuses on the performance analysis of individual CUDA kernel functions, used to tune CUDA kernel function parameters and analyze register usage, shared memory usage, execution paths, and memory access patterns to improve kernel function performance
 
-> 类似gperftools，nsys会对进程性能产生严重影响，应仅在研发、分析阶段使用，日常路测时不应该使用
+> Similar to gperftools, nsys has a serious impact on process performance and should only be used in the development and analysis phases, not during routine road tests
 
-#### 使用方式
+#### Usage
 
-启动工具对进程采样（以感知为例）：
+Start the tool to sample the process (taking perception as an example):
 
 ```bash
 sudo -E nsys profile --gpu-metrics-device all --cuda-memory-usage true --delay=15 --duration=30 -f true -o preception --trace=cuda,cudnn,cublas,osrt,nvtx mainboard -d /apollo/modules/perception/msg_adapter/dag/msg_adapter.dag -d /apollo/modules/perception/pointcloud_preprocess/dag/pointcloud_preprocess.dag -d /apollo/modules/perception/pointcloud_map_based_roi/dag/pointcloud_map_based_roi.dag -d /apollo/modules/perception/pointcloud_ground_detection/dag/pointcloud_ground_detection.dag -d /apollo/modules/perception/lidar_detection/dag/lidar_detection.dag -d /apollo/modules/perception/lidar_detection_filter/dag/lidar_detection_filter.dag -d /apollo/modules/perception/lidar_tracking/dag/lidar_tracking.dag
 ```
 
-- profile 指明了要进行采样
-- --gpu-metrics-device all 指明了需要采集所有gpu相关的指标
-- --cuda-memory-usage true 指明了对cuda中分配的显存进行追踪
-- --delay=15 --duration=30 指明了程序启动后15s后才开始采样，采集30秒后结束
-- -f true 指明生成的报告文件覆盖现有报告
-- -o preception 指明生成报告的名称，采集结束后会在当前路径生成perception.nsys-rep文件
-- --trace=cuda,cudnn,cublas,osrt,nvtx 指明采集的接口
-- mainboard ... 是正常apollo启动感知的命令
+- profile specifies that sampling is to be performed
+- --gpu-metrics-device all specifies that all gpu-related metrics should be collected
+- --cuda-memory-usage true specifies that the gpu memory allocated in cuda should be tracked
+- --delay=15 --duration=30 specifies that sampling starts 15s after the program starts and ends after collecting for 30 seconds
+- -f true specifies that the generated report file overwrites the existing report
+- -o preception specifies the name of the generated report. After collection ends, a perception.nsys-rep file is generated in the current path
+- --trace=cuda,cudnn,cublas,osrt,nvtx specifies the interfaces to collect
+- mainboard ... is the normal command for starting perception in apollo
 
-> 注意事项：采集需要用sudo权限
+> Note: collection requires sudo privileges
 
-打开nsys图形化界面
+Open the nsys graphical interface
 
 ```bash
 nsys-ui
 ```
 
-在界面上打开采集生成的文件
+Open the file generated by the collection in the interface
 
 ![cyber_performance_analysis_9](./images/cyber_performance_analysis_9.png)
 
-打开后会有以下几栏：
+After opening, the following rows appear:
 
 ![cyber_performance_analysis_10](./images/cyber_performance_analysis_10.png)
 
-其中：
+Where:
 
-- cpu栏包括进程运行过程中瞬时的cpu使用率
-- iGPU栏包括orin上gpu各项性能指标
-- CUDA HW包含各个cuda流中运行的核函数
-- Threads包含进程中运行的各个函数，包括cpu系统库以及cuda、cublas、cudnn等接口，这些函数会将对应的核函数放到流的等待队列中，等待被CUDA HW运行
+- The cpu row includes the instantaneous cpu utilization while the process is running
+- The iGPU row includes the various gpu performance metrics on orin
+- CUDA HW contains the kernel functions running in each cuda stream
+- Threads contains the functions running in the process, including cpu system libraries and interfaces such as cuda, cublas, and cudnn. These functions place the corresponding kernel functions into the stream's waiting queue to wait to be run by CUDA HW
 
-> 简单介绍下执行cuda核函数的逻辑，程序在应用层调用某个核函数时，硬件并不是立刻执行，而是将其发射到等待执行的队列中，等gpu能够处理时再进行执行
+> A brief introduction to the logic of executing cuda kernel functions: when a program calls a kernel function at the application layer, the hardware does not execute it immediately, but launches it into a queue waiting for execution, and executes it when the gpu is able to process it
 
-横轴为进程运行的时间线
+The horizontal axis is the timeline of the process run
 
-展开后：
+After expanding:
 
 ![cyber_performance_analysis_11](./images/cyber_performance_analysis_11.png)
 
-时间轴上可以分为两部分，第二部分（绿色框）可以看出gpu的行为不断重复，可以看出属于模型推理；第一部分（蓝色框）则是模型在进行初始化，性能分析主要关注的是模型推理部分
+The timeline can be divided into two parts. In the second part (green box), the gpu behavior is seen to repeat continuously, which shows it belongs to model inference; the first part (blue box) is the model being initialized. Performance analysis mainly focuses on the model inference part
 
-放大某一次推理：
+Zooming in on one inference:
 
 ![cyber_performance_analysis_12](./images/cyber_performance_analysis_12.png)
 
-刚才提到，iGPU栏包含多个gpu指标，我们比较关注的是SM占用率（对应红框）；另外，CUDA HW栏则记录着时间线上在硬件执行的核函数；而绿框则是对应用于发射这个核函数的的cuda API
+As mentioned earlier, the iGPU row contains multiple gpu metrics, and the one we care about most is the SM occupancy (corresponding to the red box). In addition, the CUDA HW row records the kernel functions executed on the hardware along the timeline; and the green box is the cuda API used to launch this kernel function
 
-通过SM Warp Occupancy栏，当SM占用率高（如上图所示，占用率达到95%）时，可以迅速定位并获取对应执行的核函数的详细信息：
+Through the SM Warp Occupancy row, when the SM occupancy is high (as shown in the figure above, the occupancy reaches 95%), you can quickly locate and obtain detailed information about the corresponding executing kernel function:
 
 ![cyber_performance_analysis_13](./images/cyber_performance_analysis_13.png)
 
-以及发射该核函数处的调用链：
+As well as the call chain at the point where this kernel function is launched:
 
 ![cyber_performance_analysis_14](./images/cyber_performance_analysis_14.png)
 
-通过以上信息，对于我们自己写的核函数，可以迅速定位到瓶颈；而对于模型推理，情况就相对复杂，因为里面每个核函数相当于是一个算子，没办法精确匹配到模型的哪一层
+With the above information, for kernel functions we write ourselves, we can quickly locate the bottleneck; for model inference the situation is more complicated, because each kernel function in it is equivalent to an operator, and there is no way to precisely match it to a layer of the model
 
-针对模型推理问题，如果是使用
+For model inference problems, if you are using
 
-- tensorRT推理：
+- tensorRT inference:
 
-  - 可以通过tensorRT的API给层命名的方式确定核函数对应的层，nvinfer1::INetworkDefinition::setLayerName
-  - 或者NVTX创建相应的时间点：
+  - You can determine the layer corresponding to a kernel function by naming layers through the tensorRT API, nvinfer1::INetworkDefinition::setLayerName
+  - Or create corresponding time points with NVTX:
 
   ```cpp
   #include <nvToolsExt.h>
 
-  // 开始一个新的NVTX范围
+  // Start a new NVTX range
   nvtxRangePush("LayerName");
 
-  // 执行某个TensorRT层的计算
+  // Execute the computation of a TensorRT layer
 
-  // 结束NVTX范围
+  // End the NVTX range
   nvtxRangePop();
   ```
 
-  - 就可以在nsight system上相应的时间线看到对应核函数的统计
+  - Then you can see the statistics of the corresponding kernel functions on the corresponding timeline in nsight system
 
-- paddle推理：paddle内置profiler，也可以查看各层各个算子的运行情况，详细可以参考：https://www.paddlepaddle.org.cn/documentation/docs/zh/2.3/guides/performance_improving/profiling_model.html
+- paddle inference: paddle has a built-in profiler, which can also be used to view the running status of each operator in each layer. For details, refer to:https://www.paddlepaddle.org.cn/documentation/docs/zh/2.3/guides/performance_improving/profiling_model.html
 
-内存分析方面，nsight system也有类似的输出：
+For memory analysis, nsight system also has similar output:
 
 ![cyber_performance_analysis_15](./images/cyber_performance_analysis_15.png)
 
-同样，通过以上信息，对于我们自己写的cudaMalloc等分配函数，可以迅速定位到瓶颈；而对于模型推理，也是需要类似NVTX的方式确定属于哪一层分配的内存
+Likewise, with the above information, for allocation functions such as cudaMalloc that we write ourselves, we can quickly locate the bottleneck; for model inference, a method like NVTX is also needed to determine which layer the allocated memory belongs to
 
-## 优化建议
+## Optimization Suggestions
 
 ### cpu
 
 ![cyber_performance_analysis_16](./images/cyber_performance_analysis_16.png)
 
-主要的优化思路是对火焰图中的顶部、较长的函数（占比高）进行优化，一般来说可以考虑以下几点：
+The main optimization idea is to optimize the functions at the top and the longer ones (with a high percentage) in the flame graph. In general, the following points can be considered:
 
-- 这类函数是否可以去掉：
-  - 例如上图中tzset这个函数占用了约20%的cpu时间片，在未设置环境变量TZ时内核会通过复杂计算求解时区，而设置TZ环境变量后则不存在这种计算
-- 这类函数涉及到复杂运算：
+- Whether this type of function can be removed:
+  - For example, in the figure above, the function tzset takes about 20% of the cpu time slices. When the environment variable TZ is not set, the kernel solves for the time zone through complex calculations, while after setting the TZ environment variable there is no such calculation
+- This type of function involves complex computation:
 
-  - 考虑能否使用更低时间复杂度的算法
-  - 考虑运算是否可以并行化：
+  - Consider whether an algorithm with lower time complexity can be used
+  - Consider whether the computation can be parallelized:
 
-    - 使用cuda加速运算，并释放占用的cpu时间，降低cpu占用率
-    - 使用SIMD指令集并行处理运算：SIMD是单指令多操作的缩写，这类指令集可以同时处理多个数据的数学运算，例如下列代码使用arm架构上的neon指令集并行处理16个像素，将yuyv的图片转换成rgb的图片，降低函数在cpu上占用时间：
+    - Use cuda to accelerate the computation and release the occupied cpu time to reduce cpu utilization
+    - Use the SIMD instruction set to process computation in parallel: SIMD is short for single instruction, multiple data, and this type of instruction set can process mathematical operations on multiple data at the same time. For example, the following code uses the neon instruction set on the arm architecture to process 16 pixels in parallel to convert a yuyv image into an rgb image, reducing the time the function occupies on the cpu:
 
     ```cpp
     for (int j = 0; j < height_; j += 2) {
         for (int i = 0; i < width_; i += 16) {
-            // 读取16个像素点到双通道寄存器中，其中通道1存储y分量，通道2存储uv分量 (32 bytes)
+            // Read 16 pixels into dual-channel registers, where channel 1 stores the y component and channel 2 stores the uv component (32 bytes)
             uint8x16x2_t row0 = vld2q_u8(usrc + j * width_ * 2 + i * 2);
             uint8x16x2_t row1 = vld2q_u8(usrc + (j + 1) * width_ * 2 + i * 2);
 
-            // 提取y分量
+            // Extract the y component
             uint8x16_t y0 = row0.val[0];
             uint8x16_t y1 = row1.val[0];
 
-            // 保存y分量到数组中
+            // Save the y component into the array
             vst1q_u8(yPlane + yIndex, y0);
             vst1q_u8(yPlane + yIndex + width_, y1);
             yIndex += 16;
 
-            // 提取uv分量
+            // Extract the uv component
             uint8x16_t u0 = row0.val[1];
             uint8x16_t v0 = row1.val[1];
 
-            // 求uv分量均值（减轻下采样丢失数据的影响）
+            // Compute the mean of the uv components (to mitigate the data loss caused by downsampling)
             uint16x8_t u16_low = vaddl_u8(vget_low_u8(u0), vget_low_u8(v0));
             uint16x8_t u16_high = vaddl_u8(vget_high_u8(u0), vget_high_u8(v0));
             uint8x8_t u8_avg_low = vshrn_n_u16(u16_low, 1);
@@ -470,7 +470,7 @@ nsys-ui
             uint8x16_t u_avg = vcombine_u8(u8_avg_low, u8_avg_high);
             uint8x16_t v_avg = vcombine_u8(v8_avg_low, v8_avg_high);
 
-            // 保存uv分量到数组中
+            // Save the uv components into the array
             vst1_u8(uPlane + uIndex, u8_avg_low);
             vst1_u8(vPlane + vIndex, v8_avg_low);
             uIndex += 8;
@@ -480,88 +480,88 @@ nsys-ui
     }
     ```
 
-  - 考虑运算能否放在非cpu硬件上执行：例如orin上nvjpeg芯片，可以专门用于处理图片压缩等任务
+  - Consider whether the computation can be executed on non-cpu hardware: for example, the nvjpeg chip on orin can be dedicated to tasks such as image compression
 
-### 内存
+### Memory
 
-与cpu思路相同，我们需要看有什么函数是我们能够优化的，热力图和有向图能够查看各函数分配内存大概占比以及精确数值，例如预测进程：
+The idea is the same as for the cpu: we need to see which functions we can optimize. Heat maps and directed graphs let us see the approximate percentage of memory allocated by each function as well as the exact values, for example for the prediction process:
 
 ![cyber_performance_analysis_17](./images/cyber_performance_analysis_17.png)
 
 ![cyber_performance_analysis_18](./images/cyber_performance_analysis_18.png)
 
-一般来说可以考虑以下几点：
+In general, the following points can be considered:
 
-- 进程是否引入了cuda与tensorrt等库：cuda与tensorrt等库会在每个进程中申请内存，而这部分内存类似于c++中的“单例”，换句话说这部分内存是可以复用的。假如分别启动感知与预测进程，这部分内存会申请两份；而将感知和预测在launch文件中合并为启动一个进程时，这部分使用的内存只会申请一份。如果组建的自动驾驶系统有大量使用gpu的进程时，可以合并成一份进一步减少内存
-- 是否有申请了的内存但是没被使用的情况，这个可以通过采样结果进行详细分析
+- Whether the process links libraries such as cuda and tensorrt: libraries such as cuda and tensorrt request memory in each process, and this memory is similar to a "singleton" in c++; in other words, this part of the memory can be reused. If the perception and prediction processes are started separately, this part of the memory is requested twice; while if perception and prediction are merged in the launch file to start a single process, this part of the memory is requested only once. If the autonomous driving system you build has a large number of processes that use the gpu, they can be merged into one to further reduce memory
+- Whether there is memory that was requested but not used, which can be analyzed in detail through the sampling results
 
 ### gpu
 
-gpu的优化分为时延优化和使用率优化，这两个对应着不同的目标：
+gpu optimization is divided into latency optimization and utilization optimization, which correspond to different goals:
 
-- 时延优化：降低gpu一个或多个核函数的处理时延，这类优化可能会提高gpu使用率
-- 使用率优化：降低gpu一个或多个核函数的使用率
+- Latency optimization: reduce the processing latency of one or more gpu kernel functions; this type of optimization may increase gpu utilization
+- Utilization optimization: reduce the utilization of one or more gpu kernel functions
 
-#### 算法优化：
+#### Algorithm Optimization:
 
-采用更高效的模型/时间复杂度更低的算法
+Adopt a more efficient model or an algorithm with lower time complexity
 
-#### 工程优化：
+#### Engineering Optimization:
 
-##### cpu限制
+##### CPU-Bound
 
-表现：timeline上的空白：
+Symptom: gaps on the timeline:
 
 ![cyber_performance_analysis_19](./images/cyber_performance_analysis_19.png)
 
-优化方式：确定这段空白时间cpu的行为，并降低空白时间（可参考cpu优化的方式）
+Optimization: determine what the cpu is doing during this gap and reduce the gap time (refer to the cpu optimization methods)
 
-对时延有优化效果，对使用率影响不大
+Improves latency, with little effect on utilization
 
-##### timeline上的Memcpy操作：
+##### Memcpy Operations on the Timeline:
 
 ![cyber_performance_analysis_20](./images/cyber_performance_analysis_20.png)
 
-优化方式：
+Optimization:
 
-- 减少冗余的传输
-- 使用大块传输，尽可能利用带宽
-- 如果硬件支持统一内存（orin），使用统一内存减少memcpy：
+- Reduce redundant transfers
+- Use large-block transfers to make the most of the bandwidth
+- If the hardware supports unified memory (orin), use unified memory to reduce memcpy:
 
-统一内存使用示例：
+Unified memory usage example:
 
 ```cpp
-// 正常分配内存
+// Allocate memory normally
 char* ptr = (char*) malloc(nums * sizeof(char))
 char* gpu_ptr = nullptr;
-// 标记内存
+// Mark the memory
 cudaError_t err = cudaHostRegister(ptr, nums * sizeof(char), cudaHostRegisterMapped);
-// 映射ptr中的内容到gpu_ptr中
+// Map the contents of ptr to gpu_ptr
 err = cudaHostGetDevicePointer(&gpu_ptr, ptr, 0);
 
-// 后续在gpu就从gpu_ptr中读取实际的内容
+// Afterwards, the gpu reads the actual contents from gpu_ptr
 ```
 
-对时延和使用率均有优化效果
+Improves both latency and utilization
 
-##### 小kernel数量多，并且kernel发射时间高于执行时间：
+##### Many small kernels, with kernel launch time higher than execution time:
 
 ![cyber_performance_analysis_21](./images/cyber_performance_analysis_21.png)
 
-优化方式：
+Optimization:
 
-kernel融合：融合小kernel成大kernel，减少发射次数
+Kernel fusion: fuse small kernels into large kernels to reduce the number of launches
 
-应用cudaGraph技术：将多次kernel发射合并成1次cudaGraph发射：
+Apply the cudaGraph technique: merge multiple kernel launches into one cudaGraph launch:
 
 ![cyber_performance_analysis_22](./images/cyber_performance_analysis_22.png)
 
-cudaGraph使用示例：
+cudaGraph usage example:
 
 ```cpp
 #include <cuda_runtime.h>
 
-// 假设你有一个 CUDA 核函数
+// Suppose you have a CUDA kernel function
 __global__ void myKernel(int *data, int N) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx < N) {
@@ -576,31 +576,31 @@ int main() {
     cudaGraph_t graph;
     cudaGraphExec_t graphExec;
 
-    // 分配设备内存
+    // Allocate device memory
     cudaMalloc(&d_data, N * sizeof(int));
 
-    // 创建 CUDA 流
+    // Create a CUDA stream
     cudaStreamCreate(&stream);
 
-    // 开始记录图
+    // Start capturing the graph
     cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
 
-    // 在记录的图中执行操作
+    // Perform operations in the captured graph
     dim3 blockSize(256);
     dim3 gridSize((N + blockSize.x - 1) / blockSize.x);
     myKernel<<<gridSize, blockSize, 0, stream>>>(d_data, N);
 
-    // 结束记录图
+    // End capturing the graph
     cudaStreamEndCapture(stream, &graph);
 
-    // 实例化并启动图
+    // Instantiate and launch the graph
     cudaGraphInstantiate(&graphExec, graph, NULL, NULL, 0);
     cudaGraphLaunch(graphExec, stream);
 
-    // 同步流以确保图执行完成
+    // Synchronize the stream to ensure the graph execution is complete
     cudaStreamSynchronize(stream);
 
-    // 清理资源
+    // Clean up resources
     cudaGraphExecDestroy(graphExec);
     cudaGraphDestroy(graph);
     cudaStreamDestroy(stream);
@@ -610,24 +610,24 @@ int main() {
 }
 ```
 
-对时延有优化效果，对使用率影响不大
+Improves latency, with little effect on utilization
 
-##### 当SM占用率未达100%时，可并行执行无依赖关系的kernel函数，通过多个流的方式实现（即将串行改为并行）
+##### When SM occupancy has not reached 100%, kernel functions without dependencies can be executed in parallel through multiple streams (that is, changing serial execution to parallel)
 
-单个stream：
+Single stream:
 
 ![cyber_performance_analysis_23](./images/cyber_performance_analysis_23.png)
 
-多个stream：
+Multiple streams:
 
 ![cyber_performance_analysis_24](./images/cyber_performance_analysis_24.png)
 
-使用示例：
+Usage example:
 
 ```cpp
 #include <cuda_runtime.h>
 
-// 假设你有一个简单的CUDA核函数
+// Suppose you have a simple CUDA kernel function
 __global__ void myKernel(int *data, int N) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < N) {
@@ -636,35 +636,35 @@ __global__ void myKernel(int *data, int N) {
 }
 
 int main() {
-    const int N = 1024 * 1024; // 数据大小
-    const int numStreams = 4;  // 使用的流的数量
-    const int streamSize = N / numStreams; // 每个流的工作量
-    const int blockSize = 256; // 块大小
-    const int gridSize = streamSize / blockSize; // 每个流的网格大小
+    const int N = 1024 * 1024; // Data size
+    const int numStreams = 4;  // Number of streams used
+    const int streamSize = N / numStreams; // Workload of each stream
+    const int blockSize = 256; // Block size
+    const int gridSize = streamSize / blockSize; // Grid size of each stream
 
     int *d_data;
     cudaStream_t streams[numStreams];
 
-    // 分配设备内存
+    // Allocate device memory
     cudaMalloc(&d_data, N * sizeof(int));
 
-    // 创建CUDA流
+    // Create CUDA streams
     for (int i = 0; i < numStreams; ++i) {
         cudaStreamCreate(&streams[i]);
     }
 
-    // 在每个流中启动内核执行
+    // Launch kernel execution in each stream
     for (int i = 0; i < numStreams; ++i) {
         int offset = i * streamSize;
         myKernel<<<gridSize, blockSize, 0, streams[i]>>>(d_data + offset, streamSize);
     }
 
-    // 等待所有流完成
+    // Wait for all streams to complete
     for (int i = 0; i < numStreams; ++i) {
         cudaStreamSynchronize(streams[i]);
     }
 
-    // 清理资源
+    // Clean up resources
     for (int i = 0; i < numStreams; ++i) {
         cudaStreamDestroy(streams[i]);
     }
@@ -674,46 +674,46 @@ int main() {
 }
 ```
 
-对时延有优化效果，而使用率也会明显提升
+Improves latency, and utilization also increases noticeably
 
-##### 减少kernel的时延：
+##### Reducing Kernel Latency:
 
 ![cyber_performance_analysis_25](./images/cyber_performance_analysis_25.png)
 
-要减少一个kernel的时延，需要了解了解这个kernel的SOL（Speed Of Light）指标，这个指标可以使用nsight compute采样得到：
+To reduce the latency of a kernel, you need to understand the SOL (Speed Of Light) metrics of that kernel, which can be obtained by sampling with nsight compute:
 
-- Memory SOL: 这个指标表示应用程序在访问全局内存时的效率。它是通过将应用程序实际利用的内存带宽与GPU的最大内存带宽相比较得出的。如果Memory SOL很低，意味着可能存在内存访问瓶颈。
-- SM SOL: 这个指标表示应用程序在执行计算任务时的效率。它是通过将应用程序的计算性能与GPU的最大计算性能（浮点运算峰值）相比较得出的。如果SM SOL很低，意味着计算资源可能没有得到充分利用。
+- Memory SOL: This metric represents the efficiency of the application when accessing global memory. It is obtained by comparing the memory bandwidth actually used by the application with the GPU's maximum memory bandwidth. If Memory SOL is low, there may be a memory access bottleneck.
+- SM SOL: This metric represents the efficiency of the application when performing computation tasks. It is obtained by comparing the application's computation performance with the GPU's maximum computation performance (peak floating-point performance). If SM SOL is low, the computing resources may not be fully utilized.
 
-一般可能会出现三种情况：
+Generally, the following situations may occur:
 
-- 访存受限：Memory SOL低
+- Memory-bound: low Memory SOL
 
 ![cyber_performance_analysis_26](./images/cyber_performance_analysis_26.png)
 
-- 计算受限：SM SOL低
+- Compute-bound: low SM SOL
 
 ![cyber_performance_analysis_27](./images/cyber_performance_analysis_27.png)
 
-优化方式：
+Optimization:
 
-- 访存受限：减少使用全局内存，使用block内的共享内存
+- Memory-bound: reduce the use of global memory and use shared memory within a block
 
 ![cyber_performance_analysis_28](./images/cyber_performance_analysis_28.png)
 
-- 计算受限：
+- Compute-bound:
 
-  - 使用高吞吐指令：降低精度(fp64->fp32, fp32->fp16/int8)；使用快速数学函数(\_\_func())
-  - 减少warp内分支：一个warp是由一定数量的线程组成的执行单元，warp是GPU调度和执行指令的基本单位，其中的所有线程都执行相同的指令序列，假设一个warp有32个线程，对于一个存在分支的核函数：
+  - Use high-throughput instructions: reduce precision (fp64->fp32, fp32->fp16/int8); use fast math functions (\_\_func())
+  - Reduce intra-warp branching: a warp is an execution unit made up of a certain number of threads. The warp is the basic unit of GPU scheduling and instruction execution, and all threads in it execute the same instruction sequence. Suppose a warp has 32 threads; for a kernel function that contains a branch:
 
   ```cpp
   if (threadIdx.x < 16) {
-      // 执行某些操作A
+      // Perform some operation A
   } else {
-      // 执行某些操作B
+      // Perform some operation B
   }
   ```
 
-  warp的前半部分（线程0-15）将执行操作A，后半部分（线程16-31）将执行操作B。GPU将首先为执行操作A的线程然后为执行操作B的线程。这种情况下，warp的效率只有最大的一半，导致计算受限。
+  the first half of the warp (threads 0-15) executes operation A, and the second half (threads 16-31) executes operation B. The GPU first executes the threads performing operation A and then the threads performing operation B. In this case, the warp's efficiency is only half of the maximum, resulting in being compute-bound.
 
-  因此，尽可能地确保一个warp内的所有线程执行相同的指令，减少wrap内分支能提升SM的SOL
+  Therefore, make sure as much as possible that all threads in a warp execute the same instructions; reducing intra-warp branching can improve the SM SOL

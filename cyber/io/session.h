@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,16 +24,20 @@
 
 #include <memory>
 
-#include "cyber/io/poll_handler.h"
-
 namespace apollo {
 namespace cyber {
 namespace io {
 
+/**
+ * @class Session
+ * @brief Socket wrapper with optional timeouts.
+ *
+ * Cyber's version yielded the calling croutine while waiting; on ROS 2 the
+ * caller's thread waits in poll(2) instead.
+ */
 class Session {
  public:
   using SessionPtr = std::shared_ptr<Session>;
-  using PollHandlerPtr = std::unique_ptr<PollHandler>;
 
   Session();
   explicit Session(int fd);
@@ -62,15 +66,13 @@ class Session {
   ssize_t Write(const void *buf, size_t count, int timeout_ms = -1);
 
   int fd() const { return fd_; }
+  void set_fd(int fd) { fd_ = fd; }
 
  private:
-  void set_fd(int fd) {
-    fd_ = fd;
-    poll_handler_->set_fd(fd);
-  }
+  /// Waits until fd_ is readable (read=true) or writable; false on timeout.
+  bool Wait(bool read, int timeout_ms);
 
   int fd_;
-  PollHandlerPtr poll_handler_;
 };
 
 }  // namespace io

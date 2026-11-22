@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,23 +17,8 @@
 #ifndef CYBER_SCHEDULER_SCHEDULER_FACTORY_H_
 #define CYBER_SCHEDULER_SCHEDULER_FACTORY_H_
 
-#include "cyber/common/environment.h"
-#include "cyber/common/file.h"
-#include "cyber/common/global_data.h"
-#include "cyber/common/util.h"
-#include "cyber/scheduler/policy/scheduler_choreography.h"
-#include "cyber/scheduler/policy/scheduler_classic.h"
-#include "cyber/scheduler/scheduler.h"
-
-namespace apollo {
-namespace cyber {
-namespace scheduler {
-
-Scheduler* Instance();
-void CleanUp();
-
-}  // namespace scheduler
-}  // namespace cyber
-}  // namespace apollo
+// Cyber's croutine scheduler is replaced by the ROS 2 executor (see
+// cyber/ros2/runtime.h). This header is kept so existing includes compile.
+#include "cyber/ros2/transport.h"
 
 #endif  // CYBER_SCHEDULER_SCHEDULER_FACTORY_H_

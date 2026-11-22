@@ -1,73 +1,73 @@
-# Apollo 研发工具 - buildtool
+# Apollo Development Tool - buildtool
 
-## 综述
+## Overview
 
-Apollo buildtool是一个命令行工具，提供编译、测试、安装或运行 Apollo 模块等功能。基于 buildtool ，不仅可以方便地安装Apollo 中各个模块的二进制包，还可以对这些源代码进行二次开发、编译和测试，而不需要下载整个 Apollo。 buildtool 可以让开发者只关注需要开发的模块，提高整体开发效率。
+Apollo buildtool is a command-line tool that provides functions such as compiling, testing, installing, and running Apollo modules. With buildtool, you can not only conveniently install the binary packages of the individual Apollo modules, but also perform secondary development, compilation, and testing on their source code without downloading the entire Apollo. buildtool lets developers focus only on the modules they need to develop, improving overall development efficiency.
 
-## 安装
+## Installation
 
-buildtool 目前只支持在 Apollo 环境容器中运行。如果你还没有启动容器，你可以使用 apollo 环境工具：`aem` 来启动或进入一个 Apollo 环境容器。
+buildtool currently only runs inside the Apollo environment container. If you have not started a container yet, you can use the apollo environment tool `aem` to start or enter an Apollo environment container.
 
-Apollo 环境容器已经预装了 Apollo buildtool。当你进入容器时，你可以输入以下命令来检查 buildtool 是否已经正确安装。
+The Apollo environment container comes with Apollo buildtool pre-installed. After entering the container, you can enter the following command to check whether buildtool is installed correctly.
 
 ```shell
 buildtool -v
 ```
 
-如果一切顺利，你会看到 buildtool 当前安装的版本：
+If everything goes well, you will see the currently installed version of buildtool:
 
 ```shell
 buildtool -v
 9.0.0-alpha3-r3
 ```
 
-你也可以通过以下命令来重新安装或更新 buildtool
+You can also reinstall or update buildtool with the following command
 
 ```shell
 sudo apt update -y && sudo apt install --only-upgrade apollo-neo-buildtool
 ```
 
-## 使用说明
+## Usage
 
-### buildtool 子命令
+### buildtool Subcommands
 
-buildtool 的子命令是 buildtool 提供的所有功能的入口。调用遵循以下形式：
+The subcommands of buildtool are the entry points to all the functions buildtool provides. They are invoked in the following form:
 
 ```shell
 buildtool <action> [action arguments or options]
 ```
 
-buildtool 不同功能被组织成不同的 action ，类似于常见的命令行工具，如 git 或 apt。
+The different functions of buildtool are organized into different actions, similar to common command-line tools such as git or apt.
 
-action 涵盖了 buildtool 的所有功能，如 build 负责编译， install 负责安装， clean 负责清理编译缓存等。
+Actions cover all the functions of buildtool; for example, build handles compilation, install handles installation, and clean handles cleaning the compilation cache.
 
-一些 action 可能需要额外的参数，你可以在 action 后输入 `-h` 或 `--help` 来查看详细的参数
+Some actions may require additional arguments; you can type `-h` or `--help` after the action to see the detailed arguments
 
-### 当前的子命令
+### Current Subcommands
 
-- config - 配置 buildtool
-- build - 编译并安装工作空间下的源码
-- test - 运行工作空间下各模块的单元测试
-- install - 安装特定模块的源码到工作空间
-- reinstall - 重装特定模块的软件包
-- clean - 清除工作空间下的编译缓存
-- init - 初始化工作空间
-- info - 查看特定软件包的信息
-- bootstrap - 启动模块，目前仅支持 `dreamview` 和 `monitor`
-- create - 按模板创建包
-- release - 将编译产物打包成可分发的格式
-- deploy - 部署由 `release` 打包而成所包
-- map - 查看和下载公开的地图
+- config - Configure buildtool
+- build - Compile and install the source code in the workspace
+- test - Run the unit tests of the modules in the workspace
+- install - Install the source code of a specific module into the workspace
+- reinstall - Reinstall the package of a specific module
+- clean - Clear the compilation cache in the workspace
+- init - Initialize a workspace
+- info - View information about a specific package
+- bootstrap - Start a module; currently only `dreamview` and `monitor` are supported
+- create - Create a package from a template
+- release - Package the build outputs into a distributable format
+- deploy - Deploy the package produced by `release`
+- map - View and download public maps
 
 ### login
 
-login 用于企业用户需要安装非 apollo-core 仓库的软件包时的登陆鉴权
+login is used for login authentication when enterprise users need to install packages from repositories other than apollo-core
 
 ```shell
 buildtool login username password
 ```
 
-如果账号密码不匹配，buildtool会输出以下错误信息：
+If the username and password do not match, buildtool outputs the following error message:
 
 ```shell
 [apollo@in-dev-docker:~/tmp]$ buildtool login **** ****
@@ -76,7 +76,7 @@ buildtool login username password
 [buildtool] 2023-10-25 14:42:48 ERROR hint: login failed, status: 401
 ```
 
-如果一切正常，buildtool会输出以下信息：
+If everything is normal, buildtool outputs the following message:
 
 ```shell
 [apollo@in-dev-docker:~/tmp]$ buildtool login **** *******
@@ -85,24 +85,24 @@ buildtool login username password
 
 ### config
 
-config 用于给 buildtool 配置用户级别的设置，用户配置会覆盖默认配置
+config is used to configure user-level settings for buildtool; user configuration overrides the default configuration
 
-用户配置又分全局配置与本地配置
+User configuration is further divided into global configuration and local configuration
 
-- 全局配置即对应 `$HOME/.apollo/buildtool/config` 配置文件中的设定
-- 本地配置即对应 `$PWD/.buildtool.conf` 配置文件中的设定
+- Global configuration corresponds to the settings in the `$HOME/.apollo/buildtool/config` configuration file
+- Local configuration corresponds to the settings in the `$PWD/.buildtool.conf` configuration file
 
-#### 用法
+#### Usage
 
-##### 设置编译使用的指令集
+##### Set the instruction set used for compilation
 
 ```shell
 buildtool config set -- compile.march -march=native
 ```
 
-> 注：因为值带 `-` 前缀，避免参数解析异常，需要将 `set` 后增加 `--`
+> Note: Because the value has a `-` prefix, to avoid argument parsing errors you need to add `--` after `set`
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool config [-h] {set,get} ...
@@ -118,24 +118,24 @@ optional arguments:
 
 ### build
 
-build 负责编译工作空间中一个或多个软件包的源码， build 只能在工作空间根目录下执行。如果在工作空间之外或在工作空间的非根目录下执行， build 将抛出一个错误
+build compiles the source code of one or more packages in the workspace. build can only be executed in the workspace root directory. If it is executed outside the workspace or in a non-root directory of the workspace, build throws an error
 
-#### 基本用法
+#### Basic Usage
 
-##### 编译工作空间下所有模块的源码
+##### Compile the source code of all modules in the workspace
 
 ```shell
 buildtool build
 ```
 
-当没有参数时，buildtool将编译工作空间的所有源码。在编译过程中，buildtool 会自动创建 dev、third_party、tools 文件夹来保存编译信息。
+With no arguments, buildtool compiles all the source code of the workspace. During compilation, buildtool automatically creates the dev, third_party, and tools folders to save compilation information.
 
-##### 编译工作空间下指定路径的模块的源码
+##### Compile the source code of modules at specified paths in the workspace
 
-当接收到 `-p` 或 `--packages` 参数时， buildtool 可以单独编译指定路径下的源码
+When the `-p` or `--packages` argument is received, buildtool can compile only the source code under the specified paths
 
 ```shell
-# 编译 modules 下所有模块
+# Compile all modules under modules
 [apollo@in-dev-docker:~/tmp]$ mkdir demo && cd demo
 [apollo@in-dev-docker:~/tmp]$ buildtool init
 [apollo@in-dev-docker:~/tmp]$ tree
@@ -164,7 +164,7 @@ buildtool build
 [apollo@in-dev-docker:~/tmp]$ buildtool build -p example_components example_lib
 ```
 
-上述命令初始化了工作空间，创建了一个组件示例，并编译了示例源码，如果一切顺利，在编译结束后，你会看到以下提示：
+The above commands initialized the workspace, created a component example, and compiled the example source code. If everything goes well, you will see the following output after compilation finishes:
 
 ```shell
 ...
@@ -177,35 +177,35 @@ buildtool build
 [apollo@in-dev-docker:~/tmp]$
 ```
 
-#### 进阶用法
+#### Advanced Usage
 
-##### 以opt gpu模式对源码进行编译
+##### Compile the source code in opt gpu mode
 
 ```shell
 buildtool build --gpu --opt
 ```
 
-##### 传递编译参数给 bazel
+##### Pass compilation arguments to bazel
 
 ```shell
 buildtool build --arguments="--linkopts=-lz4"
 ```
 
-##### 清除前一次编译缓存后再进行编译
+##### Clear the previous compilation cache before compiling
 
 ```shell
 buildtool build --expunge
 ```
 
-##### 指定编译使用的进程数和使用内存的百分比
+##### Specify the number of processes and the percentage of memory used for compilation
 
 ```shell
 buildtool build --jobs 4 --memories 0.5
 ```
 
-上述命令使用了使用了4个进程与当前宿主机的50%内存进行编译
+The above command compiles using 4 processes and 50% of the current host's memory
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool build [-h] [-p [* [* ...]]] [-a [* [* ...]]] [--gpu] [--cpu]
@@ -235,11 +235,11 @@ optional arguments:
 
 ### test
 
-这个命令对工作区的源代码进行单元测试，实际执行的是源码中BUILD文件定义的所有apollo_cc_test
+This command runs unit tests on the source code of the workspace; what it actually executes is all the apollo_cc_test targets defined in the BUILD files of the source code
 
-#### 用法
+#### Usage
 
-进行单元测试:
+Run unit tests:
 
 ```shell
 buildtool init
@@ -247,21 +247,21 @@ buildtool install planning
 buildtool test -p modules/planning
 ```
 
-上述操作buildtool将下载planning模块，将planning模块的源码复制到工作空间，最后进行编译和测试。
+In the above operations, buildtool downloads the planning module, copies the planning module's source code to the workspace, and finally compiles and tests it.
 
-##### 指定gpu模式编译和测试
+##### Compile and test in gpu mode
 
 ```shell
 buildtool test --gpu --p modules/planning
 ```
 
-##### 传递参数到 bazel
+##### Pass arguments to bazel
 
 ```shell
 buildtool test --a "--linkopts=-llz4" --p modules/planning
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool test [-h] [-p [* [* ...]]] [--gpu] [--cpu]
@@ -279,17 +279,17 @@ optional arguments:
 
 ### install
 
-这个命令负责安装特定模块的软件包/源码
+This command installs the package/source code of a specific module
 
-#### 用法
+#### Usage
 
 ```shell
 buildtool install planning
 ```
 
-上述操作 buildtool 将下载 planning 模块，将 planning 模块的源码复制到工作空间。
+In the above operation, buildtool downloads the planning module and copies the planning module's source code to the workspace.
 
-注：buildtool install planning只会下载planning_component模块源码，如果您希望将planning相关所有模块全部下载，可通过使用通配符"*"
+Note: buildtool install planning only downloads the source code of the planning_component module. If you want to download all planning-related modules, you can use the wildcard "*"
 ```shell
 buildtool install planning*
 ```
@@ -298,9 +298,9 @@ buildtool install planning*
 buildtool install --legacy planning
 ```
 
-上述操作 buildtool 只下载 planning 模块，而不把源码复制到工作区。
+In the above operation, buildtool only downloads the planning module and does not copy the source code to the workspace.
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool install [-h] [--legacy] [packages [packages ...]]
@@ -315,17 +315,17 @@ optional arguments:
 
 ### reinstall
 
-这个命令负责重新安装特定模块的软件包
+This command reinstalls the package of a specific module
 
-#### 用法
+#### Usage
 
 ```shell
 buildtool reinstall planning
 ```
 
-上述操作 buildtool 将下载 planning 模块，将 planning 模块的源码复制到工作空间。
+In the above operation, buildtool downloads the planning module and copies the planning module's source code to the workspace.
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool reinstall [-h] [packages [packages ...]]
@@ -339,31 +339,31 @@ optional arguments:
 
 ### clean
 
-这个action是用来清除工作空间源码的编译缓存和产出。
+This action is used to clear the compilation cache and outputs of the workspace source code.
 
-#### 用法
+#### Usage
 
-clean action 在不接受任何参数的情况下，会清除工作区的所有编译缓存，这相当于执行 `bazel clean --expunge`
+When the clean action takes no arguments, it clears all compilation caches of the workspace, which is equivalent to executing `bazel clean --expunge`
 
 ```shell
 buildtool clean
 ```
 
-`packages_path` 参数可以指定删除相应路径下的模块源码的编译产出:
+The `packages_path` argument can specify deleting the compilation outputs of the module source code under the corresponding paths:
 
 ```shell
 buildtool clean --packages_path modules/planning
 ```
 
-上述操作将删除planning模块的编译输出。
+The above operation deletes the compilation output of the planning module.
 
-`expunge` 参数将删除机器上所有模块源码的编译产出。
+The `expunge` argument deletes the compilation outputs of all module source code on the machine.
 
 ```shell
 buildtool clean --expunge
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```
 usage: buildtool clean [-h] [-p [* [* ...]]] [-e]
@@ -377,29 +377,29 @@ optional arguments:
 
 ### init
 
-这个 action 负责初始化一个工作空间。
+This action initializes a workspace.
 
-#### 用法
+#### Usage
 
-当 init action 没有任何参数时，会在当前目录下创建一个基本工作空间:
+When the init action has no arguments, it creates a basic workspace in the current directory:
 
 ```shell
 buildtool init
 ```
 
-也可以在init action中加入 -w 参数来把 example_component 源码复制到到工作空间：
+You can also add the -w argument to the init action to copy the example_component source code into the workspace:
 
 ```shell
 buildtool init -w
 ```
 
-`path` 参数可以指定工作空间的创建路径:
+The `path` argument can specify the path where the workspace is created:
 
 ```shell
 buildtool init --path ～/demo
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool init [-h] [-p PATH] [-w]
@@ -412,11 +412,11 @@ optional arguments:
 
 ### info
 
-这个 action 用于列出指定软件包的依赖。
+This action is used to list the dependencies of a specified package.
 
-#### 用法
+#### Usage
 
-##### 列出所请求软件包的直接依赖：
+##### List the direct dependencies of the requested package:
 
 ```shell
 buildtool info planning-dev
@@ -438,7 +438,7 @@ buildtool info planning-dev
 [buildtool] INFO apollo build tool exit.
 ```
 
-##### 列出所请求软件包的所有依赖：
+##### List all dependencies of the requested package:
 
 ```shell
 buildtool info --with-indirect planning-dev
@@ -461,7 +461,7 @@ buildtool info --with-indirect planning-dev
 [buildtool] INFO apollo build tool exit.
 ```
 
-##### 列出指定路径下软件包源码的依赖信息：
+##### List the dependency information of the package source code under a specified path:
 
 ```shell
 buildtool info --directory example_components/
@@ -477,7 +477,7 @@ buildtool info --directory example_components/
 [buildtool] INFO apollo build tool exit.
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```
 usage: buildtool info [-h] [--depends-on] [--with-indirect] [--directory]
@@ -501,23 +501,23 @@ dependent on the package
 
 ### bootstrap
 
-bootstrap 用于启动特定软件包的最新版本。最新版本指的是与软件包的最后一次操作相对应的版本。如果软件包的最后一次操作是编译，那么 bootstrap 将启动编译后的软件包的编译产出；如果软件包的最后一次操作是安装或重装 ，例如执行 `buildtool reinstall` 这样的命令，那么 `bootstrap` 将启动安装或重新安装的软件包的二进制文件或动态链接库。注意：目前，bootstrap可以启动的模块有：`dreamview`、`monitor`。
+bootstrap is used to start the latest version of a specific package. The latest version refers to the version corresponding to the last operation on the package. If the last operation on the package was compilation, bootstrap starts the compilation output of the compiled package; if the last operation was installation or reinstallation, for example executing a command such as `buildtool reinstall`, then `bootstrap` starts the binaries or dynamic libraries of the installed or reinstalled package. Note: Currently, the modules that bootstrap can start are `dreamview` and `monitor`.
 
-#### 用法
+#### Usage
 
-##### 启动dreamview
+##### Start dreamview
 
 ```shell
 buildtool bootstrap start dreamview
 ```
 
-##### 停止dreamview：
+##### Stop dreamview:
 
 ```shell
 buildtool bootstrap stop dreamview
 ```
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool bootstrap [-h] {start,stop} ...
@@ -533,11 +533,11 @@ optional arguments:
 
 ### create
 
-这个 action 用于创建包，目前支持的包模板有 `component` 和 `plugin`
+This action is used to create packages. The currently supported package templates are `component` and `plugin`
 
-#### 用法
+#### Usage
 
-##### 创建一个组件
+##### Create a component
 
 ```shell
 buildtool create --template component \
@@ -545,9 +545,9 @@ buildtool create --template component \
     modules/mycomponent/xxx_yyy
 ```
 
-> 上述命令将会在 `modules/mycomponent/xxx_yyy` 目录生成组件包相关的文件
+> The above command generates the component package files in the `modules/mycomponent/xxx_yyy` directory
 
-##### 创建一个插件
+##### Create a plugin
 
 ```shell
 buildtool create --template plugin \
@@ -560,19 +560,19 @@ buildtool create --template plugin \
     modules/scenarios/my_lany_follow
 ```
 
-> 上述命令将会在 `modules/scenarios/my_lany_follow` 目录下生成插件相关的文件
+> The above command generates the plugin files in the `modules/scenarios/my_lany_follow` directory
 >
-> 其中：
+> Where:
 >
-> `--namespaces planning` 指定了代码的命名空间为 `planning` 生成的插件会在命名空间 `apollo::planning` 下
+> `--namespaces planning` specifies that the code namespace is `planning`, and the generated plugin will be under the namespace `apollo::planning`
 >
-> `--dependencies planning:binary:planning` 会在生成的 `cyberfile.xml` 插入依赖项 `<depend type="binary" repo_name="planning">planning</depend>` > `--build_dependencies` 指定了在 `BUILD` 中要增加的编译依赖，上述例子中的依赖项是 `planning` 包所提供
+> `--dependencies planning:binary:planning` inserts the dependency `<depend type="binary" repo_name="planning">planning</depend>` into the generated `cyberfile.xml` > `--build_dependencies` specifies the build dependencies to be added in `BUILD`; in the example above, the dependencies are provided by the `planning` package
 >
-> `--includes` 指定了要添加的头文件，会插件到生成的插件的头文件中，上述例子中则是 `modules/scenarios/my_lane_follow/my_lane_follow.h` 文件
+> `--includes` specifies the header files to be added, which are inserted into the header file of the generated plugin; in the example above, this is the `modules/scenarios/my_lane_follow/my_lane_follow.h` file
 >
-> `--base_class_name apollo::planning::Scenario` 指定了插件所继承的基类为 `apollo::planning::Scenario` > `--class_name MyLaneFollowScenario` 指定了生成的插件类名为 `MyLaneFollowScenario` ，若不指定则会根据目录名生成
+> `--base_class_name apollo::planning::Scenario` specifies that the base class inherited by the plugin is `apollo::planning::Scenario` > `--class_name MyLaneFollowScenario` specifies that the generated plugin class name is `MyLaneFollowScenario`; if not specified, it is generated from the directory name
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool create [-h] --template {component,plugin} [--name NAME]
@@ -627,23 +627,23 @@ optional arguments:
 
 ### release
 
-这个命令用于打包已编译好的模块，会在当前工作空间下生成一个release.tar.gz，可供后续部署使用
+This command is used to package compiled modules. It generates a release.tar.gz in the current workspace, which can be used for subsequent deployment
 
-#### 用法
+#### Usage
 
 ```shell
 buildtool release
 ```
 
-上述操作buildtool将工作空间下所有源码的编译产出进行打包。
+In the above operation, buildtool packages the compilation outputs of all source code in the workspace.
 
 ```shell
 buildtool release -p modules/planning/planning_base
 ```
 
-上述操作buildtool打包工作空间下planning源码的产出
+In the above operation, buildtool packages the outputs of the planning source code in the workspace
 
-##### 详细参数
+##### Detailed Parameters
 
 ```shell
 usage: buildtool release [-h] [-p [* [* ...]]]
@@ -656,9 +656,9 @@ optional arguments:
 
 ### deploy
 
-这个命令用于部署 release 生成的 release.tar.gz
+This command is used to deploy the release.tar.gz generated by release
 
-#### 用法
+#### Usage
 
 ```shell
 buildtool deploy -f release.tar.gz
@@ -666,26 +666,26 @@ buildtool deploy -f release.tar.gz
 
 ### map
 
-这个命令用于查看和下载公开的地图
+This command is used to view and download public maps
 
-#### 用法
+#### Usage
 
-##### 查看本地已有的地图
+##### View the maps that exist locally
 
 ```shell
 buildtool map list
 ```
 
-##### 查看本地以及远端公开的地图
+##### View the maps that exist locally and the public maps on the remote
 
 ```shell
 buildtool map list -r
 ```
 
-##### 下载地图
+##### Download a map
 
 ```shell
 buildtool map get <map_name>
 ```
 
-> 注：`<map_name>` 为地图的名或者序号（名称和序号可通过 `buildtool map list -r` 查看）
+> Note: `<map_name>` is the name or index of the map (names and indices can be viewed through `buildtool map list -r`)

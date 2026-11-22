@@ -23,7 +23,14 @@ extension pattern of:
 x.xml  # An OpenDrive formatted map.
 x.bin  # A binary pb map.
 x.txt  # A text pb map.
+x.osm  # A Lanelet2 map (the map format of Lanelet2 and Autoware).
 ```
+
+Lanelet2 maps are converted while they are loaded; `base_map.osm` and
+`lanelet2_map.osm` are among the default candidates of `--base_map_filename`.
+See [docs/ros2/lanelet2.md](../../../docs/ros2/lanelet2.md) for the converter
+that makes a complete map directory (`routing_map`, `sim_map`) from such a
+file, and for the exporter in the other direction.
 
 ## Difference between base\_map, routing\_map and sim\_map
 * `base_map` is the most complete map that has all roads, lane geometry and labels. The other maps are generated based on `base_map`.

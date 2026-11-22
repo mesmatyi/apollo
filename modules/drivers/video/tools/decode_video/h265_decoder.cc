@@ -15,6 +15,7 @@
  *****************************************************************************/
 
 #include <algorithm>
+#include <memory>
 
 #include "cyber/common/log.h"
 #include "modules/drivers/video/tools/decode_video/h265_decoder.h"
@@ -28,8 +29,10 @@ namespace video {
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 bool H265Decoder::Init() {
-  avcodec_register_all();
-  AVCodec* codec_h265 = avcodec_find_decoder(AV_CODEC_ID_H265);
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
+  avcodec_register_all();  // deprecated in FFmpeg 4.0, removed in 5.0
+#endif
+  const AVCodec* codec_h265 = avcodec_find_decoder(AV_CODEC_ID_H265);
   if (codec_h265 == nullptr) {
     AERROR << "error: codec not found";
     return false;
@@ -48,7 +51,7 @@ bool H265Decoder::Init() {
     AERROR << "error: could not alloc yuv frame";
     return false;
   }
-  AVCodec* codec_jpeg = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+  const AVCodec* codec_jpeg = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
   if (codec_jpeg == nullptr) {
     AERROR << "error: jpeg Codec not found";
     return false;
@@ -91,40 +94,50 @@ void H265Decoder::Release() {
 H265Decoder::DecodingResult H265Decoder::Process(
     const uint8_t* indata, const int32_t insize,
     std::vector<uint8_t>* outdata) const {
-  AVPacket apt;
+  // send/receive API (FFmpeg >= 3.1); avcodec_decode_video2() and
+  // avcodec_encode_video2() were removed in FFmpeg 5.
   outdata->clear();
-  av_init_packet(&apt);
-  int got_picture = 0;
-  apt.data = const_cast<uint8_t*>(indata);
-  apt.size = insize;
-  if (apt.size == 0) {
-    apt.data = nullptr;
+  std::unique_ptr<AVPacket, void (*)(AVPacket*)> apt(
+      av_packet_alloc(), [](AVPacket* p) { av_packet_free(&p); });
+  if (apt == nullptr) {
+    AERROR << "error: could not alloc packet";
+    return H265Decoder::DecodingResult::FATAL;
   }
-  int ret =
-      avcodec_decode_video2(codec_ctx_h265_, yuv_frame_, &got_picture, &apt);
-  if (ret < 0) {
-    AERROR << "error: decode failed: input_framesize = " << apt.size
+  apt->data = const_cast<uint8_t*>(indata);
+  apt->size = insize;
+  int ret = avcodec_send_packet(codec_ctx_h265_,
+                                apt->size == 0 ? nullptr : apt.get());
+  if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
+    AERROR << "error: decode failed: input_framesize = " << insize
            << ". error code = " << ret;
     return H265Decoder::DecodingResult::FATAL;
   }
-  if (!got_picture) {
+  ret = avcodec_receive_frame(codec_ctx_h265_, yuv_frame_);
+  if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
     // Not an error, but just did not read pictures out
     AWARN << "warn: failed to get yuv picture";
     return H265Decoder::DecodingResult::WARN;
   }
-  av_packet_unref(&apt);
-  got_picture = 0;
-  ret = avcodec_encode_video2(codec_ctx_jpeg_, &apt, yuv_frame_, &got_picture);
+  if (ret < 0) {
+    AERROR << "error: decode failed: input_framesize = " << insize
+           << ". error code = " << ret;
+    return H265Decoder::DecodingResult::FATAL;
+  }
+  apt->data = nullptr;
+  apt->size = 0;
+  ret = avcodec_send_frame(codec_ctx_jpeg_, yuv_frame_);
   if (ret < 0) {
     AERROR << "error: jpeg encode failed, error code = " << ret;
     return H265Decoder::DecodingResult::FATAL;
   }
-  if (!got_picture) {
+  ret = avcodec_receive_packet(codec_ctx_jpeg_, apt.get());
+  if (ret < 0) {
     AERROR << "error: failed to get jpeg picture from yuyv";
     return H265Decoder::DecodingResult::FATAL;
   }
-  outdata->resize(apt.size);
-  std::copy(apt.data, apt.data + apt.size, outdata->begin());
+  outdata->resize(apt->size);
+  std::copy(apt->data, apt->data + apt->size, outdata->begin());
+  av_packet_unref(apt.get());
   return H265Decoder::DecodingResult::SUCCESS;
 }
 

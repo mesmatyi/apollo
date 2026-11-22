@@ -82,7 +82,9 @@ class BrownCameraDistortionModel : public BaseCameraDistortionModel {
 
  protected:
   Eigen::Matrix3f intrinsic_params_;
-  Eigen::Matrix<float, 8, 1> distort_params_;
+  // zero-initialized: the 14-parameter set_params() only sets k1, k2, p1,
+  // p2, k3 (k4..k6 were read uninitialized)
+  Eigen::Matrix<float, 8, 1> distort_params_ = Eigen::Matrix<float, 8, 1>::Zero();
 };
 
 using BrownCameraDistortionModelPtr =

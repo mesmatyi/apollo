@@ -34,6 +34,7 @@
 #include "glog/logging.h"
 
 #include "cyber/common/macros.h"
+#include "cyber/logger/glog_compat.h"
 #include "cyber/logger/log_file_object.h"
 
 namespace apollo {
@@ -101,8 +102,8 @@ class AsyncLogger : public google::base::Logger {
    * @param message is the info to be written
    * @param message_len is the length of message
    */
-  void Write(bool force_flush, time_t timestamp, const char* message,
-             int message_len) override;
+  void Write(bool force_flush, GlogTimestampArg timestamp, const char* message,
+             GlogLength message_len) override;
 
   /**
    * @brief Flush any buffered messages.
@@ -133,11 +134,11 @@ class AsyncLogger : public google::base::Logger {
   // Arenas and allocate both the message data and Msg struct from them, forming
   // a linked list.
   struct Msg {
-    time_t ts;
+    GlogTimestamp ts;
     std::string message;
     int32_t level;
-    Msg() : ts(0), message(), level(google::INFO) {}
-    Msg(time_t ts, std::string&& message, int32_t level)
+    Msg() : ts(), message(), level(google::INFO) {}
+    Msg(GlogTimestampArg ts, std::string&& message, int32_t level)
         : ts(ts), message(std::move(message)), level(level) {}
     Msg(const Msg& rsh) {
       ts = rsh.ts;

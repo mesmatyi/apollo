@@ -539,10 +539,12 @@ void CruiseMLPEvaluator::LoadModels() {
     device_ = torch::Device(torch::kCUDA);
   }
   torch::set_num_threads(1);
-  torch_go_model_ =
-      torch::jit::load(FLAGS_torch_vehicle_cruise_go_file, device_);
-  torch_cutin_model_ =
-      torch::jit::load(FLAGS_torch_vehicle_cruise_cutin_file, device_);
+  torch_go_model_ = torch::jit::load(
+      apollo::cyber::common::ResolvePath(FLAGS_torch_vehicle_cruise_go_file),
+      device_);
+  torch_cutin_model_ = torch::jit::load(
+      apollo::cyber::common::ResolvePath(FLAGS_torch_vehicle_cruise_cutin_file),
+      device_);
   std::vector<torch::jit::IValue> torch_inputs;
   int input_dim = static_cast<int>(
       OBSTACLE_FEATURE_SIZE + SINGLE_LANE_FEATURE_SIZE * LANE_POINTS_SIZE);

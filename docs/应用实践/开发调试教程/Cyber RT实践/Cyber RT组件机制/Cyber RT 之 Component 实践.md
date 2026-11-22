@@ -1,24 +1,24 @@
-## 实验内容
+## Experiment Content
 
-Component 是 Cyber RT 提供的用来构建功能模块的基础类，Component 有两种类型，分别为 Component 和 TimerComponent。Component 提供消息融合机制，最多可以支持 4 路消息融合，当 从多个 Channel 读取数据的时候，以第一个 Channel 为主 Channel。当主 Channel 有消息到达，Cyber RT会调用 Component的 Proc() 进行一次数据处理。本实验将编写一个 Component 消息融合实例，输入消息为上一个 TimerComponent 实验产生的数据，输出融合后的数据。
+Component is the base class provided by Cyber RT for building functional modules. There are two types: Component and TimerComponent. Component provides a message fusion mechanism that supports fusing up to 4 message channels. When reading data from multiple Channels, the first Channel is the primary Channel. When a message arrives on the primary Channel, Cyber RT calls the Component's Proc() once to process the data. In this experiment, you will write a Component message fusion example whose input messages are the data produced in the previous TimerComponent experiment and whose output is the fused data.
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/42
 
-## 实验目的
+## Experiment Objectives
 
-- 深入理解 Component 的特性。
+- Gain a deep understanding of the characteristics of Component.
 
-- 掌握实现 Component 的方法及流程。
+- Master the method and workflow for implementing a Component.
 
-## 实验流程
+## Experiment Procedure
 
-### 1. 前期准备
+### 1. Preparation
 
-由于本实验是以上一个 TimerCoponent 实验为基础的，本实验要使用到TimerCoponent实验的输出数据，对其输出数据进行数据融合，上一个实验源码已经为大家准备好了，请按照如下步骤进行实验前的准备工作：
+This experiment builds on the previous TimerComponent experiment and uses its output data for data fusion. The source code of the previous experiment has been prepared for you. Please follow the steps below to get ready before the experiment:
 
-1. 使用以下命令解压 TimerCoponent 源码压缩文件
+1. Use the following command to extract the TimerComponent source archive
 
    ```bash
    tar -zxvf component.tar.gz
@@ -26,7 +26,7 @@ https://apollo.baidu.com/community/course/42
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_58eeec9.png)
 
-2. 使用以下命令编译解压的 TimerComponent 实验源码：
+2. Use the following command to compile the extracted TimerComponent experiment source code:
 
    ```bash
    buildtool build -p component/timer_component_sensor/
@@ -36,20 +36,20 @@ https://apollo.baidu.com/community/course/42
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_8c56f76.png)
 
-3. 修改`timer_component_sensor`配置文件，产生一路新的消息：
+3. Modify the `timer_component_sensor` configuration files to produce a new message channel:
 
-1）新增`timer_component_sensor_second.pb.txt`文件。复制`timer_component_sensor.pb.txt`文件，并重命名为`timer_component_sensor_second.pb.txt`，修改该文件内的配置项。
+1) Add the `timer_component_sensor_second.pb.txt` file. Copy the `timer_component_sensor.pb.txt` file, rename it to `timer_component_sensor_second.pb.txt`, and modify the configuration items in it.
 
 ```bash
 name: "sensor_second"
 sensor_topic:"/sensor/second"
 ```
 
-将 name 值修改为 sensor_second；将 sensor_topic 值修改为 /sensor/second。
+Change the value of name to sensor_second and the value of sensor_topic to /sensor/second.
 
-> 注意：这里timer_component_sensor_second.pb.txt文件与timer_component_sensor.pb.txt文件位于同一文件夹内。
+> Note: The timer_component_sensor_second.pb.txt file is located in the same folder as the timer_component_sensor.pb.txt file.
 
-2）新增`timer_component_sensor_second.dag`文件。复制`timer_component_sensor.dag`文件，并重命名为`timer_component_sensor_second.dag`，修改该文件内的配置项。
+2) Add the `timer_component_sensor_second.dag` file. Copy the `timer_component_sensor.dag` file, rename it to `timer_component_sensor_second.dag`, and modify the configuration items in it.
 
 ```bash
 module_config {
@@ -66,15 +66,15 @@ module_config {
 }
 ```
 
-将 config 中的 name 值修改为`timer_component_sensor_second`；
+Change the name value in config to `timer_component_sensor_second`;
 
-将 config_file_path 值修改为`timer_component_sensor_second.pb.txt`文件所在路径；
+Change the config_file_path value to the path of the `timer_component_sensor_second.pb.txt` file;
 
-将 intercal 值修改 800 。
+Change the interval value to 800.
 
-> 注意：这里`timer_component_sensor_second.dag`文件与`timer_component_sensor.dag`文件位于同一文件夹内。
+> Note: The `timer_component_sensor_second.dag` file is located in the same folder as the `timer_component_sensor.dag` file.
 
-3）新增`timer_component_sensor_second.launch`文件，复制`timer_component_sensor.launch`文件，并重命名为`timer_component_sensor_second.launch`，修改该文件内的配置项。
+3) Add the `timer_component_sensor_second.launch` file. Copy the `timer_component_sensor.launch` file, rename it to `timer_component_sensor_second.launch`, and modify the configuration items in it.
 
 ```bash
 <cyber>
@@ -86,11 +86,11 @@ module_config {
 </cyber>
 ```
 
-将 dag_conf 修改为`timer_component_sensor_second.dag`文件所在的路径。
+Change dag_conf to the path of the `timer_component_sensor_second.dag` file.
 
-> 注意：这里`timer_component_sensor_second.launch`文件与`timer_component_sensor.launch`文件位于同一文件夹内。
+> Note: The `timer_component_sensor_second.launch` file is located in the same folder as the `timer_component_sensor.launch` file.
 
-4. 使用以下命令，运行`timer_component_sensor_second.launch`文件。
+4. Use the following command to run the `timer_component_sensor_second.launch` file.
 
    ```bash
    cyber_launch start component/timer_component_sensor/launch/timer_component_sensor_second.launch
@@ -98,19 +98,19 @@ module_config {
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_2e0d265.png)
 
-5. 使用 cyber_monitor 工具验证，配置是否生效。
+5. Use the cyber_monitor tool to verify whether the configuration has taken effect.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_bf22ba3.png)
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_d2cf9b1.png)
 
-   若 /sensor/second channel 有数据、数据帧率为 1.25、且数据内容与配置的一致，表示配置成功。
+   If the /sensor/second channel has data, the data frame rate is 1.25, and the data content matches the configuration, the configuration is successful.
 
-6. 最后，在终端中，使用 **Ctrl+C** 组合键，结束程序运行。
+6. Finally, in the terminal, press **Ctrl+C** to terminate the program.
 
-### 2. 创建Component模板实例
+### 2. Create a Component Template Instance
 
-1. 在终端中，执行以下指令，在 component 文件夹下生成 component_fusion_message 模板实例（功能包）。
+1. In the terminal, run the following command to generate the component_fusion_message template instance (package) under the component folder.
 
    ```bash
    buildtool create --template component component/component_fusion_message
@@ -118,15 +118,15 @@ module_config {
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_d97f121.png)
 
-2. 切换目录到生成的`component_fusion_message`目录下，使用 tree 命令查看生成的 component 功能包的目录结构。
+2. Change to the generated `component_fusion_message` directory and use the tree command to view the directory structure of the generated component package.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_e5320f8.png)
 
-   其中，`BUILD`、`component_fusion_message.cc`和`component_fusion_message.h`三个文件分别为 component_fusion_message 功能包的源码编译规则文件、源文件和头文件；conf 目录下，`component_fusion_message.conf`为全局变量配置文件，`component_fusion_message.pb.txt`为用户在`protobuffer`文件中定义的可配置项的配置文件；`cyberfile.xml`为`component_fusion_message`功能包的描述文件；dag 目录下的`component_fusion_message.dag`文件中描述了`component_fusion_message`功能包的依赖关系；launch 文件夹下的`component_fusion_message.launch`为`component_fusion_message`功能包的 launch 启动文件；proto 文件夹下的 BUILD 为用户在 proto 文件夹下定义的`protobuffer`文件的编译规则文件，`component_fusion_message.proto`文件中用户可以定义自己的消息结构。
+   Among them, `BUILD`, `component_fusion_message.cc` and `component_fusion_message.h` are the source build rules file, source file and header file of the component_fusion_message package, respectively; under the conf directory, `component_fusion_message.conf` is the global variable configuration file and `component_fusion_message.pb.txt` is the configuration file for the configurable items the user defines in the `protobuffer` file; `cyberfile.xml` is the description file of the `component_fusion_message` package; the `component_fusion_message.dag` file in the dag directory describes the dependencies of the `component_fusion_message` package; `component_fusion_message.launch` in the launch folder is the launch file of the `component_fusion_message` package; BUILD in the proto folder is the build rules file for the `protobuffer` files the user defines in the proto folder, and in the `component_fusion_message.proto` file the user can define their own message structures.
 
-### 3. 定义Component消息结构
+### 3. Define the Component Message Structure
 
-1. 在`component_fusion_message.proto`中，添加以下消息数据结构。
+1. In `component_fusion_message.proto`, add the following message data structures.
 
    ```bash
    syntax = "proto2";
@@ -148,11 +148,11 @@ module_config {
     };
    ```
 
-   在`ComponentFusionMessageMsg`中添加 fusion_content、fusion_msg_id 和 timestamp 3 项，分别表示消息内容，消息编号和消息发出时的时间戳。
+   In `ComponentFusionMessageMsg`, add three items, fusion_content, fusion_msg_id and timestamp, which represent the message content, the message number and the timestamp when the message was sent, respectively.
 
-   在`ComponentFusionMessageConfig`中添加可配置项 name 和 fusion_topic ，用来配置 `ComponentFusionMessageConfig`的名称标识和输出数据的 channel。
+   In `ComponentFusionMessageConfig`, add the configurable items name and fusion_topic, which configure the name identifier of `ComponentFusionMessageConfig` and the channel for the output data.
 
-2. 在 proto 文件夹下的 BUILD 文件中，添加`protobuffer`文件的编译规则。
+2. In the BUILD file in the proto folder, add the build rules for the `protobuffer` file.
 
    ```bash
    load("//tools:apollo_package.bzl", "apollo_package")
@@ -171,22 +171,22 @@ module_config {
     cpplint()
    ```
 
-   由于没有新增`protobuffer`文件，这里无需修改 BUILD 文件，如若新增`protobuffer`文件，可参考 BUILD 文件中已有的配置规则，添加对应`protobuffer`的编译规则。
+   Since no new `protobuffer` file is added, the BUILD file does not need to be modified here. If you add a new `protobuffer` file, refer to the existing rules in the BUILD file and add the corresponding build rule for that `protobuffer` file.
 
-### 4. 配置Component的配置文件
+### 4. Configure the Component Configuration Files
 
-由于本实验没有涉及全局变量，这里无需对component_fusion_message.conf文件进行修改；在`component_fusion_message.pb.txt`中，配置`proto`文件中定义的可配置项。
+Since this experiment does not involve global variables, the component_fusion_message.conf file does not need to be modified here. In `component_fusion_message.pb.txt`, configure the items defined in the `proto` file.
 
 ```bash
 name: "fusion_message"
 fusion_topic: "/fusion/message"
 ```
 
-将`component_fusion_message.proto`文件中`ComponentFusionMessageConfig`消息中定义的 name 配置为 fusion_message，将 sensor_topic 配置为 /fusion/message。
+Configure name in the `ComponentFusionMessageConfig` message defined in the `component_fusion_message.proto` file as fusion_message, and configure fusion_topic as /fusion/message.
 
-### 5. 编写Component的源文件
+### 5. Write the Component Source Files
 
-1. 修改`component_fusion_message.h`文件。
+1. Modify the `component_fusion_message.h` file.
 
    ```bash
    #pragma once
@@ -218,17 +218,17 @@ fusion_topic: "/fusion/message"
     } // namespace apollo
    ```
 
-   由于 component 要融合的消息类型是`TimerComponentSensorMsg`，这里需要包含（include）定义`TimerComponentSensorMsg`的头文件（timer_component_sensor.pb.h）。
+   Since the message type that the component fuses is `TimerComponentSensorMsg`, you need to include the header file that defines `TimerComponentSensorMsg` (timer_component_sensor.pb.h).
 
-   使用 **using** 引入将 **apollo::cyber** 命名空间下的 **Time** 和 **Write** 注入当前作用域中；
+   Use **using** to bring **Time** and **Writer** from the **apollo::cyber** namespace into the current scope;
 
-   修改类继承 component 的模板参数；将模板参数改为要融合的消息类型，两个参数。
+   Modify the template parameters of the class that inherits from component; change the template parameters to the message types to be fused (two parameters).
 
-   修改 Proc 函数的输入参数；将 Proc 函数的输入参数修改为 **TimerComponentSensorMsg** 的指针。
+   Modify the input parameters of the Proc function; change them to pointers to **TimerComponentSensorMsg**.
 
-   ComponentFusionMessage 类增加私有成员 fusion*writer*，fusion*writer* 是智能指针，指向 Writer 对象，Writer 对象可以写出`ComponentFusionMessageMsg`数据。
+   Add a private member fusion*writer* to the ComponentFusionMessage class. fusion*writer* is a smart pointer to a Writer object, which can write out `ComponentFusionMessageMsg` data.
 
-2. 修改`component_fusion_message.cc`文件。
+2. Modify the `component_fusion_message.cc` file.
 
    ```bash
    #include "component/component_fusion_message/component_fusion_message_component.h"
@@ -268,13 +268,13 @@ fusion_topic: "/fusion/message"
     } // namespace apollo
    ```
 
-   在 Init 函数中增加智能指针 fusion*write* 的初始化；
+   Add initialization of the smart pointer fusion*write* in the Init function;
 
-   修改 Proc 函数的输入参数与头文件中的定义一致；
+   Change the input parameters of the Proc function to match the definition in the header file;
 
-   在 Proc 函数中创建`ComponentFusionMessageMsg`消息，并通过 fusion*writer* 发出消息到对应的 channel。
+   In the Proc function, create a `ComponentFusionMessageMsg` message and send it to the corresponding channel through fusion*writer*.
 
-3. 修改`BUILD`文件。
+3. Modify the `BUILD` file.
 
    ```bash
     load("//tools:apollo_package.bzl", "apollo_cc_library", "apollo_cc_binary", "apollo_package", "apollo_component")
@@ -313,11 +313,11 @@ fusion_topic: "/fusion/message"
     cpplint()
    ```
 
-   由于源文件中由于包含了`timer_component_sensor.pb.h`，需要在编译的依赖项中添加对应的依赖项。
+   Since the source file includes `timer_component_sensor.pb.h`, the corresponding dependency must be added to the build dependencies.
 
-### 6. 编译TimerComponent功能包
+### 6. Compile the Component Package
 
-在终端中，执行以下指令，编译`component_fusion_message`功能包。
+In the terminal, run the following command to compile the `component_fusion_message` package.
 
 ```bash
 buildtool build -p  component/component_fusion_message/
@@ -327,11 +327,11 @@ buildtool build -p  component/component_fusion_message/
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_5187f81.png)
 
-编译成功，没有报错，若编译报错，请按照报错提示，修改代码后，重新编译，直到编译成功。
+The build succeeds without errors. If the build reports errors, modify the code according to the error messages and recompile until it succeeds.
 
-### 7. 修改Component的dag文件
+### 7. Modify the Component dag File
 
-在`component_fusion_message.dag`文件中，将第一个 readers 相中的 channel 值改为 component 中融合的主 channel， 在主 channel readers下面添加需要融合的其它 readers 配置，并配置正确的 channel。
+In the `component_fusion_message.dag` file, change the channel value in the first readers entry to the primary channel fused in the component, add the other readers to be fused below the primary channel's readers, and configure the correct channels.
 
 ```bash
 module_config {
@@ -353,9 +353,9 @@ module_config {
 }
 ```
 
-这里将 readers 中的 channel 值修改为 /sensor/first ，并在 readers 项下面添加新的 readers 项，并将其 channel 值配置为 /sensor/second。
+Here the channel value in readers is changed to /sensor/first, a new readers entry is added below it, and its channel value is configured as /sensor/second.
 
-### 8. 修改Component的launch文件
+### 8. Modify the Component launch File
 
 ```bash
 <cyber>
@@ -367,43 +367,43 @@ module_config {
 </cyber>
 ```
 
-这里在 <dag_conf> 标签内的 dag 文件路径前加上“ ./ ” 。由于目前 cyber 与 apollo 绑定的比较紧密，编译完成后，系统会把编译产出及配置文件拷贝到 apollo 相应目录下，且执行文件时，系统会优先执行 apollo 目录下的文件，这样就会导致此处的配置无法起作用，这里加上“ ./ ”，就是告诉系统使用此处的dag文件来运行 component 。
+Here "./" is added before the dag file path inside the <dag_conf> tag. Because cyber is currently tightly coupled with apollo, after compilation the system copies the build outputs and configuration files into the corresponding apollo directories, and when executing files it gives priority to the files in the apollo directory, so the configuration here would not take effect. Adding "./" tells the system to use the dag file here to run the component.
 
-### 9. 运行Component
+### 9. Run the Component
 
-1. 使用两个终端分别启动两个 TimerComponent，产生两路消息。
+1. Use two terminals to start the two TimerComponents separately to produce two message channels.
 
-   产生 /sensor/first 消息
+   Produce the /sensor/first messages
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3f455b3.png)
 
-   产生 /sensor/second 消息
+   Produce the /sensor/second messages
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_4d1d207.png)
 
-2. 新启一个终端，在其中启动`component_fusion_message`，进行两路消息融合处理。
+2. Open a new terminal and start `component_fusion_message` in it to fuse the two message channels.
 
-   将 /sensor/first 与 /sensor/second 融合后，产生 /fusion/message 消息。
+   After /sensor/first and /sensor/second are fused, the /fusion/message messages are produced.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_81ebe14.png)
 
-### 10. 查看Component运行结果
+### 10. View the Component Results
 
-1. 使用 cyber_monitor 工具查看`component_fusion_message`运行结果。
+1. Use the cyber_monitor tool to view the results of `component_fusion_message`.
 
-   可以看到 /fusion/message 的帧率与 主 channel 消息 /sensor/first 的帧率一致。
+   You can see that the frame rate of /fusion/message is the same as that of the primary channel message /sensor/first.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_1774b35.png)
 
-2. 使用 cyber_channel 工具打印 /fusion/message 消息。
+2. Use the cyber_channel tool to print the /fusion/message messages.
 
-   可以看到主 channel 的消息 msg_id 变化了，而另一个 channel 的消息却没的现象，这也验证了 component 是由主 channel 消息出发的。
+   You can see that the msg_id of the primary channel's message changes while that of the other channel's message does not, which also verifies that the component is triggered by the primary channel's messages.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_ed1ff48.png)
 
-### 11. 一个launch文件启动多个component
+### 11. Start Multiple Components with One launch File
 
-复制`component_fusion_message.launch`文件，并重命名为`component_fusion_message_all.launch`，将`timer_component_sensor.launch`文件和`timer_component_sensor_second.launch`文件中的 <module> 标签内容拷贝到`component_fusion_message_all.launch`中的 <cyber> 标签内。这样，就可以只启动此`component_fusion_message_all.launch`文件即可一次启动 3 个 component 了。
+Copy the `component_fusion_message.launch` file and rename it to `component_fusion_message_all.launch`, then copy the <module> tag contents of the `timer_component_sensor.launch` file and the `timer_component_sensor_second.launch` file into the <cyber> tag of `component_fusion_message_all.launch`. In this way, you only need to start this single `component_fusion_message_all.launch` file to start all 3 components at once.
 
 ```bash
 <cyber>
@@ -429,4 +429,4 @@ module_config {
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_fb11746.png)
 
-好的，本次实验到此结束。
+Well, this concludes the experiment.

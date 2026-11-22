@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "cyber/common/file.h"
 #include "modules/common/math/vec2d.h"
 #include "modules/prediction/common/feature_output.h"
 #include "modules/prediction/common/prediction_gflags.h"
@@ -36,12 +37,18 @@ LaneAggregatingEvaluator::LaneAggregatingEvaluator() : device_(torch::kCPU) {
 
 void LaneAggregatingEvaluator::LoadModel() {
   torch::set_num_threads(1);
-  torch_obstacle_encoding_ = torch::jit::load(
-      FLAGS_torch_lane_aggregating_obstacle_encoding_file, device_);
-  torch_lane_encoding_ = torch::jit::load(
-      FLAGS_torch_lane_aggregating_lane_encoding_file, device_);
-  torch_prediction_layer_ = torch::jit::load(
-      FLAGS_torch_lane_aggregating_prediction_layer_file, device_);
+  torch_obstacle_encoding_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(
+                           FLAGS_torch_lane_aggregating_obstacle_encoding_file),
+                       device_);
+  torch_lane_encoding_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(
+                           FLAGS_torch_lane_aggregating_lane_encoding_file),
+                       device_);
+  torch_prediction_layer_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(
+                           FLAGS_torch_lane_aggregating_prediction_layer_file),
+                       device_);
 }
 
 bool LaneAggregatingEvaluator::Evaluate(

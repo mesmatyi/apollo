@@ -1,17 +1,17 @@
-### 问题描述:
+### Problem Description:
 
-编译报错:An error occurred during the fetch of repository'six'
+Compilation fails with: An error occurred during the fetch of repository'six'
 
 ![](images/repository_six_error.png)
 
-### 问题原因:
+### Cause:
 
-网络问题，访问files.pythonhosted.org 会出现下载失败现象，该网站访问不稳定
+Network problem. Accessing files.pythonhosted.org can result in download failures, because this website is not reliably accessible.
 
-### 解决方案:
-可以重试下解决。
-出现 Fetching@six;fetching 超过20s就重试下，可能重试的次数比较多，但是成功一次就可以了。后续非必要不要删容器重新跑。
-此外，我们在WORKSPACE文件里面加上了下面这段
+### Solution:
+Simply retry.
+If "Fetching@six;fetching" lasts more than 20s, retry. You may need to retry many times, but only one success is needed. Afterwards, do not delete the container and rerun unless necessary.
+In addition, we have added the following snippet to the WORKSPACE file:
 
 ```shell
 http_archive(    name = "six",

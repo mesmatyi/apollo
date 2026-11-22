@@ -59,7 +59,8 @@ bool SemanticLstmVehicleGpuTorch::LoadModel() {
     device = torch::Device(torch::kCUDA);
   }
 
-  model_instance_ = torch::jit::load(model_path_, device);
+  model_instance_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(model_path_), device);
 
   torch::set_num_threads(1);
 

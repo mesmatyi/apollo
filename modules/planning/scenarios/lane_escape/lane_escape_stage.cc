@@ -20,6 +20,7 @@
 
 #include "modules/planning/scenarios/lane_escape/lane_escape_stage.h"
 
+#include <iomanip>
 #include <string>
 #include <vector>
 #include "modules/planning/planning_base/common/frame.h"

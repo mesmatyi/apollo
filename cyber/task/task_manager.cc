@@ -1,7 +1,7 @@
-/**************Scheduler::****************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+/******************************************************************************
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
- * Licensed under the Apache License, Vesched_infoon 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -16,56 +16,54 @@
 
 #include "cyber/task/task_manager.h"
 
-#include "cyber/common/global_data.h"
-#include "cyber/croutine/croutine.h"
-#include "cyber/croutine/routine_factory.h"
-#include "cyber/scheduler/scheduler_factory.h"
+#include <cstdlib>
 
 namespace apollo {
 namespace cyber {
 
-using apollo::cyber::common::GlobalData;
-static const char* const task_prefix = "/internal/task";
-
-TaskManager::TaskManager()
-    : task_queue_size_(1000),
-      task_queue_(new base::BoundedQueue<std::function<void()>>()) {
-  if (!task_queue_->Init(task_queue_size_, new base::BlockWaitStrategy())) {
-    AERROR << "Task queue init failed";
-    throw std::runtime_error("Task queue init failed");
+TaskManager::TaskManager() {
+  const char* env = std::getenv("APOLLO_TASK_THREADS");
+  int n = env != nullptr ? std::atoi(env) : 0;
+  if (n <= 0) {
+    n = static_cast<int>(std::max(2u, std::thread::hardware_concurrency()));
   }
-  auto func = [this]() {
-    while (!stop_) {
-      std::function<void()> task;
-      if (!task_queue_->Dequeue(&task)) {
-        auto routine = croutine::CRoutine::GetCurrentRoutine();
-        routine->HangUp();
-        continue;
-      }
-      task();
-    }
-  };
-
-  num_threads_ = scheduler::Instance()->TaskPoolSize();
-  auto factory = croutine::CreateRoutineFactory(std::move(func));
-  tasks_.reserve(num_threads_);
-  for (uint32_t i = 0; i < num_threads_; i++) {
-    auto task_name = task_prefix + std::to_string(i);
-    tasks_.push_back(common::GlobalData::RegisterTaskName(task_name));
-    if (!scheduler::Instance()->CreateTask(factory, task_name)) {
-      AERROR << "CreateTask failed:" << task_name;
-    }
+  num_threads_ = static_cast<uint32_t>(n);
+  for (uint32_t i = 0; i < num_threads_; ++i) {
+    workers_.emplace_back([this]() { Worker(); });
   }
 }
 
 TaskManager::~TaskManager() { Shutdown(); }
 
 void TaskManager::Shutdown() {
-  if (stop_.exchange(true)) {
-    return;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (stop_) {
+      return;
+    }
+    stop_ = true;
   }
-  for (uint32_t i = 0; i < num_threads_; i++) {
-    scheduler::Instance()->RemoveTask(task_prefix + std::to_string(i));
+  cv_.notify_all();
+  for (auto& t : workers_) {
+    if (t.joinable()) {
+      t.join();
+    }
+  }
+}
+
+void TaskManager::Worker() {
+  while (true) {
+    std::function<void()> task;
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      cv_.wait(lock, [this]() { return stop_ || !tasks_.empty(); });
+      if (stop_ && tasks_.empty()) {
+        return;
+      }
+      task = std::move(tasks_.front());
+      tasks_.pop_front();
+    }
+    task();
   }
 }
 

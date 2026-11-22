@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>apollo</name>
+  <version>11.0.0</version>
+  <description>
+    All Apollo modules (perception, prediction, planning, control, canbus, ...)
+    built as one ament_cmake superbuild on top of the Cyber API implemented on
+    ROS 2 (package "cyber"). The CMake target specs are generated from the
+    Bazel BUILD files by tools/ros2/bazel2cmake.py.
+  </description>
+  <maintainer email="apollo@baidu.com">Apollo Authors</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <depend>cyber</depend>
+  <depend>apollo_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+
+  <!-- third-party libraries (rosdep keys) -->
+  <depend>protobuf-dev</depend>
+  <build_depend>libprotoc-dev</build_depend>
+  <build_depend>protobuf-compiler</build_depend>
+  <exec_depend>python3-protobuf</exec_depend>
+  <depend>libgoogle-glog-dev</depend>
+  <depend>libgflags-dev</depend>
+  <depend>eigen</depend>
+  <depend>boost</depend>
+  <depend>abseil-cpp</depend>
+  <depend>nlohmann-json-dev</depend>
+  <depend>yaml-cpp</depend>
+  <depend>tinyxml2</depend>
+  <depend>libopencv-dev</depend>
+  <depend>proj</depend>
+  <depend>coinor-libipopt-dev</depend>
+  <depend>libosqp-dev</depend>
+  <depend>libadolc-dev</depend>
+  <depend>fftw3</depend>
+  <depend>sqlite3</depend>
+  <depend>zlib</depend>
+  <depend>ffmpeg</depend>
+  <depend>libpcl-all-dev</depend>
+  <depend>leveldb</depend>
+  <depend>qtbase5-dev</depend>
+
+  <test_depend>gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

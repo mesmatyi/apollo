@@ -14,6 +14,8 @@
  * limitations under the License.
  *****************************************************************************/
 
+#include <cstdint>
+
 #include "modules/drivers/lidar/velodyne/parser/util.h"
 
 namespace apollo {

@@ -1,10 +1,10 @@
-### 问题描述
+### Problem Description
 
-在使用buildtool install planning时，只会将planning_component模块源码下载到本地，如何将planning相关所有模块全部下载？
+When using buildtool install planning, only the source code of the planning_component module is downloaded locally. How can I download all planning-related modules?
 
-### 解决方案
+### Solution
 
-可通过通配符"*"下载planning相关所有模块源码
+You can use the wildcard "*" to download the source code of all planning-related modules:
 ```shell
 buildtool install planning*
 ```

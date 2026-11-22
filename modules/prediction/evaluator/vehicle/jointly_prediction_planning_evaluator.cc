@@ -557,10 +557,14 @@ void JointlyPredictionPlanningEvaluator::LoadModel() {
     ADEBUG << "CUDA is available";
     device_ = torch::Device(torch::kCUDA);
     torch_vehicle_model_ =
-        torch::jit::load(FLAGS_torch_vehicle_jointly_model_file, device_);
+        torch::jit::load(apollo::cyber::common::ResolvePath(
+                             FLAGS_torch_vehicle_jointly_model_file),
+                         device_);
   } else {
     torch_vehicle_model_ =
-        torch::jit::load(FLAGS_torch_vehicle_jointly_model_cpu_file, device_);
+        torch::jit::load(apollo::cyber::common::ResolvePath(
+                             FLAGS_torch_vehicle_jointly_model_cpu_file),
+                         device_);
   }
   torch::set_num_threads(1);
 

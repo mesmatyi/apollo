@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,10 @@
 namespace apollo {
 namespace cyber {
 
-class Timer;
-
 /**
- * @brief .
- * TimerComponent is a timer component. Your component can inherit from
- * Component, and implement Init() & Proc(), They are called by the CyberRT
- * frame.
+ * @brief TimerComponent is a timer component. Your component can inherit from
+ * TimerComponent, and implement Init() & Proc(); Proc() runs every
+ * `interval` milliseconds on an rclcpp wall timer of the component node.
  */
 class TimerComponent : public ComponentBase {
  public:
@@ -58,7 +55,7 @@ class TimerComponent : public ComponentBase {
   virtual bool Proc() = 0;
 
   uint32_t interval_ = 0;
-  std::unique_ptr<Timer> timer_;
+  std::shared_ptr<ros2::TimerEndpoint> timer_;
 };
 
 }  // namespace cyber

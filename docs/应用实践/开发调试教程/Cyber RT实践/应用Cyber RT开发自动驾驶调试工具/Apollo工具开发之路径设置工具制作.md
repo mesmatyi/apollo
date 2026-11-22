@@ -1,24 +1,24 @@
-## 实验内容
+## Experiment Content
 
-本实验旨在使用 Apollo Cyber RT 开发路径设置工具，通过该工具创建并发送路由请求消息。
+This experiment aims to use Apollo Cyber RT to develop a route setting tool, with which you can create and send a routing request message.
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/40
 
-## 实验目的
+## Experiment Objectives
 
-通过本实验，学习如何使用 Apollo Cyber RT 开发路径设置工具，并利用该工具创建并发送路由请求，以使小车运动起来。
+Through this experiment, learn how to use Apollo Cyber RT to develop a route setting tool and use it to create and send a routing request so that the vehicle starts moving.
 
-- 建立一个 cyber 工程，
+- Create a cyber project,
 
-- 熟悉cyber工具制作。
+- Become familiar with building cyber tools.
 
-## 实践步骤
+## Practice Steps
 
-### 步骤一：启动仿真环境
+### Step 1: Start the Simulation Environment
 
-1. 在终端中，执行 DreamView+ 启动指令，执行成功后，点击菜单栏 dreamview+ 按钮，进入 dreamview+ 界面。
+1. In the terminal, run the DreamView+ startup command. After it succeeds, click the dreamview+ button in the menu bar to enter the dreamview+ interface.
 
    ```bash
    aem bootstrap start --plus
@@ -26,31 +26,31 @@ https://apollo.baidu.com/community/course/40
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_9b5696d.png)
 
-   当出现如下，即表示 dreamview+ 启动成功了。
+   The following screen indicates that dreamview+ has started successfully.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_204edc0.png)
 
-2. 左侧导航栏打开 **Mode Settings** 面板，模式选择 **PnC** Mode，操作选择 **Sim_Control**，进入仿真模式。
+2. Open the **Mode Settings** panel in the left navigation bar, select **PnC** Mode as the mode and **Sim_Control** as the operation to enter simulation mode.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c8bc6e9.png)
 
-3. 选择地图。
+3. Select the map.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_984ecea.png)
 
-4. 从左侧 **Modules** 模块种启动 Planning 模块。
+4. Start the Planning module from the **Modules** list on the left.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c4c0ba6.png)
 
-### 步骤二：编辑代码实现任务功能
+### Step 2: Edit the Code to Implement the Task
 
-#### 前置条件：
+#### Prerequisites:
 
-在`/apollo_workspace`目录创建一个名为`cyber_routing.py`的文件：
+Create a file named `cyber_routing.py` in the `/apollo_workspace` directory:
 
-1. 导入必要的库和模块。
+1. Import the necessary libraries and modules.
 
-   首先，导入所需的 Python 库和 Apollo Cyber RT 模块。这些库和模块将帮助我们初始化 Cyber 框架并创建路由请求消息。
+   First, import the required Python libraries and Apollo Cyber RT modules. These libraries and modules help us initialize the Cyber framework and create the routing request message.
 
    ```bash
    import argparseimport time
@@ -60,21 +60,21 @@ https://apollo.baidu.com/community/course/40
    from modules.common_msgs.external_command_msgs import command_status_pb2
    ```
 
-2. 初始化 Cyber 框架。
+2. Initialize the Cyber framework.
 
-   在主函数中，我们需要初始化Cyber框架，以便与Cyber节点进行通信。这是实现与其他模块交互的第一步。
+   In the main function, we need to initialize the Cyber framework in order to communicate with Cyber nodes. This is the first step toward interacting with other modules.
 
    ```bash
    def main():
-    # 初始化Cyber
+    # Initialize Cyber
     cyber.init()
     node = cyber.Node("mock_routing_requester")
     sequence_num = 1
    ```
 
-3. 创建路由请求消息。
+3. Create the routing request message.
 
-   在此步骤中，我们将创建一个路由请求消息（LaneFollowCommand），并设置一些必要的属性，如时间戳、模块名称和序列号。
+   In this step, we create a routing request message (LaneFollowCommand) and set some necessary attributes, such as the timestamp, module name and sequence number.
 
    ```bash
     routing_request = lane_follow_command_pb2.LaneFollowCommand()
@@ -84,9 +84,9 @@ https://apollo.baidu.com/community/course/40
     routing_request.is_start_pose_set = True
    ```
 
-4. 输入起点和终点坐标。
+4. Enter the start and end point coordinates.
 
-   设置从命令行获取用户输入的起点和终点坐标信息，包括起始航向、起始 X 坐标、起始 Y 坐标、终点航向、终点 X 坐标和终点 Y 坐标。
+   Get the start and end point coordinates from user input on the command line, including the start heading, start X coordinate, start Y coordinate, end heading, end X coordinate and end Y coordinate.
 
    ```bash
     start_heading = float(input("start_heading : "))
@@ -97,9 +97,9 @@ https://apollo.baidu.com/community/course/40
     end_y = float(input("end_y: "))
    ```
 
-5. 添加路径信息。
+5. Add the path information.
 
-   在这一步中，输入的起点和终点坐标信息添加到路由请求消息中，包括起点和终点的坐标信息。
+   In this step, the entered start and end point coordinates are added to the routing request message, including the coordinates of the start and end points.
 
    ```bash
     waypoint = routing_request.way_point.add()
@@ -113,9 +113,9 @@ https://apollo.baidu.com/community/course/40
     waypoint1.y = end_y
    ```
 
-6. 创建 Cyber Writer 并发送路由请求。
+6. Create a Cyber Writer and send the routing request.
 
-   最后，创建一个 Cyber Writer，并使用它来将路由请求消息发送到"/apollo/external_command/lane_follow"。
+   Finally, create a Cyber Writer and use it to send the routing request message to "/apollo/external_command/lane_follow".
 
    ```bash
    writer = node.create_client('/apollo/external_command/lane_follow', lane_follow_command_pb2.LaneFollowCommand, command_status_pb2.CommandStatus)
@@ -124,7 +124,7 @@ https://apollo.baidu.com/community/course/40
     writer.send_request(routing_request)
    ```
 
-   cyber 工具代码：
+   Cyber tool code:
 
    ```bash
    from cyber.python.cyber_py3 import cyber
@@ -134,9 +134,9 @@ https://apollo.baidu.com/community/course/40
 
     def main():
         """
-        主函数
+        Main function
         """
-        # 初始化Cyber
+        # Initialize Cyber
         cyber.init()
         node = cyber.Node("mock_routing_requester")
         sequence_num = 1
@@ -151,29 +151,29 @@ https://apollo.baidu.com/community/course/40
 
         sequence_num = sequence_num + 1
 
-        # 从命令行选择起点坐标
+        # Select the start point coordinates from the command line
         start_heading = float(input("start_heading : "))
         start_x = float(input("start_x : "))
         start_y = float(input("start_y : "))
 
-        # 从命令行选择终点坐标
+        # Select the end point coordinates from the command line
         end_heading = float(input("end_heading: "))
         end_x = float(input("end_x : "))
         end_y = float(input("end_y: "))
 
-        # 添加路径起点
+        # Add the path start point
         waypoint = routing_request.way_point.add()
         waypoint.heading = start_heading
         waypoint.x = start_x
         waypoint.y = start_y
 
-        # 设置终点坐标
+        # Set the end point coordinates
         waypoint1 = routing_request.end_pose
         waypoint1.heading = end_heading
         waypoint1.x = end_x
         waypoint1.y = end_y
 
-        # 创建Cyber writer
+        # Create the Cyber writer
         writer = node.create_client('/apollo/external_command/lane_follow', lane_follow_command_pb2.LaneFollowCommand, command_status_pb2.CommandStatus)
         time.sleep(2.0)
         print("routing", routing_request)
@@ -183,9 +183,9 @@ https://apollo.baidu.com/community/course/40
         main()
    ```
 
-### 步骤三：路径设置工具的使用
+### Step 3: Using the Route Setting Tool
 
-1. 运行路径设置工具。
+1. Run the route setting tool.
 
    ```bash
    python cyber_routing.py
@@ -193,15 +193,15 @@ https://apollo.baidu.com/community/course/40
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_efc8ef9.png)
 
-2. 打开 Dreamview+ routing editing。
+2. Open Dreamview+ routing editing.
 
-   在地图上找任意两点作为起点、终点：
+   Pick any two points on the map as the start point and end point:
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_cccb399.png)
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_5d65e9e.png)
 
-3. 在工具中输入起点坐标和终点坐标以及朝向。
+3. Enter the start point coordinates, end point coordinates and headings in the tool.
 
    ```bash
    start_heading : 0.03
@@ -214,8 +214,8 @@ https://apollo.baidu.com/community/course/40
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_d1a0429.png)
 
-   【车辆运行】
+   [Vehicle running]
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3919a2f.png)
 
-【车辆运行】
+[Vehicle running]

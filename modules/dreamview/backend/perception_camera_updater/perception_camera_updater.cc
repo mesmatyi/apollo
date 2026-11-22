@@ -26,6 +26,7 @@
 #include "modules/common_msgs/perception_msgs/perception_obstacle.pb.h"
 #include "modules/dreamview/proto/camera_update.pb.h"
 
+#include "cyber/service_discovery/topology_manager.h"
 #include "cyber/common/file.h"
 #include "modules/common/adapters/adapter_gflags.h"
 namespace apollo {

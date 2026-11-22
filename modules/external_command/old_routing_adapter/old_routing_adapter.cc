@@ -24,6 +24,7 @@
 
 #include "modules/external_command/old_routing_adapter/proto/old_routing_adapter.pb.h"
 
+#include "cyber/task/task.h"
 #include "modules/map/hdmap/hdmap_util.h"
 
 /**

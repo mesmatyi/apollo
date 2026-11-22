@@ -1,259 +1,259 @@
-开发一台搭载 Apollo 系统的车辆，首先要建立 Apollo 与车辆底层之间的通信。
+To develop a vehicle equipped with the Apollo system, you first need to establish communication between Apollo and the vehicle's lower layers.
 
-整车是通过 **CAN 总线** （CAN bus，Controller Area Network）进行 **各个控制器 ECU** （Electronic Control Units）之间的通信。因此，Apollo 控制系统在接入车辆系统时，也通过 CAN 总线通信方式对车辆进行控制。车辆需要开放一部分底盘信号，将这些信号配置成符合 Apollo 的线控标准要求的 **DBC 文件** （Database file，是一中用于描述 CAN 总线上数据的专用文件，能够方便用户快速构建车辆 CAN 通信的网络结构，定义 CAN 总线上的信号、报文等相关信息）。
+The whole vehicle communicates among its **controllers (ECUs)** (Electronic Control Units) through the **CAN bus** (Controller Area Network). Therefore, when the Apollo control system connects to the vehicle system, it also controls the vehicle through CAN bus communication. The vehicle needs to expose a set of chassis signals and configure them into a **DBC file** that meets the requirements of the Apollo drive-by-wire standard (a DBC file, Database file, is a dedicated file for describing data on the CAN bus; it lets users quickly build the network structure of the vehicle's CAN communication and define the signals, messages and other information on the CAN bus).
 
-这里推荐使用 **canoe 软件** 的 CANdb++ 编辑生成的文件。
+It is recommended to use files edited and generated with CANdb++ of the **canoe software**.
 
-Apollo 软件处理底盘 DBC 文件生成底盘适配代码模板。通过简单的编程开发，即可将车辆开放的底盘信号适配至 Apollo 的软件中，实现 Apollo 与车辆底盘间的通信。
+The Apollo software processes the chassis DBC file to generate a chassis adaptation code template. With simple programming, the chassis signals exposed by the vehicle can be adapted into the Apollo software, enabling communication between Apollo and the vehicle chassis.
 
-## 前提条件
+## Prerequisites
 
-了解 CAN 总线通信相关知识。
+Understand the basics of CAN bus communication.
 
-## DBC 线控标准详解
+## DBC Drive-by-Wire Standard in Detail
 
-在开发车辆底盘控制信号时，需要参照 [Apollo 官网车辆认证平台](http://developer.apollo.auto/docs/procedure_cn.html) 发布的车辆线控标准：参见 [乘用车标准](http://apollo-homepage.bj.bcebos.com/Apollo_by_wire_requirement.xlsx) 。
+When developing the vehicle chassis control signals, refer to the vehicle drive-by-wire standard published by the [vehicle certification platform on the Apollo official website](http://developer.apollo.auto/docs/procedure_cn.html): see the [passenger vehicle standard](http://apollo-homepage.bj.bcebos.com/Apollo_by_wire_requirement.xlsx).
 
-车辆线控标准规定了车辆底盘信号的需求，也规定了每一帧控制信号在底盘的响应时间要求。车辆底盘信号不仅需要在 **功能上符合要求** ，也需要在 **性能上符合控制要求** ，这样才能满足符合 Apollo 线控标准的车辆控制底盘。
+The vehicle drive-by-wire standard specifies the requirements for vehicle chassis signals, and also the response time requirement of each frame of control signal on the chassis. Vehicle chassis signals must not only **meet the requirements functionally**, but also **meet the control requirements in performance**, so that the chassis can be controlled as a vehicle that conforms to the Apollo drive-by-wire standard.
 
-在改造车辆底盘为线控底盘时，要 **参考车辆线控标准满足控制的性能要求** ，如 **转向信号要求响应时间在 100ms 内** 、 **最大超调量满足满足具体要求** 等。
+When converting a vehicle chassis into a drive-by-wire chassis, **refer to the vehicle drive-by-wire standard to meet the control performance requirements**, for example **the steering signal must respond within 100 ms** and **the maximum overshoot must meet specific requirements**.
 
-请仔细阅读线控列表内的性能要求，在 Apollo 车辆认证时，也会对底盘的性能进行相应测试。
+Please read the performance requirements in the drive-by-wire list carefully; during Apollo vehicle certification, the chassis performance will also be tested accordingly.
 
-在实际开发 DBC 的过程中，每个信号定义的细节也有具体的要求，这样做不仅可以节省您的时间，同时提高车辆认证的效率。请您重点理解并关注每个信号。Apollo 对车辆底盘信号的需求如下表所示：
+In the actual process of developing the DBC, there are also specific requirements for the details of each signal definition. Following them not only saves you time but also improves the efficiency of vehicle certification. Please focus on understanding and paying attention to each signal. Apollo's requirements for vehicle chassis signals are shown in the table below:
 
-- 线控转向
+- Drive-by-wire steering
   
   <img src="https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_e494043.png" width = "100%" />
 
-- 线控驱动及制动
+- Drive-by-wire drive and braking
   
   <img src="https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_9a3527a.png" width = "100%" />
 
-- 车身控制功能
+- Body control functions
   
   <img src="https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_402fd86.png" width = "100%" />
 
-车辆的底盘控制是 Apollo 与底盘通信的基础，每一个控制信号都需要可靠和准确。人工接管和越界处理是保证在测试和使用时随时接管，确保突发情况发生时的行车安全。除了线控列表内对信号的详细要求外， **还需要注意横向和纵向使能信号的独立** ， **底盘接管逻辑等特殊要求** ，下面对信号的功能特殊要求做详细说明。
+Vehicle chassis control is the basis of communication between Apollo and the chassis, and every control signal must be reliable and accurate. Manual takeover and out-of-range handling ensure that the vehicle can be taken over at any time during testing and use, guaranteeing driving safety when emergencies occur. In addition to the detailed requirements for signals in the drive-by-wire list, **you also need to pay attention to the independence of the lateral and longitudinal enable signals** and **special requirements such as the chassis takeover logic**. The special functional requirements for the signals are described in detail below.
 
-## 线控转向
+## Drive-by-Wire Steering
 
-### 转向使能信号
+### Steering Enable Signal
 
-- 转向使能信号是控制车辆进入或退出转向自动驾驶模式。该使能信号必须是通过 **上升沿触发** 方式的信号，使能信号原则上是 1 个信号。有些开发者若有不同信号同时控制，才能使能转向进入自动驾驶状态，需要在底层集成相关使能信号的逻辑控制，给 Apollo 使能信号原则上必须只有 1 个。
+- The steering enable signal controls the vehicle entering or exiting the steering autonomous driving mode. The enable signal must be a **rising-edge triggered** signal, and in principle there should be 1 enable signal. If a developer's steering needs several different signals together to be enabled into the autonomous driving state, the logic of those enable signals must be integrated at the lower layer, and in principle only 1 enable signal may be given to Apollo.
 
-- 转向自动驾驶模式必须独立，使能信号必须独立，不与纵向的其他模块（如驱动、制动、档位、驻车等）使能信号相关联，需要满足：
+- The steering autonomous driving mode and its enable signal must be independent and not associated with the enable signals of the longitudinal modules (such as drive, braking, gear and parking). It must satisfy:
   
-  - 单独使能进入转向自动驾驶模式，纵向所处驾驶模式不发生变化，下发方向盘转角或转速控制信号，车辆能够响应相应的转角和转速；
+  - When the steering autonomous driving mode is enabled alone, the longitudinal driving mode does not change, and when a steering wheel angle or speed control signal is sent, the vehicle can respond with the corresponding angle and speed;
   
-  - 单独使能退出转向自动驾驶模式，纵向所处驾驶模式不发生变化，下发方向盘转角或转速控制信号，车辆不响应。
+  - When the steering autonomous driving mode is disabled alone (exited), the longitudinal driving mode does not change, and when a steering wheel angle or speed control signal is sent, the vehicle does not respond.
 
-- 如果横向被接管，再次进入自动驾驶模式时，需要通过上升沿触发信号进入自动驾驶。
+- If the lateral control is taken over, entering the autonomous driving mode again requires a rising-edge trigger signal.
 
-### 转向控制信号
+### Steering Control Signals
 
-- 目标方向盘转角：控制方向盘转角的信号，单位是度（deg），控制方向盘（逆时针）左转为正值，控制方向盘（顺时针）右转为负值。
+- Target steering wheel angle: the signal that controls the steering wheel angle, in degrees (deg); turning the steering wheel left (counterclockwise) is positive and turning it right (clockwise) is negative.
 
-- 目标方向盘转速：多数车辆无法开放次控制信号接口，建议将方向盘转速设置为最大值，提高系统响应时间。
+- Target steering wheel speed: most vehicles cannot expose this control signal interface; it is recommended to set the steering wheel speed to the maximum value to improve the system response time.
 
-### 转向反馈信号
+### Steering Feedback Signals
 
-- 方向盘实际转角反馈：反馈方向盘实际转角，要求反馈准确，左转反馈为正值，右转反馈为负值。
+- Actual steering wheel angle feedback: feeds back the actual steering wheel angle, which must be accurate; left turns are positive and right turns are negative.
 
-- 转向驾驶模式反馈：反馈车辆当前所处的转向驾驶模式，至少需要 3 种模式：自动驾驶模式，手动驾驶模式，被人工接管模式。
+- Steering driving mode feedback: feeds back the steering driving mode the vehicle is currently in. At least 3 modes are required: autonomous driving mode, manual driving mode, and manually taken-over mode.
 
-- 故障信息反馈：反馈转向控制系统是否存在故障。
+- Fault information feedback: feeds back whether the steering control system has a fault.
 
-### 人工接管处理
+### Manual Takeover Handling
 
-- 对于乘用车/商用车：
+- For passenger/commercial vehicles:
   
-  - 当人为施加的方向盘扭矩大于其接管门限时，车辆各个模块均退出自动驾驶，此时转向驾驶模式反馈被接管；
+  - When the manually applied steering wheel torque exceeds its takeover threshold, all modules of the vehicle exit autonomous driving, and the steering driving mode feedback indicates taken over;
   
-  - 对于底盘小车等，当小车底盘接收到遥控器控制车辆转向的指令时，车辆各个模块均退出自动驾驶；
+  - For chassis carts and the like, when the cart chassis receives a remote-controller command to steer the vehicle, all modules of the vehicle exit autonomous driving;
   
-  - 转向接管需要独立，此时转向驾驶模式反馈被人工接管模式，驱动驾驶模式、制动驾驶模式此时应反馈手动驾驶模式。
+  - Steering takeover must be independent: at this time the steering driving mode feedback indicates the manually taken-over mode, while the drive driving mode and braking driving mode should feed back the manual driving mode.
 
-- 当转向自动驾驶被人工接管时，所有模块都退出自动驾驶模式。
+- When steering autonomous driving is manually taken over, all modules exit the autonomous driving mode.
 
-### 越界处理
+### Out-of-Range Handling
 
-越界处理的原则是越界拒绝执行，并退出自动驾驶模式。
-当 Apollo 下发控制指令超过原控制指令的定义范围时，称为越界。发生越界时，转向需要退出自动驾驶模式。
-如定义目标方向盘转角最大范围为 -500deg~500deg。若 Apollo 下发的转角指令不在此范围时，底盘需要对此越界拒绝执行，并退出自动驾驶模式。
+The principle of out-of-range handling is to refuse to execute out-of-range commands and exit the autonomous driving mode.
+When a control command issued by Apollo exceeds the range defined for the original control command, this is called out of range. When it occurs, steering needs to exit the autonomous driving mode.
+For example, if the maximum range of the target steering wheel angle is defined as -500 deg to 500 deg and an angle command issued by Apollo is outside this range, the chassis must refuse to execute this out-of-range command and exit the autonomous driving mode.
 
-## 线控驱动
+## Drive-by-Wire Drive
 
-### 驱动使能
+### Drive Enable
 
-- 驱动使能信号是控制车辆进入或退出驱动自动驾驶模式，该使能信号必须是通过 **上升沿触发** 方式的信号， **使能信号原则上是 1 个信号** 。有些开发者若有不同信号同时控制，才能使能转向进入自动驾驶状态，需要在底层集成相关使能信号的逻辑控制，给 Apollo 使能信号原则上必须只有 1 个。
+- The drive enable signal controls the vehicle entering or exiting the drive autonomous driving mode. The enable signal must be a **rising-edge triggered** signal, and **in principle there should be 1 enable signal**. If a developer's drive needs several different signals together to be enabled into the autonomous driving state, the logic of those enable signals must be integrated at the lower layer, and in principle only 1 enable signal may be given to Apollo.
 
-- 驱动使能信号必须独立，不与转向模块使能信号相关联，需要满足：
+- The drive enable signal must be independent and not associated with the enable signal of the steering module. It must satisfy:
   
-  - 单独使能进入纵向自动驾驶模式，转向所处驾驶模式不发生变化，下发驱动控制信号，车辆能够响应相应的控制命令；
+  - When the longitudinal autonomous driving mode is enabled alone, the steering driving mode does not change, and when a drive control signal is sent, the vehicle can respond to the corresponding control command;
   
-  - 单独使能退出驱动自动驾驶模式，转向所处驾驶模式不发生变化，下发驱动控制信号，车辆不响应。
+  - When the drive autonomous driving mode is disabled alone (exited), the steering driving mode does not change, and when a drive control signal is sent, the vehicle does not respond.
 
-- **原则上驱动使能信号与制动、档位、驻车使能相互独立根据以往的实际经验** ，有些车辆在纵向驱动和制动使能信号归为一个信号，这样的特殊情况需要特别注意，务必确保纵向的使能与横向使能分开并独立，纵向各模块如果相互关联，则使能需要驱动、制动、档位、驻车一同进去自动驾驶模式，不使能一同退出自动驾驶模式。
+- **In principle, the drive enable signal should be independent of the braking, gear and parking enables. Based on past practical experience**, some vehicles combine the longitudinal drive and braking enable signals into one signal. Such special cases need particular attention: make sure the longitudinal enable is separate from and independent of the lateral enable. If the longitudinal modules are associated with one another, then enabling requires drive, braking, gear and parking to enter the autonomous driving mode together, and disabling makes them exit the autonomous driving mode together.
 
-- 如果横向被接管，再次进入自动驾驶模式时，需要通过上升沿触发信号进入自动驾驶。
+- If the lateral control is taken over, entering the autonomous driving mode again requires a rising-edge trigger signal.
 
-### 驱动控制信号
+### Drive Control Signals
 
-目标加速踏板位置：控制量是加速踏板的位置百分比，范围是 0~100%，100% 代表加速踏板踩到最大位置。
+Target accelerator pedal position: the control quantity is the accelerator pedal position as a percentage, in the range 0 to 100%, where 100% means the accelerator pedal is pressed to its maximum position.
 
-车辆目标纵向加速度和车辆目标驱动扭矩是车辆控制信号可选项。
+The vehicle target longitudinal acceleration and the vehicle target drive torque are optional vehicle control signals.
 
-### 驱动反馈信号
+### Drive Feedback Signals
 
-- 驾驶模式：反馈车辆当前所处的驱动驾驶模式，至少需要 3 种模式：自动驾驶模式，手动驾驶模式，被人工接管模式。
+- Driving mode: feeds back the drive driving mode the vehicle is currently in. At least 3 modes are required: autonomous driving mode, manual driving mode, and manually taken-over mode.
 
-- 加速踏板位置：需准确反馈当前车辆实际踏板位置。
+- Accelerator pedal position: must accurately feed back the actual current pedal position of the vehicle.
 
-- 纵向加速度：需准确反馈当前车辆的纵向加速度。
+- Longitudinal acceleration: must accurately feed back the current longitudinal acceleration of the vehicle.
 
-- 车速：需准确反馈当前车辆车速，Apollo 需求的车速是 m/s，** 一般车辆反馈的车速单位是 km/h，此时需要在 DBC 转换为适配代码后单独进行单位转化** 。
+- Vehicle speed: must accurately feed back the current vehicle speed. The vehicle speed Apollo requires is in m/s. **Vehicles generally feed back speed in km/h, in which case the unit conversion must be done separately after the DBC is converted into the adaptation code**.
 
-- 轮速：对于乘用车，需提供相关轮速信号，轮速大小，单位：km/h。如果有条件，可提供车轮运动方向反馈，Value Description 按照以下顺序 `0x00，FORWARD；0x01，BACKWARD；0x02，STANDSTILL；0x03，INVALID`。
+- Wheel speed: for passenger vehicles, the related wheel speed signals must be provided, giving the wheel speed in km/h. If possible, provide wheel motion direction feedback, with the Value Description in the following order: `0x00, FORWARD; 0x01, BACKWARD; 0x02, STANDSTILL; 0x03, INVALID`.
 
-- 发动机/电机转速：需准确反馈当前发动机或电机转速，单位：r/min。
+- Engine/motor speed: must accurately feed back the current engine or motor speed, in r/min.
 
-- 故障信息：反馈驱动系统是否存在故障。
+- Fault information: feeds back whether the drive system has a fault.
 
-### 人工接管
+### Manual Takeover
 
-- 当车辆底盘接收到人工干预的加速踏板指令（或对于底盘小车，接收到遥控器下发的加速信号）时，车辆各个模块均退出自动驾驶。转向接管需要独立，此时驱动驾驶模式反馈被人工接管模式，转向驾驶模式、制动驾驶模式此时应反馈手动驾驶模式。
-- 驱动自动驾驶被人工接管时，所有模块都退出自动驾驶模式。
+- When the vehicle chassis receives a manually applied accelerator pedal command (or, for a chassis cart, an acceleration signal issued by the remote controller), all modules of the vehicle exit autonomous driving. Takeover must be independent: at this time the drive driving mode feedback indicates the manually taken-over mode, while the steering driving mode and braking driving mode should feed back the manual driving mode.
+- When drive autonomous driving is manually taken over, all modules exit the autonomous driving mode.
 
-### 越界处理
+### Out-of-Range Handling
 
-发生越界时，转向需要退出自动驾驶模式。如定义目标加速踏板位置范围为 0~100%，若 Apollo 下发的控制踏板指令不在此范围时，底盘需要对此越界拒绝执行，并退出自动驾驶模式。
+When out of range occurs, steering needs to exit the autonomous driving mode. For example, if the target accelerator pedal position range is defined as 0 to 100% and a pedal command issued by Apollo is outside this range, the chassis must refuse to execute this out-of-range command and exit the autonomous driving mode.
 
-## 线控制动
+## Drive-by-Wire Braking
 
-### 制动使能
+### Braking Enable
 
-- 制动使能信号是控制车辆进入或退出驱动自动驾驶模式，该使能信号必须是通过 **上升沿触发** 方式的信号，使能信号原则上是 1 个信号；有些开发者若有不同信号同时控制，才能使能转向进入自动驾驶状态，需要开发者在底层自己集成相关使能信号的逻辑控制，给 Apollo 使能信号原则上必须只有 1 个。
+- The braking enable signal controls the vehicle entering or exiting the drive autonomous driving mode. The enable signal must be a **rising-edge triggered** signal, and in principle there should be 1 enable signal. If a developer's braking needs several different signals together to be enabled into the autonomous driving state, the developer must integrate the logic of those enable signals at the lower layer, and in principle only 1 enable signal may be given to Apollo.
 
-- 制动使能信号必须独立，不能与转向模块使能信号相关联，需要满足：
+- The braking enable signal must be independent and must not be associated with the enable signal of the steering module. It must satisfy:
   
-  - 单独使能进入纵向自动驾驶模式，转向所处驾驶模式不发生变化，下发制动控制信号，车辆能够响应相应的控制命令，
+  - When the longitudinal autonomous driving mode is enabled alone, the steering driving mode does not change, and when a braking control signal is sent, the vehicle can respond to the corresponding control command,
   
-  - 单独使能退出驱动自动驾驶模式，转向所处驾驶模式不发生变化，下发制动控制信号，车辆不响应。
+  - When the drive autonomous driving mode is disabled alone (exited), the steering driving mode does not change, and when a braking control signal is sent, the vehicle does not respond.
 
-- 原则上驱动使能信号与驱动、档位、驻车使能相互独立。根据以往的实际经验，有些车辆在纵向驱动和制动使能信号归为一个信号，这样的特殊情况需要特别注意，务必确保纵向的使能与横向使能分开并独立，纵向各模块如果相互关联，则使能需要驱动、制动、档位、驻车一同进去自动驾驶模式，不使能一同退出自动驾驶模式。
+- In principle, the drive enable signal should be independent of the drive, gear and parking enables. Based on past practical experience, some vehicles combine the longitudinal drive and braking enable signals into one signal. Such special cases need particular attention: make sure the longitudinal enable is separate from and independent of the lateral enable. If the longitudinal modules are associated with one another, then enabling requires drive, braking, gear and parking to enter the autonomous driving mode together, and disabling makes them exit the autonomous driving mode together.
 
-- 如果横向被接管，再次进入自动驾驶模式时，需要通过上升沿触发信号进入自动驾驶。
+- If the lateral control is taken over, entering the autonomous driving mode again requires a rising-edge trigger signal.
 
-### 制动控制信号
+### Braking Control Signals
 
-- 制动踏板目标位置：控制量是加速踏板的位置百分比，范围是 0~100%，100% 代表制动踏板踩到最大位置。
+- Target brake pedal position: the control quantity is the pedal position as a percentage, in the range 0 to 100%, where 100% means the brake pedal is pressed to its maximum position.
 
-- 目标减速度：可选项，控制量是车辆的目标减速度大小。
+- Target deceleration: optional; the control quantity is the target deceleration of the vehicle.
 
-- 制动灯控制：可选项，控制制动灯是否点亮，一般车辆的底盘会在制动时默认点亮制动灯。
+- Brake light control: optional; controls whether the brake light is lit. The chassis of a typical vehicle lights the brake light by default when braking.
 
-### 制动反馈信号
+### Braking Feedback Signals
 
-- 驾驶模式：反馈车辆当前所处的制动驾驶模式，至少需要3种模式：自动驾驶模式，手动驾驶模式，被人工接管模式。
+- Driving mode: feeds back the braking driving mode the vehicle is currently in. At least 3 modes are required: autonomous driving mode, manual driving mode, and manually taken-over mode.
 
-- 制动踏板位置：制动踏板位置，百分比。
+- Brake pedal position: the brake pedal position, as a percentage.
 
-- 刹车灯状态：反馈刹车灯是否点亮。
+- Brake light status: feeds back whether the brake light is lit.
 
-- 故障信息：反馈制动系统是否有故障。
+- Fault information: feeds back whether the braking system has a fault.
 
-### 人工接管
+### Manual Takeover
 
-- 当车辆底盘接收到人工干预的制动踏板指令（或对于底盘小车，接收到遥控器下发的减速信号）时，车辆各个模块均退出自动驾驶。转向接管需要独立，此时驱动驾驶模式反馈被人工接管模式，转向驾驶模式、制动驾驶模式此时应反馈手动驾驶模式
-- 驱动自动驾驶被人工接管时，所有模块都退出自动驾驶模式。
+- When the vehicle chassis receives a manually applied brake pedal command (or, for a chassis cart, a deceleration signal issued by the remote controller), all modules of the vehicle exit autonomous driving. Takeover must be independent: at this time the drive driving mode feedback indicates the manually taken-over mode, while the steering driving mode and braking driving mode should feed back the manual driving mode
+- When drive autonomous driving is manually taken over, all modules exit the autonomous driving mode.
 
-### 越界处理
+### Out-of-Range Handling
 
-发生越界时，转向需要退出自动驾驶模式。如定义目标制动踏板位置范围为 0~100%，若 Apollo 下发的控制踏板指令不在此范围时，底盘需要对此越界拒绝执行，并使所有模式退出自动驾驶模式。
+When out of range occurs, steering needs to exit the autonomous driving mode. For example, if the target brake pedal position range is defined as 0 to 100% and a pedal command issued by Apollo is outside this range, the chassis must refuse to execute this out-of-range command and make all modes exit the autonomous driving mode.
 
-## 线控档位
+## Drive-by-Wire Gear
 
-### 档位使能
+### Gear Enable
 
-使能独立，不与横向控制相关联。可以与纵向使能信号关联，也可独立使能。档位使能信号必须是通过上升沿触发方式的信号，使能信号原则上是 1 个信号。
+The enable is independent and not associated with lateral control. It may be associated with the longitudinal enable signal or enabled independently. The gear enable signal must be a rising-edge triggered signal, and in principle there should be 1 enable signal.
 
-### 档位控制
+### Gear Control
 
-控制档位信号，档位信号必须按照以下顺序：`0x00：N档；0x01：D；0x02：R；0x03：P；0x04：NONE`。多余的不必再增加。
+For the gear control signal, the gear values must follow this order: `0x00: N; 0x01: D; 0x02: R; 0x03: P; 0x04: NONE`. No extra values need to be added.
 
-### 档位反馈
+### Gear Feedback
 
-- 档位信息：反馈当前档位信号，反馈顺序与控制档位信号顺序一致：`0x00：N档；0x01：D；0x02：R；0x03：P；0x04：NONE`。多余的不必再增加。
+- Gear information: feeds back the current gear signal, in the same order as the gear control signal: `0x00: N; 0x01: D; 0x02: R; 0x03: P; 0x04: NONE`. No extra values need to be added.
 
-- 故障信息：反馈换挡系统是否存在故障。
+- Fault information: feeds back whether the shifting system has a fault.
 
-## 线控驻车
+## Drive-by-Wire Parking
 
-### 驻车使能
+### Parking Enable
 
-使能独立，不与横向控制相关联。可以与纵向使能信号关联，也可独立使能。驻车使能信号必须是通过上升沿触发方式的信号，使能信号原则上是 1 个信号。
+The enable is independent and not associated with lateral control. It may be associated with the longitudinal enable signal or enabled independently. The parking enable signal must be a rising-edge triggered signal, and in principle there should be 1 enable signal.
 
-### 驻车控制
+### Parking Control
 
-驻车信号有效，电子手刹抱死，车辆驻车；驻车信号无效，电子手刹松开，车辆不驻车。
+When the parking signal is active, the electronic parking brake (EPB) is applied and the vehicle is parked; when the parking signal is inactive, the electronic parking brake is released and the vehicle is not parked.
 
-### 驻车反馈
+### Parking Feedback
 
-- EPB 开关状态：反馈当前电子手刹是否抱死或松开。
+- EPB switch status: feeds back whether the electronic parking brake is currently applied or released.
 
-- 驻车状态反馈：反馈当前驻车是自动驾驶模式还是手动控制模式。至少需要 2 种模式：`自动驾驶模式`，`手动驾驶模式`，`被人工接管模式`。
+- Parking status feedback: feeds back whether parking is currently in autonomous driving mode or manual control mode. At least 2 modes are required: `autonomous driving mode`, `manual driving mode`, and `manually taken-over mode`.
 
-- 驻车系统故障反馈：反馈驻车系统故障。
+- Parking system fault feedback: feeds back parking system faults.
 
-## 其他车身功能
+## Other Body Functions
 
-包括线控灯光，主要控制远、近光灯、转向灯、危险警报灯的打开和关闭，已经相应的状态反馈信号。
+These include drive-by-wire lighting, which mainly controls turning the high beam, low beam, turn signals and hazard warning lights on and off, together with the corresponding status feedback signals.
 
-还有雨刮和喇叭控制，作为可选项。
+Wiper and horn control are also optional.
 
-## 车辆 VIN 码
+## Vehicle VIN
 
-VIN 码一般 17 位。按照 ASCII 码格式，每一个 ASCII 占 1 字节，需要 3 帧报文连续发出，但是 VIN 码不需要实时更新。所以，在系统请求进入自动驾驶时，VIN 码通过 CAN 总线发出，并一直保持该值不再更新，也可减少总线的负载。
+A VIN is generally 17 characters. In ASCII format, each ASCII character occupies 1 byte, so 3 consecutive message frames are needed to send it, but the VIN does not need to be updated in real time. Therefore, when the system requests to enter autonomous driving, the VIN is sent over the CAN bus and then kept at that value without further updates, which also reduces the bus load.
 
-### DBC 文件要求
+### DBC File Requirements
 
-熟悉了上述 Apollo 对车辆底盘信号的要求，第二步是进行车辆底盘信号 database（DBC）文件进行编辑，设置通信的网络结构，每个信号的初值、符号类型、精度、大小范围、取值等，进而组合成相应的 CAN 通信报文（message）与 Apollo 进行通信。下面使用 CANdb++ 软件对 DBC 文件进行编辑，有较好的可视化界面，该软件目前只适用于 Windows 系统。
+After becoming familiar with Apollo's requirements for vehicle chassis signals above, the second step is to edit the vehicle chassis signal database (DBC) file, setting the communication network structure and the initial value, sign type, precision, size range and values of each signal, and then combining them into the corresponding CAN communication messages to communicate with Apollo. The DBC file is edited below with the CANdb++ software, which has a good visual interface and currently runs only on Windows.
 
-因为 DBC 文件后面会根据 Apollo 的转译脚本工具，将底盘定义的报文（message）、信号（signal）转化为 C++ 程序代码。因此，在编辑 DBC 时，对信号的名称定义、注释、赋值等就要符合 C++ 语言定义规范，这样以确保在后期调试时不会因为 DBC 文件的问题无法调通 CANBUS 通信。根据 Apollo 代码要求，请注意以下事项。
+The DBC file will later be converted, with Apollo's translation script tool, from the messages and signals defined for the chassis into C++ program code. Therefore, when editing the DBC, the names, comments and values of the signals must conform to C++ language definition conventions, to ensure that CANBUS communication cannot fail to work during later debugging because of problems in the DBC file. According to the Apollo code requirements, please note the following.
 
-- 控制信号名称建议为 ACU。
+- The control signal name is recommended to be ACU.
   
-  在定义网络上 ECU 名称时，建议定义 Apollo 端的控制器名称为 ACU（Apollo Control Unit）。
+  When defining ECU names on the network, it is recommended to name the controller on the Apollo side ACU (Apollo Control Unit).
   
   ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_6ada0dd.png)
 
-- CAN信号 ID 建议不大于 2048。
+- The CAN signal ID is recommended to be no greater than 2048.
   
-  目前乘用车 CAN 通信建议采用标准帧格式（CAN Standard 2.0），Message ID 范围 0 - 2047，不建议使用扩展帧。
+  Passenger vehicle CAN communication currently recommends the standard frame format (CAN Standard 2.0), with Message ID range 0 - 2047; the extended frame is not recommended.
   
   ![message_id.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/message_id_14805ce.png)
 
-- 注释不能有回车符和换行符，comment（注释）必须为英文。
+- Comments must not contain carriage returns or line feeds, and comments must be in English.
   
-  每帧报文（message）如果有注释，注释内不要有换行，不能写中文，必须为英文格式。
+  If a message has a comment, the comment must not contain line breaks or Chinese and must be in English.
   
   ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_5b1a1f9.png)
 
-- VAL\_（枚举值）（Value Description）需要使用英文，且不能有相同定义名称，必须为字母或字母和数字组合，不能有符号。
+- VAL\_ (enumeration values) (Value Description) must be in English, must not have duplicate names, and must consist of letters or a combination of letters and digits, without symbols.
   
-  对于大部分状态反馈信号和控制信号，如档位反馈、驾驶模式反馈等，需要对信号进行定义，在信号定义的 Value Description 项内进行定义，定义的名称要遵循 C++ 命名规范，要求使用英文，且不能有相同定义名称，必须为字母或字母和数字组合，不能有符号。如下图是的档位反馈信号的 Value Description 定义。
+  For most status feedback signals and control signals, such as gear feedback and driving mode feedback, the signal needs to be defined in the Value Description item of the signal definition. The defined names must follow C++ naming conventions, must be in English, must not be duplicated, and must consist of letters or a combination of letters and digits, without symbols. The figure below shows the Value Description definition of the gear feedback signal.
   
   ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_f79d4ca.png)
 
-- 反馈信号和控制信号中如车速、轮速、加速度、踏板位置（百分比）等 double 类型的反馈和控制信号在 DBC 中 Value Description 项中必须为空。
+- For double-type feedback and control signals such as vehicle speed, wheel speed, acceleration and pedal position (percentage), the Value Description item in the DBC must be empty.
   
-  对于实时数值反馈信号和数值控制信号，如车速（实际车速）、轮速反馈（实际轮速），踏板控制（百分比），转角控制（实际转角值）等，此类信号在定义 Value Description 项中不能加任何内容。
+  For real-time numeric feedback signals and numeric control signals, such as vehicle speed (actual speed), wheel speed feedback (actual wheel speed), pedal control (percentage) and steering angle control (actual angle value), nothing may be added to the Value Description item in the definition.
   
   ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_86e997c.png)
 
-- 转向信号的范围，在定义时要填写准确的取值范围，注意控制转角的精度一般不高于 0.05deg，踏板百分比精度（factor）不高于 0.1。
+- The range of the steering signal must be filled in with an accurate value range when defined. Note that the precision of the control steering angle is generally no finer than 0.05 deg, and the pedal percentage precision (factor) is no finer than 0.1.
   
-  对于所有报文的 Byte Order，一个 DBC 内的信号只能统一定义，全部是 Motorola 格式或者全部是 Intel 格式。
+  For the Byte Order of all messages, the signals within one DBC can only be defined uniformly: either all in Motorola format or all in Intel format.
   
   ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_31ddeb2.png)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,26 @@
 #define CYBER_TASK_TASK_MANAGER_H_
 
 #include <atomic>
+#include <condition_variable>
+#include <deque>
+#include <functional>
 #include <future>
 #include <memory>
-#include <string>
+#include <mutex>
+#include <thread>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "cyber/base/bounded_queue.h"
-#include "cyber/scheduler/scheduler_factory.h"
+#include "cyber/common/macros.h"
 
 namespace apollo {
 namespace cyber {
 
+/**
+ * @class TaskManager
+ * @brief Thread pool backing cyber::Async().
+ */
 class TaskManager {
  public:
   virtual ~TaskManager();
@@ -39,26 +46,34 @@ class TaskManager {
 
   template <typename F, typename... Args>
   auto Enqueue(F&& func, Args&&... args)
-      -> std::future<typename std::result_of<F(Args...)>::type> {
-    using return_type = typename std::result_of<F(Args...)>::type;
+      -> std::future<std::invoke_result_t<F, Args...>> {
+    using return_type = std::invoke_result_t<F, Args...>;
     auto task = std::make_shared<std::packaged_task<return_type()>>(
         std::bind(std::forward<F>(func), std::forward<Args>(args)...));
-    if (!stop_.load()) {
-      task_queue_->Enqueue([task]() { (*task)(); });
-      for (auto& task : tasks_) {
-        scheduler::Instance()->NotifyTask(task);
+    std::future<return_type> res = task->get_future();
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (stop_) {
+        // Run inline once shut down so callers never hang.
+        (*task)();
+        return res;
       }
+      tasks_.emplace_back([task]() { (*task)(); });
     }
-    std::future<return_type> res(task->get_future());
+    cv_.notify_one();
     return res;
   }
 
  private:
+  void Worker();
+
   uint32_t num_threads_ = 0;
-  uint32_t task_queue_size_ = 1000;
-  std::atomic<bool> stop_ = {false};
-  std::vector<uint64_t> tasks_;
-  std::shared_ptr<base::BoundedQueue<std::function<void()>>> task_queue_;
+  std::vector<std::thread> workers_;
+  std::deque<std::function<void()>> tasks_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  bool stop_ = false;
+
   DECLARE_SINGLETON(TaskManager);
 };
 

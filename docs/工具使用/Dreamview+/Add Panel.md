@@ -1,51 +1,51 @@
-## 面板简介
+## Panel Overview
 
-面板主要包含 Console、Module Delay、Vehicle Visualization、Camera View、Point Cloud、Vehicle Dashboard。
+The panels mainly include Console, Module Delay, Vehicle Visualization, Camera View, Point Cloud, and Vehicle Dashboard.
 
-- Console/控制台：实时展示系统日志和调试信息，供调试使用。
+- Console: displays system logs and debugging information in real time, for debugging purposes.
 
-- Module Delay/模块延时：实时展示核心 Module channel 的延时情况。
+- Module Delay: displays the latency of the core Module channels in real time.
 
-- Vehicle Visualization/车辆可视化：车辆可视化，展示自动驾驶车辆的位置，地图数据和自动驾驶系统相关信息。
+- Vehicle Visualization: visualizes the vehicle, showing the position of the autonomous vehicle, map data, and information related to the autonomous driving system.
 
-- Camera View/相机视图：相机视图面板展示相机数据。
+- Camera View: the camera view panel displays camera data.
 
-- Point Cloud/点云：点云视图面板显示点云数据。
+- Point Cloud: the point cloud view panel displays point cloud data.
 
-- Vehicle Dashboard/车辆仪表盘：车辆仪表盘面板，展示车辆当前状态，包括车速、加减速踏板开度、方向盘转角、档位等信息。
+- Vehicle Dashboard: the vehicle dashboard panel shows the current state of the vehicle, including vehicle speed, accelerator/brake pedal position, steering wheel angle, gear, and so on.
 
-- PnC Monitor/PNC 监控：检测车辆运行过程中规划控算法的相关数据信息。例如：Planning 和 Control 算法的输出，当前车辆位置、速度、加速度、方向盘转角等等。
+- PnC Monitor: monitors data related to the planning and control algorithms while the vehicle is running. For example: the output of the Planning and Control algorithms, the current vehicle position, speed, acceleration, steering wheel angle, and so on.
 
-- Components/监控组件：用于展示常用组件状态的面板。
+- Components: a panel for displaying the status of commonly used components.
 
-## 面板操作
+## Panel Operations
 
-### 新增面板并自定义位置
+### Add a Panel and Customize Its Position
 
-您可以通过点击左侧面板名称添加面板，还可以通过长按鼠标拖拽添加面板。本小节以添加 **Vehicle Visualization/车辆可视化** 面板为例介绍如何新增面板并自定义面板位置。
+You can add a panel by clicking the panel name on the left, or by pressing and holding the mouse button and dragging. This section uses adding the **Vehicle Visualization** panel as an example to describe how to add a panel and customize its position.
 
-1. 在左侧导航栏点击 **Add Panel/添加面板**。
+1. Click **Add Panel** in the left navigation bar.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_3195b4b.png)
 
-2. 选择需要新增的面板类型 **Vehicle Visualization/车辆可视化**，拖动至右侧主操作区的期望位置，如下图蓝色半透明区域所示：
+2. Select the panel type to add, **Vehicle Visualization**, and drag it to the desired position in the main operation area on the right, as shown by the semi-transparent blue area in the figure below:
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_7aeaf54.png)
 
-3. 对新增面板做需要的配置，此处以修改视角为例。将 **View/视角** 设置为 **Map/地图** 视角。
+3. Make the required configuration for the new panel. Here, changing the view is used as an example. Set **View** to the **Map** view.
 
-4. 鼠标移动到面板边缘，拖动修改面板大小，添加设置完成。
+4. Move the mouse to the edge of the panel and drag to resize it. The panel is now added and configured.
 
-### 删除面板
+### Remove a Panel
 
-在面板右上方设置图标中，点击 **Remove Panel/移除**。
+In the settings icon at the upper right of the panel, click **Remove Panel**.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_6ae746c.png)
 
-### 拖动移动位置
+### Move a Panel by Dragging
 
-拖动面板窗口栏可以调整面板位置。
+Drag the panel window bar to adjust the position of the panel.
 
-### 调整高/宽度
+### Adjust Height and Width
 
-调整面板面框位置可以调整面板的高度和宽度。
+Adjust the position of the panel frame to change the height and width of the panel.

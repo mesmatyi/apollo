@@ -1,40 +1,40 @@
-## 实践内容
+## Practice Content
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_e4e2b74.png)
 
-以车辆在行进过程中，驶入需限速的交汇路口为例，向大家介绍 Planning 模块插件机制，以及针对该交汇路口限速场景，教大家新建自定义插件，实现在指定区域的限速功能。新建一个 traffic rule 插件流程如下图所示，主要包括了配置插件相关文件、在`traffic_rule_config.pb.txt`中加入新增插件。
+Taking the example of a vehicle driving into an intersection that requires a speed limit, this tutorial introduces the Planning module plugin mechanism and shows you how to create a custom plugin for this intersection speed-limit scenario to enforce a speed limit in a specified region. The process of creating a new traffic rule plugin is shown in the figure below. It mainly consists of configuring the plugin-related files and adding the new plugin to `traffic_rule_config.pb.txt`.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_4266c80.png)
 
-Apollo9.0 中通过交通规则插件配置可以配置 planning 启用的交通规则插件，交通规则插件的所有业务逻辑对于所有场景均会生效，本实验将通过添加 traffic rule 插件，实现自动驾驶车辆在行驶到交汇路口限速区域时低于指定速度行驶。
+In Apollo 9.0, the traffic rule plugin configuration determines which traffic rule plugins planning enables. All business logic of the traffic rule plugins takes effect in every scenario. In this experiment, you will add a traffic rule plugin so that the autonomous vehicle drives below a specified speed when it enters the speed-limit region of an intersection.
 
-## 实践目的
+## Practice Objectives
 
-学习 traffic rule 新增插件流程，掌握开发 traffic rule 插件步骤，使学员具有新建自定义插件能力。在本实验中，你将学会：
+Learn the process of adding a new traffic rule plugin and master the steps for developing one, so that you can create custom plugins. In this experiment, you will learn how to:
 
-- a. 指定位置新建插件`region_speed_limit`文件夹。
+- a. Create the plugin folder `region_speed_limit` at the specified location.
 
-- b. 根据要求，配置相应插件文件与`traffic_rule_config.pb.txt`。
+- b. Configure the plugin files and `traffic_rule_config.pb.txt` as required.
   
-  - 配置`RegionSpeedLimit`类代码文件以及相应 BUILD 文件，
+  - Configure the `RegionSpeedLimit` class code files and the corresponding BUILD file,
   
-  - 配置参数文件以及 BUILD 文件，
+  - Configure the parameter file and its BUILD file,
   
-  - 配置插件参数文件`default_conf.pb.txt`，
+  - Configure the plugin parameter file `default_conf.pb.txt`,
   
-  - 配置`cyberfile.xml`，
+  - Configure `cyberfile.xml`,
   
-  - 配置`plugins.xml`，
+  - Configure `plugins.xml`,
   
-  - `traffic_rule_config.pb.txt`中加入新增插件。
+  - Add the new plugin to `traffic_rule_config.pb.txt`.
 
-- c. 编译`region_speed_limit`插件。
+- c. Compile the `region_speed_limit` plugin.
 
-- d. 运行车辆规划模块，并在 dreamview+ 上观察车辆驶入交汇路口的速度变化。
+- d. Run the vehicle planning module and observe the speed change as the vehicle enters the intersection in dreamview+.
 
-## 启动仿真环境
+## Start the Simulation Environment
 
-1. 在终端中输入以下指令，启动 dreamview+。
+1. Enter the following command in the terminal to start dreamview+.
    
    ```bash
    aem bootstrap start --plus
@@ -42,61 +42,61 @@ Apollo9.0 中通过交通规则插件配置可以配置 planning 启用的交通
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_e831cb0.png)
 
-2. 运行成功后，点击左上角 dreamview+ 按钮。
+2. After it runs successfully, click the dreamview+ button in the upper left corner.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_53acd5f.png)
 
-3. 首次进入 Dreamview+ 界面，需要勾选 **Accept the User Agreement and Privacy Policy**，点击 **Enter this mode** 进入 Dreamview+。
+3. When entering the Dreamview+ interface for the first time, check **Accept the User Agreement and Privacy Policy** and click **Enter this mode** to enter Dreamview+.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_fa209e0.png)
 
-4. 点击红框 **Skip** 跳过介绍。
+4. Click **Skip** in the red box to skip the introduction.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_65dbda8.png)
 
-5. 在 **Mode/模式** 中选择 **PnC** 模式。
+5. In **Mode**, select the **PnC** mode.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_6528f43.png)
 
-6. 在 **Operations/操作** 中选择 **Sim Control/仿真**。
+6. In **Operations**, select **Sim Control**.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_bc5b24d.png)
 
-7. 在 **Modules/模块** 中打开 **Planning** 模块。
+7. In **Modules**, turn on the **Planning** module.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_1cdb2b2.png)
 
-8. 在 **Vehicle Visualization/车辆可视化** 面板中点击 **Routing Editing/路径编辑** 进入路径编辑界面。
+8. In the **Vehicle Visualization** panel, click **Routing Editing** to enter the route editing interface.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_144eb36.png)
 
-9. 点击左上角第一个红框选择车辆起始点，第二个红框选择途经点与终点。
+9. Click the first red box in the upper left corner to select the vehicle's starting point, and the second red box to select the waypoints and the end point.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_938519d.png)
 
-10. 点击左下角红框开始仿真。
+10. Click the red box in the lower left corner to start the simulation.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_8a83620.png)
 
-11. 如图所示，红线为道路参考线，浅蓝色的轨迹是 planning 模块实时规划的轨迹。
+11. As shown in the figure, the red line is the road reference line, and the light blue trajectory is the trajectory planned in real time by the planning module.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_5760e6c.png)
 
-## 全局配置实践实验流程
+## Global Configuration Practice Procedure
 
-### 全局配置参数同步
+### Synchronize Global Configuration Parameters
 
-输入全局配置参数同步指令，系统将自动将全局配置参数复制到 profile 的 default 目录中，然后就可以在 profile 目录上轻松修改配置参数。
+Enter the global configuration synchronization command. The system will automatically copy the global configuration parameters into the default directory of the profile, after which you can easily modify the configuration parameters in the profile directory.
 
 ```bash
 buildtool profile config init --package planning --profile=default && aem profile use default
 ```
 
-### 新建 traffic rule 插件实践
+### Practice: Create a New traffic rule Plugin
 
-#### 新建插件文件
+#### Create the Plugin Files
 
-输入下述指令，在`modules/planning/traffic_rules/`下新建插件文件夹`region_speed_limit`：
+Enter the following command to create the plugin folder `region_speed_limit` under `modules/planning/traffic_rules/`:
 
 ```bash
 buildtool create --template plugin \
@@ -112,37 +112,37 @@ buildtool create --template plugin \
                  modules/planning/traffic_rules/region_speed_limit
 ```
 
-输入下述指令修改配置文件名为`default_conf.pb.txt`：
+Enter the following command to rename the configuration file to `default_conf.pb.txt`:
 
 ```bash
 mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.txt modules/planning/traffic_rules/region_speed_limit/conf/default_conf.pb.txt
 ```
 
-#### 配置插件文件
+#### Configure the Plugin Files
 
-1. 打开在线编辑器。
+1. Open the online editor.
    
-   点击红框所示位置，打开在线编辑器，对插件文件进行编辑。
+   Click the position shown in the red box to open the online editor and edit the plugin files.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_9f3bcc8.png)
 
-2. 编辑器配置。
+2. Configure the editor.
    
-   从左到右依次按红框所示点击，选择`/apollo_workspace/`目录，点击 **OK**。
+   Click in order from left to right as shown in the red boxes, select the `/apollo_workspace/` directory, and click **OK**.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_2561ad7.png)
    
-   进入后下图红框所示文件夹即为新建插件模版。
+   After entering, the folder in the red box below is the newly created plugin template.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_df89756.png)
    
    region_speed_limit.h
    
-   region_speed_limit.h文件位置：
+   Location of the region_speed_limit.h file:
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3d035e7.png)
    
-   region_speed_limit.h文件内容：
+   Content of the region_speed_limit.h file:
    
    ```bash
    #pragma once
@@ -150,7 +150,7 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
     #include <memory>
     #include "cyber/plugin_manager/plugin_manager.h"
    
-    /* 添加了相应的头文件*/
+    /* Added the corresponding header files */
     #include "modules/common/status/status.h"
     #include "modules/planning/traffic_rules/region_speed_limit/proto/region_speed_limit.pb.h"
     #include "modules/planning/planning_base/traffic_rules_base/traffic_rule.h"
@@ -159,7 +159,7 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
     namespace planning {
    
     class RegionSpeedLimit : public TrafficRule {
-        /* 声明成员函数*/
+        /* Declare member functions */
         public:
             bool Init(const std::string& name, const std::shared_ptr<DependencyInjector>& injector) override;
             virtual ~RegionSpeedLimit() = default;
@@ -180,11 +180,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    region_speed_limit.cc
    
-   region_speed_limit.cc文件位置：
+   Location of the region_speed_limit.cc file:
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a6f122e.png)
    
-   region_speed_limit.cc文件内容：
+   Content of the region_speed_limit.cc file:
    
    ```bash
    #include <memory>
@@ -193,7 +193,7 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
     namespace apollo {
     namespace planning {
    
-    /* 定义成员函数*/
+    /* Define member functions */
    
     using apollo::common::Status;
     using apollo::hdmap::PathOverlap;
@@ -225,11 +225,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    plugin_region_speed_limit_description.xml
    
-   plugin_region_speed_limit_description.xml文件位置：
+   Location of the plugin_region_speed_limit_description.xml file:
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_dde873a.png)
    
-   plugin_region_speed_limit_description.xml文件内容
+   Content of the plugin_region_speed_limit_description.xml file
    
    ```bash
    <library path="modules/planning/traffic_rules/region_speed_limit/libregion_speed_limit.so">
@@ -239,11 +239,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    cyberfile.xml
    
-   cyberfile.xml文件位置
+   Location of the cyberfile.xml file
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_56c1a2e.png)
    
-   cyberfile.xml文件内容
+   Content of the cyberfile.xml file
    
    ```bash
    <package format="2">
@@ -273,11 +273,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    BUILD
    
-   BUILD 文件位置
+   Location of the BUILD file
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_b4ab4cd.png)
    
-   BUILD 文件内容
+   Content of the BUILD file
    
    ```bash
    load("//tools:apollo_package.bzl", "apollo_cc_test", "apollo_package", "apollo_plugin")
@@ -315,11 +315,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    proto/BUILD
    
-   proto/BUILD 文件位置
+   Location of the proto/BUILD file
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_ee6dea6.png)
    
-   proto/BUILD文件内容
+   Content of the proto/BUILD file
    
    ```bash
    load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
@@ -341,11 +341,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    proto/region_speed_limit.proto
    
-   proto/region_speed_limit.proto 文件位置
+   Location of the proto/region_speed_limit.proto file
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_423f795.png)
    
-   proto/region_speed_limit.proto 文件内容
+   Content of the proto/region_speed_limit.proto file
    
    ```bash
    syntax = "proto2";
@@ -353,7 +353,7 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
     package apollo.planning;
    
     message RegionSpeedLimitConfig {
-      // 声明RegionSpeedLimitConfig中的数据结构
+      // Declare the data structures in RegionSpeedLimitConfig
       optional double forward_buffer = 1 [default = 3];
       optional double backward_buffer = 2 [default = 2];
       optional double limit_speed = 3 [default = 5];
@@ -362,11 +362,11 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    
    conf/default_conf.pb.txt
    
-   conf/default_conf.pb.txt文件位置
+   Location of the conf/default_conf.pb.txt file
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_de53185.png)
    
-   修改`conf/default_conf.pb.txt`文件内容如下：
+   Modify the content of the `conf/default_conf.pb.txt` file as follows:
    
    ```bash
    forward_buffer: 3.0
@@ -374,13 +374,13 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
    limit_speed: 10.0
    ```
 
-3. 配置插件流程文件。
+3. Configure the plugin pipeline file.
    
-   配置文件位置
+   Location of the configuration file
    
-   ![新增traffic rule插件.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/%E6%96%B0%E5%A2%9Etraffic%20rule%E6%8F%92%E4%BB%B6_bcf2f04.png)
+   ![Add traffic rule plugin.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/%E6%96%B0%E5%A2%9Etraffic%20rule%E6%8F%92%E4%BB%B6_bcf2f04.png)
    
-   配置文件内容
+   Content of the configuration file
    
    ```bash
     rule {
@@ -425,54 +425,54 @@ mv modules/planning/traffic_rules/region_speed_limit/conf/region_speed_limit.pb.
     }
    ```
 
-#### 编译插件
+#### Compile the Plugin
 
-输入如下命令进行编译：
+Enter the following command to compile:
 
 ```bash
 buildtool build -p modules/planning/traffic_rules/region_speed_limit/
 ```
 
-#### 重启 planning
+#### Restart planning
 
-点击 **Modules/模块** 中的 Planning 模块，关闭 Planning。而后再次点击 Planning 模块，打开 Planning。
+In **Modules**, click the Planning module to turn Planning off, then click the Planning module again to turn it back on.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c59210d.png)
 
-打开 **Routing Editing/路径编辑** 面板，设置起点终点：
+Open the **Routing Editing** panel and set the start and end points:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_cdebe8b.png)
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c6a39be.png)
 
-原始配置仿真：
+Simulation with the original configuration:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_d24e1f6.png)
 
-修改插件配置参数：
+Modify the plugin configuration parameters:
 
-在`apollo_workspace`工作目录找到`modules/planning/traffic_rules/region_speed_limit/conf/default_conf.pb.txt`配置文件，调整经过路口速度。
+Find the configuration file `modules/planning/traffic_rules/region_speed_limit/conf/default_conf.pb.txt` in the `apollo_workspace` working directory and adjust the speed through the intersection.
 
-1. 使用在线编辑工具修改`modules/planning/traffic_rules/region_speed_limit/conf/default_conf.pb.txt`配置文件，将`limit_speed`参数
+1. Use the online editing tool to modify the configuration file `modules/planning/traffic_rules/region_speed_limit/conf/default_conf.pb.txt`, changing the `limit_speed` parameter
    
    ```bash
    limit_speed: 10.0
    ```
    
-   将配置参数的值修改为：
+   Change the value of the parameter to:
    
    ```bash
    limit_speed: 3.0
    ```
    
-   修改之后保存代码，而后重新编译插件：
+   After modifying, save the code, then recompile the plugin:
    
    ```bash
    buildtool build -p modules/planning/traffic_rules/region_speed_limit/
    ```
 
-2. 修改好代码参数并重新编译后，在 **Modules/模块** 中重启 Planning 模块（必须步骤）。
+2. After modifying the parameters and recompiling, restart the Planning module in **Modules** (a required step).
 
-3. 重新调整插件参数，观察车辆减速效果与减速起止点。
+3. Adjust the plugin parameters again and observe the vehicle's deceleration effect and the start and end points of the deceleration.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_fd85ca7.png)

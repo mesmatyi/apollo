@@ -1,56 +1,56 @@
-# Store组件文档
+# Store Component Documentation
 
-## 简介
+## Introduction
 
-Store组件是我们DreamviewPlus客户端的核心部分，负责管理和维护应用的状态。它采用了现代的前端架构理念，结合响应式编程和不可变状态管理，为开发者提供了一个高效、可靠的状态管理解决方案。
+The Store component is the core part of our DreamviewPlus client and is responsible for managing and maintaining the application's state. It adopts modern front-end architecture concepts, combining reactive programming and immutable state management, to provide developers with an efficient and reliable state management solution.
 
-## 组件结构
+## Component Structure
 
-- **Reducer.ts** - 定义了处理状态变更的Reducer函数和相关的Action接口。
-- **Store.ts** - 实现了Store，管理应用的状态，并提供更新状态的接口。
-- **Provider.ts** - 提供了一个React组件，用于将Store注入到React应用中。
-- **Persistor.ts** - 负责状态的持久化，保证应用状态在会话间的持续性。
-- **Middleware.ts** - 实现了中间件，用于在状态更新过程中执行额外的逻辑，如异步操作处理。
-- **Factory.tsx** - 提供了用于创建和配置Store实例的工厂方法，特别适用于React环境。
+- **Reducer.ts** - Defines the Reducer functions that handle state changes and the related Action interfaces.
+- **Store.ts** - Implements the Store, manages the application's state, and provides interfaces for updating state.
+- **Provider.ts** - Provides a React component used to inject the Store into the React application.
+- **Persistor.ts** - Responsible for state persistence, ensuring the continuity of the application state across sessions.
+- **Middleware.ts** - Implements middleware, used to execute additional logic during state updates, such as asynchronous operation handling.
+- **Factory.tsx** - Provides factory methods for creating and configuring Store instances, especially suitable for React environments.
 
-## 功能描述
+## Feature Description
 
 ### Store.ts
 
-- 使用rxjs的BehaviorSubject实现了响应式状态管理。
-- 提供了状态订阅的能力，允许组件在状态变更时自动更新。
-- 集成了Persistor和Middleware，增强了状态管理的功能。
+- Implements reactive state management using rxjs's BehaviorSubject.
+- Provides the ability to subscribe to state, allowing components to update automatically when the state changes.
+- Integrates Persistor and Middleware, enhancing the functionality of state management.
 
 ### Reducer.ts
 
-- 定义了`Action`和`PayloadAction`接口，为状态更新提供了标准化的操作指令。
-- 每个Reducer函数根据接收到的action类型和payload来决定如何更新状态。
+- Defines the `Action` and `PayloadAction` interfaces, providing standardized operation instructions for state updates.
+- Each Reducer function decides how to update the state according to the received action type and payload.
 
 ### Provider.ts
 
-- 使用React的Context API将Store注入React组件。
-- 使得React组件能够通过Context访问Store中的状态和dispatch方法。
+- Uses React's Context API to inject the Store into React components.
+- Enables React components to access the state and the dispatch method in the Store through Context.
 
 ### Persistor.ts
 
-- 实现了状态的持久化逻辑。
-- 通过LocalStorage等机制保证状态在浏览器会话之间的一致性。
+- Implements the state persistence logic.
+- Ensures the consistency of the state across browser sessions through mechanisms such as LocalStorage.
 
 ### Middleware.ts
 
-- 提供了一种机制，在状态更新的过程中插入自定义逻辑。
-- 常用于处理如API请求等异步操作。
+- Provides a mechanism to insert custom logic during state updates.
+- Commonly used to handle asynchronous operations such as API requests.
 
 ### Factory.tsx
 
-- 提供了一个高度可配置的Store实例创建方式。
-- 使得在React环境中集成Store更加灵活和方便。
+- Provides a highly configurable way to create Store instances.
+- Makes integrating the Store in a React environment more flexible and convenient.
 
-## 使用方法
+## Usage
 
-### Store的创建和配置
+### Creating and Configuring the Store
 
-在`Factory.tsx`中，我们提供了创建Store实例的方法。开发者可以根据自己的需求配置Reducer、Middleware和Persistor。以下是创建Store实例的一个示例：
+In `Factory.tsx`, we provide a method for creating Store instances. Developers can configure the Reducer, Middleware, and Persistor according to their needs. The following is an example of creating a Store instance:
 
 ```javascript
 import { createStoreProvider } from './Factory.tsx';
@@ -68,11 +68,11 @@ const AppWithStore = () => {
 };
 ```
 
-## 使用案例
+## Use Cases
 
-### 状态更新
+### State Updates
 
-假设我们有一个用于用户信息同步的action。首先，在`action.ts`中定义处理这个action：
+Suppose we have an action for synchronizing user information. First, define and handle this action in `action.ts`:
 
 ```typescript
 import {PayloadAction} from '../base/Reducer';
@@ -97,7 +97,7 @@ export const initUserInfo = (payload: IInitState): InitUserInfoAction => ({
 export type CombineAction = InitUserInfoAction;
 ```
 
-通过工厂函数生成`StoreProvider`和`useStore`：
+Generate `StoreProvider` and `useStore` through the factory function:
 
 ```typescript
 import { Factory } from '../base';
@@ -113,7 +113,7 @@ export const { StoreProvider: UserInfoStoreProvider, useStore: useUserInfoStore 
 });
 ```
 
-然然后在组件中使用`useStore`获取状态和dispatch方法更新状态：
+Then use `useStore` in the component to get the state and the dispatch method to update the state:
 
 ```typescript
  const [store, dispatch] = useUserInfoStore();
@@ -129,9 +129,9 @@ dispatch({
 );
 ```
 
-### 异步操作
+### Asynchronous Operations
 
-目前已经预置异步Middleware，我们可以定义异步action，比如请求接口后同步数据：
+An asynchronous Middleware is already preset, so we can define asynchronous actions, such as synchronizing data after requesting an API:
 
 ```typescript
 export const changeMode = (
@@ -150,15 +150,15 @@ export const changeMode = (
 };
 ```
 
-### 自定义中间件
+### Custom Middleware
 
-框架支持可插拔的中间件定义，`[Middleware.ts](Middleware.ts)`已经预置了4类中间件，分别是：
-- 异步action处理中间件
-- 日志中间件
-- 崩溃处理中间件
-- 同步调试中间件
+The framework supports pluggable middleware definitions, and `[Middleware.ts](Middleware.ts)` already presets 4 types of middleware, namely:
+- Asynchronous action handling middleware
+- Logging middleware
+- Crash handling middleware
+- Synchronous debugging middleware
 
-如何定义一个中间件呢？我们以异步action处理中间件为例，首先我们需要定义一个中间件函数：
+How do you define a middleware? Taking the asynchronous action handling middleware as an example, we first need to define a middleware function:
 
 ```typescript
 export function asyncActionMiddleware<S, A>(
@@ -174,21 +174,21 @@ export function asyncActionMiddleware<S, A>(
 }
 ```
 
-然后再初始化Store的工厂函数[Factory.tsx](Factory.tsx)中，将中间件函数传入：
+Then, in the factory function that initializes the Store, [Factory.tsx](Factory.tsx), pass in the middleware function:
 ```typescript
   store.applyMiddleware(...(props.middleware || middleware), ...middlewareExtra);
 ```
 
-### 状态持久化
-为了方便快速恢复状态，我们提供了状态持久化的功能。在[Factory.tsx](Factory.tsx)中，我们可以通过传入`persistor`来配置持久化的方式：
+### State Persistence
+To make it convenient to quickly restore state, we provide a state persistence feature. In [Factory.tsx](Factory.tsx), we can configure the persistence method by passing in `persistor`:
 
 ```typescript
  store.persist(iPersistor);
 ```
 
-持久化方法
+Persistence methods
 
-在[Persistor.ts](Persistor.ts)中，我们提供了持久化方法创建的工厂函数，开发者可以根据自己的需求配置持久化的方式：
+In [Persistor.ts](Persistor.ts), we provide a factory function for creating persistence methods, and developers can configure the persistence method according to their needs:
 
 ```typescript
  createLocalStoragePersistor('dv-panel-inner-stoer');
@@ -196,6 +196,6 @@ export function asyncActionMiddleware<S, A>(
 
 
 
-## 结论
+## Conclusion
 
-本文档提供了Store组件的详细说明，包括其功能描述、代码结构、使用方法和具体案例。我们希望这份文档能够帮助开源开发者更好地理解和使用这个组件，为Dreamview Plus应用的开发和维护做出贡献。欢迎任何形式的反馈和建议。
+This document provides a detailed description of the Store component, including its feature description, code structure, usage, and concrete cases. We hope this document helps open-source developers better understand and use this component and contribute to the development and maintenance of the Dreamview Plus application. Feedback and suggestions of any kind are welcome.

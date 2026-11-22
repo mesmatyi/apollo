@@ -461,11 +461,14 @@ void VectornetEvaluator::LoadModel() {
   if (FLAGS_use_cuda && torch::cuda::is_available()) {
     AINFO << "CUDA is available";
     device_ = torch::Device(torch::kCUDA);
-    torch_vehicle_model_ =
-        torch::jit::load(FLAGS_torch_vehicle_vectornet_file, device_);
+    torch_vehicle_model_ = torch::jit::load(
+        apollo::cyber::common::ResolvePath(FLAGS_torch_vehicle_vectornet_file),
+        device_);
   } else {
     torch_vehicle_model_ =
-        torch::jit::load(FLAGS_torch_vehicle_vectornet_cpu_file, device_);
+        torch::jit::load(apollo::cyber::common::ResolvePath(
+                             FLAGS_torch_vehicle_vectornet_cpu_file),
+                         device_);
   }
   torch::set_num_threads(1);
 

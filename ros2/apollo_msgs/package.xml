@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>apollo_msgs</name>
+  <version>11.0.0</version>
+  <description>
+    ROS 2 interfaces of Apollo: one native message type per Apollo protobuf
+    message and one service type per Apollo service (generated from the
+    protobuf files by tools/ros2/proto2ros.py), plus the ProtoMessage /
+    ProtoService wrappers that carry protobuf-encoded data for types without
+    a native interface.
+  </description>
+  <maintainer email="apollo@baidu.com">Apollo Authors</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <buildtool_depend>protobuf-dev</buildtool_depend>
+  <buildtool_depend>python3-protobuf</buildtool_depend>
+
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

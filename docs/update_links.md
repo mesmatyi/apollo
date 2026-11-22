@@ -1,70 +1,70 @@
-# 文档链接更新指南
+# Document Link Update Guide
 
-本文档提供了如何更新现有MD文档内部链接的指南，以配合优化的页面结构。
+This document provides guidance on how to update the internal links of existing MD documents to match the optimized page structure.
 
-## 推荐的链接格式
+## Recommended Link Formats
 
-### 1. 相对路径链接（推荐）
+### 1. Relative Path Links (Recommended)
 ```markdown
-[链接文本](../relative/path/to/file.md)
-[Cyber RT概述](../../04_CyberRT/cyber_rt_introduction.md)
+[link text](../relative/path/to/file.md)
+[Cyber RT Overview](../../04_CyberRT/cyber_rt_introduction.md)
 ```
 
-### 2. 使用路径别名（如适用）
+### 2. Using Path Aliases (If Applicable)
 ```markdown
-[快速导航](快速导航.md)
-[安装指南](安装指南/安装指南.md)
+[Quick Navigation](快速导航.md)
+[Installation Guide](安装指南/安装指南.md)
 ```
 
-### 3. 跨目录链接示例
+### 3. Cross-Directory Link Examples
 
-**从应用实践链接到核心模块：**
+**Linking from application practice to core modules:**
 ```markdown
-更多信息请参考 [Cyber RT通信机制](../../04_CyberRT/communication_mechanism.md)
+For more information, see [Cyber RT Communication Mechanism](../../04_CyberRT/communication_mechanism.md)
 ```
 
-**从工具使用链接到框架设计：**
+**Linking from tool usage to framework design:**
 ```markdown
-包管理概念详见 [包管理工具](../../框架设计/软件核心/包管理工具/包管理概念.md)
+For package management concepts, see [Package Management Tool](../../框架设计/软件核心/包管理工具/包管理概念.md)
 ```
 
-## 需要更新的常见链接模式
+## Common Link Patterns That Need Updating
 
-### 旧链接模式（需要更新）
+### Old Link Pattern (Needs Updating)
 ```markdown
-[旧链接文本](../02_Quick%20Start/old_path.md)
+[old link text](../02_Quick%20Start/old_path.md)
 ```
 
-### 新链接模式（推荐）
+### New Link Pattern (Recommended)
 ```markdown
-[新链接文本](../02_Quick%20Start/new_path.md)
+[new link text](../02_Quick%20Start/new_path.md)
 ```
 
-## 特殊链接处理
+## Special Link Handling
 
-### 1. 图片链接
-保持相对路径不变：
+### 1. Image Links
+Keep relative paths unchanged:
 ```markdown
-![图片说明](../02_Quick%20Start/images/image.png)
+![image description](../02_Quick%20Start/images/image.png)
 ```
 
-### 2. 外部链接
-保持完整URL：
+### 2. External Links
+Keep the full URL:
 ```markdown
-[外部资源](https://apollo.baidu.com)
+[external resource](https://apollo.baidu.com)
 ```
 
-## 批量更新建议
+## Bulk Update Suggestions
 
-建议使用以下工具进行批量链接更新：
+We recommend using the following tools for bulk link updates:
 
-### 使用sed命令（Linux/Mac）
+### Using the sed Command (Linux/Mac)
 ```bash
-# 更新特定目录下的链接
+# Update links under a specific directory
 find docs/ -name "*.md" -exec sed -i 's|docs/02_Quick%20Start/|../02_Quick%20Start/|g' {} \;
 ```
 
-### 使用Python脚本
+### Using a Python Script
 ```python
 import os
 import re
@@ -73,44 +73,44 @@ def update_links_in_md(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # 替换链接模式
+    # Replace link patterns
     content = re.sub(r'\]\(docs/([^)]+)\)', r'](../\1)', content)
     
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
-# 遍历所有md文件
+# Traverse all md files
 for root, dirs, files in os.walk('docs'):
     for file in files:
         if file.endswith('.md'):
             update_links_in_md(os.path.join(root, file))
 ```
 
-## 验证链接完整性
+## Verifying Link Integrity
 
-更新后，使用以下方法验证链接：
+After updating, verify the links using the following methods:
 
-### 1. 使用markdown-link-check
+### 1. Using markdown-link-check
 ```bash
 npx markdown-link-check docs/*.md
 ```
 
-### 2. 手动检查关键文档
-重点检查：
-- 主页面（MAINPAGE_cn.md）
-- 各章节的概述文档
-- 快速导航文档
+### 2. Manually Checking Key Documents
+Focus on:
+- The main page (MAINPAGE_cn.md)
+- The overview document of each chapter
+- The quick navigation document
 
-## 注意事项
+## Notes
 
-1. **保持路径一致性**：确保所有链接使用统一的相对路径格式
-2. **避免绝对路径**：不要使用以`/`开头的绝对路径
-3. **编码处理**：URL中的空格使用`%20`或直接使用空格
-4. **测试验证**：更新后务必验证所有链接的有效性
+1. **Keep paths consistent**: make sure all links use a uniform relative path format
+2. **Avoid absolute paths**: do not use absolute paths starting with `/`
+3. **Encoding**: spaces in URLs use `%20` or can be written as plain spaces
+4. **Test and verify**: always verify that all links are valid after updating
 
-## 紧急恢复
+## Emergency Recovery
 
-如果链接更新出现问题，可以：
-1. 使用git恢复更改：`git checkout -- docs/`
-2. 参考备份的原始链接模式
-3. 逐步更新，分段测试
+If a problem occurs during the link update, you can:
+1. Use git to revert the changes: `git checkout -- docs/`
+2. Refer to the backed-up original link patterns
+3. Update incrementally and test in stages

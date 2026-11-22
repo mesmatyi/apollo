@@ -1,23 +1,23 @@
-## 实验内容
+## Experiment Content
 
-本实验旨在使用 Apollo Cyber RT 开发交通灯仿真控制工具，通过该工具控制红绿灯状态。
+This experiment aims to use Apollo Cyber RT to develop a traffic light simulation control tool, with which you can control the state of the traffic lights.
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/39
 
-## 实验目的
+## Experiment Objectives
 
-通过本实验，学习如何使用 Apollo Cyber RT 开发交通灯仿真控制工具，并利用该工具控制红绿灯状态。
+Through this experiment, learn how to use Apollo Cyber RT to develop a traffic light simulation control tool and use it to control the traffic light state.
 
-- 建立一个 cyber 工程，
-- 熟悉 cyber 工具制作。
+- Create a cyber project,
+- Become familiar with building cyber tools.
 
-## 实践步骤
+## Practice Steps
 
-### 步骤一：启动仿真环境
+### Step 1: Start the Simulation Environment
 
-1. 在终端中，执行 DreamView+ 启动指令，执行成功后，点击菜单栏 dreamview+ 按钮，进入 dreamview+ 界面。
+1. In the terminal, run the DreamView+ startup command. After it succeeds, click the dreamview+ button in the menu bar to enter the dreamview+ interface.
 
    ```bash
    aem bootstrap start --plus
@@ -25,35 +25,35 @@ https://apollo.baidu.com/community/course/39
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_372016d.png)
 
-   当出现如下，即表示 dreamview+ 启动成功了。
+   The following screen indicates that dreamview+ has started successfully.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_bf50bff.png)
 
-2. 左侧导航栏打开 **Mode Settings** 面板，模式选择 **PnC** Mode，操作选择 **Sim_Control**，进入仿真模式。
+2. Open the **Mode Settings** panel in the left navigation bar, select **PnC** Mode as the mode and **Sim_Control** as the operation to enter simulation mode.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3f6490d.png)
 
-3. 选择地图。
+3. Select the map.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c93b265.png)
 
-4. 从左侧 **Modules** 模块种启动 Planning 模块。
+4. Start the Planning module from the **Modules** list on the left.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_badef52.png)
 
-### 步骤二：编辑代码实现任务功能
+### Step 2: Edit the Code to Implement the Task
 
-#### 前置条件
+#### Prerequisites
 
-在`/apollo_workspace`目录创建一个名为`cyber_trafficlight.py`的文件。
+Create a file named `cyber_trafficlight.py` in the `/apollo_workspace` directory.
 
 ```bash
 touch cyber_trafficlight.py
 ```
 
-1. 导入必要的库和模块。
+1. Import the necessary libraries and modules.
 
-   首先，导入所需的 Python 库和 Apollo Cyber RT 模块。这些库和模块将帮助我们初始化 Cyber 框架并使用 Cyber RT 工具。
+   First, import the required Python libraries and Apollo Cyber RT modules. These libraries and modules help us initialize the Cyber framework and use the Cyber RT tools.
 
    ```bash
    import argparse
@@ -64,21 +64,21 @@ touch cyber_trafficlight.py
     import time
    ```
 
-2. 定义相关功能函数。
+2. Define the related functions.
 
-   在这一步中，我们将定义几个功能函数，用于实现脚本的不同功能。
+   In this step, we define several functions that implement the different features of the script.
 
-   1）添加交通灯信息的函数。
+   1) The function that adds traffic light information.
 
    ```bash
    def add_traffic_light(color, traffic_light_pb):
     light = traffic_light_pb.traffic_light.add()
     light.color = color
-    light.id = "红绿灯ID"  # 需要自行设置，这是交通灯的唯一标识
-    light.tracking_time = 10.0  # 设置跟踪时间，单位秒
+    light.id = "TRAFFIC_LIGHT_ID"  # Must be set by yourself; this is the unique identifier of the traffic light
+    light.tracking_time = 10.0  # Set the tracking time, in seconds
    ```
 
-   2）添加消息头信息的函数。
+   2) The function that adds message header information.
 
    ```bash
    seq_num = 0
@@ -88,67 +88,67 @@ touch cyber_trafficlight.py
     msg.header.sequence_num = seq_num
     msg.header.timestamp_sec = cyber_time.Time.now().to_sec()
     msg.header.module_name = "manual_traffic_light"
-    seq_num += 1  # 递增序列号
+    seq_num += 1  # Increment the sequence number
    ```
 
-   3）发布交通灯消息的函数。
+   3) The function that publishes the traffic light message.
 
    ```bash
    def publish_traffic_light(writer, traffic_light_msg):
     while not cyber.is_shutdown():
-        add_header(traffic_light_msg)  # 添加消息头信息
-        writer.write(traffic_light_msg)  # 发布交通灯消息
-        time.sleep(0.1)  # 控制消息发布速率
+        add_header(traffic_light_msg)  # Add message header information
+        writer.write(traffic_light_msg)  # Publish the traffic light message
+        time.sleep(0.1)  # Control the message publishing rate
    ```
 
-3. 初始化 Cyber 框架和相关对象。
+3. Initialize the Cyber framework and related objects.
 
-   在主函数中，我们需要初始化 Cyber 框架和相关对象，以便使用 Cyber RT 工具。
+   In the main function, we need to initialize the Cyber framework and related objects in order to use the Cyber RT tools.
 
    ```bash
    if __name__ == '__main__':
-    # 初始化交通灯检测消息对象
+    # Initialize the traffic light detection message object
     traffic_light_msg = traffic_light_detection_pb2.TrafficLightDetection()
 
-    # 初始化Cyber框架
+    # Initialize the Cyber framework
     cyber.init()
     node = cyber.Node("traffic_light_command")
 
-    # 创建消息写入器
+    # Create the message writer
     writer = node.create_writer(
         "/apollo/perception/traffic_light", traffic_light_detection_pb2.TrafficLightDetection)
 
-    # 创建发布交通灯消息的线程
+    # Create the thread that publishes traffic light messages
     thread = threading.Thread(target=publish_traffic_light, args=(writer, traffic_light_msg))
     thread.start()
    ```
 
-4. 进入用户输入循环。
+4. Enter the user input loop.
 
-   在一个无限循环中，等待用户的输入。用户可以输入不同的命令，执行相应的操作。
+   In an infinite loop, wait for user input. The user can enter different commands to perform the corresponding operations.
 
    ```bash
    while not cyber.is_shutdown():
         user_input = input(
-            "1: 设置交通灯为红色 2: 设置交通灯为绿色 3: 退出\n")
-        traffic_light_msg.ClearField('traffic_light')  # 清空交通灯信息
+            "1: Set traffic light to red 2: Set traffic light to green 3: Exit\n")
+        traffic_light_msg.ClearField('traffic_light')  # Clear the traffic light information
         if user_input == '1':
-            # 用户输入1，设置交通灯为红色
+            # User entered 1: set the traffic light to red
             add_traffic_light(
                 traffic_light_detection_pb2.TrafficLight.RED, traffic_light_msg)
         elif user_input == "2":
-            # 用户输入2，设置交通灯为绿色
+            # User entered 2: set the traffic light to green
             add_traffic_light(
                 traffic_light_detection_pb2.TrafficLight.GREEN, traffic_light_msg)
         elif user_input == "3":
-            # 用户输入3，退出循环
+            # User entered 3: exit the loop
             break
 
-    # 关闭Cyber框架
+    # Shut down the Cyber framework
     cyber.shutdown()
    ```
 
-   总体：
+   Complete code:
 
    ```bash
    from cyber.python.cyber_py3 import cyber
@@ -160,7 +160,7 @@ touch cyber_trafficlight.py
    def add_forward_light(color, traffic_light_pb):
        light = traffic_light_pb.traffic_light.add()
        light.color = color
-       light.id = "红绿灯ID" #需要自行设置
+       light.id = "TRAFFIC_LIGHT_ID" # Must be set by yourself
        light.tracking_time = 10.0
 
    seq_num = 0
@@ -204,52 +204,52 @@ touch cyber_trafficlight.py
        cyber.shutdown()
    ```
 
-### 步骤三：路径设置工具的使用
+### Step 3: Using the Route Setting Tool
 
-1. 打开 Dreamview+ routing editing。
+1. Open Dreamview+ routing editing.
 
-   在地图上选择起点、终点并保存。
+   Select the start point and end point on the map and save.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_43361d3.png)
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_55e489f.png)
 
-   点击播放按钮，车辆启动：
+   Click the play button to start the vehicle:
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_1b1a0ee.png)
 
-2. 查看红绿灯 ID。
+2. View the traffic light ID.
 
-   回到终端，打开 cyber_monitor
+   Go back to the terminal and open cyber_monitor
 
    ```bash
    cyber_monitor
    ```
 
-   找到 planning 的 channel。
+   Find the planning channel.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a1fa25f.png)
 
-   通过键盘的 PgUp 键进行翻页找到车辆停止原因。
+   Press the PgUp key on the keyboard to page up and find the reason the vehicle stopped.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_7165b76.png)
 
-   > 注意：TL\_后面的数字就是红绿灯的ID。
+   > Note: The number after TL\_ is the traffic light ID.
 
-3. 修改红绿灯 ID。
+3. Modify the traffic light ID.
 
-   在工具中添加交通灯 ID：
+   Add the traffic light ID in the tool:
 
    ```bash
     def add_traffic_light(color, traffic_light_pb):
         light = traffic_light_pb.traffic_light.add()
         light.color = color
-        #light.id = "红绿灯ID" #修改前
-        light.id = "451089196 #修改后
+        #light.id = "TRAFFIC_LIGHT_ID" # Before modification
+        light.id = "451089196 # After modification
         light.tracking_time = 10.0
    ```
 
-4. 运行交通灯仿真控制工具。
+4. Run the traffic light simulation control tool.
 
    ```bash
    python cyber_trafficlight.py
@@ -257,15 +257,15 @@ touch cyber_trafficlight.py
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_02a8989.png)
 
-   > 注意：数字 1 是控制交通灯为红灯；数字 2 是控制交通灯为绿灯。
+   > Note: Number 1 sets the traffic light to red; number 2 sets the traffic light to green.
 
-数字 1：
+Number 1:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_92bee2e.png)
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_dc4fad6.png)
 
-数字 2：
+Number 2:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_f562f17.png)
 

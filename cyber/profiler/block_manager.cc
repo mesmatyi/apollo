@@ -16,7 +16,7 @@
 
 #include "cyber/profiler/block_manager.h"
 
-#include "cyber/croutine/croutine.h"
+#include <pthread.h>
 
 namespace apollo {
 namespace cyber {
@@ -53,11 +53,13 @@ void BlockManager::EndBlock() {
 }
 
 std::string BlockManager::GetRoutineName() {
-  std::string routine_name("default_croutine");
-  if (croutine::CRoutine::GetCurrentRoutine() != nullptr) {
-    routine_name = croutine::CRoutine::GetCurrentRoutine()->name();
+  // Callbacks run on ROS 2 executor threads; name frames after the thread.
+  char name[32] = {0};
+  if (pthread_getname_np(pthread_self(), name, sizeof(name)) == 0 &&
+      name[0] != '\0') {
+    return std::string(name);
   }
-  return routine_name;
+  return std::string("default_thread");
 }
 
 Frame* BlockManager::GetRoutineFrame() {

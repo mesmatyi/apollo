@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,16 +22,11 @@
 #include <vector>
 
 #include "cyber/base/macros.h"
-#include "cyber/blocker/blocker_manager.h"
 #include "cyber/common/global_data.h"
 #include "cyber/common/types.h"
 #include "cyber/common/util.h"
 #include "cyber/component/component_base.h"
-#include "cyber/croutine/routine_factory.h"
-#include "cyber/statistics/statistics.h"
 #include "cyber/time/time.h"
-#include "cyber/data/data_visitor.h"
-#include "cyber/scheduler/scheduler.h"
 
 namespace apollo {
 namespace cyber {
@@ -40,20 +35,19 @@ using apollo::cyber::common::GlobalData;
 using apollo::cyber::proto::RoleAttributes;
 
 /**
- * @brief .
- * The Component can process up to four channels of messages. The message type
- * is specified when the component is created. The Component is inherited from
- * ComponentBase. Your component can inherit from Component, and implement
- * Init() & Proc(...), They are picked up by the CyberRT. There are 4
- * specialization implementations.
+ * @brief The Component can process up to four channels of messages. The
+ * message types are specified when the component is created. The Component
+ * inherits ComponentBase. Your component can inherit from Component, and
+ * implement Init() & Proc(...).
  *
- * @tparam M0 the first message.
- * @tparam M1 the second message.
- * @tparam M2 the third message.
- * @tparam M3 the fourth message.
- * @warning The Init & Proc functions need to be overloaded, but don't want to
- * be called. They are called by the CyberRT Frame.
+ * The first channel triggers Proc(); the latest message of every other
+ * channel is fused in (Proc() is not called until every channel received at
+ * least one message), like Cyber's AllLatest data fusion.
  *
+ * @tparam M0 first message type, triggers Proc()
+ * @tparam M1 second message
+ * @tparam M2 third message
+ * @tparam M3 fourth message
  */
 template <typename M0 = NullType, typename M1 = NullType,
           typename M2 = NullType, typename M3 = NullType>
@@ -62,29 +56,12 @@ class Component : public ComponentBase {
   Component() {}
   ~Component() override {}
 
-  /**
-   * @brief init the component by protobuf object.
-   *
-   * @param config which is defined in 'cyber/proto/component_conf.proto'
-   *
-   * @return returns true if successful, otherwise returns false
-   */
   bool Initialize(const ComponentConfig& config) override;
   bool Process(const std::shared_ptr<M0>& msg0, const std::shared_ptr<M1>& msg1,
                const std::shared_ptr<M2>& msg2,
                const std::shared_ptr<M3>& msg3);
 
  private:
-  /**
-   * @brief The process logical of yours.
-   *
-   * @param msg0 the first channel message.
-   * @param msg1 the second channel message.
-   * @param msg2 the third channel message.
-   * @param msg3 the fourth channel message.
-   *
-   * @return returns true if successful, otherwise returns false
-   */
   virtual bool Proc(const std::shared_ptr<M0>& msg0,
                     const std::shared_ptr<M1>& msg1,
                     const std::shared_ptr<M2>& msg2,
@@ -140,18 +117,21 @@ class Component<M0, M1, M2, NullType> : public ComponentBase {
                     const std::shared_ptr<M2>& msg2) = 0;
 };
 
-template <typename M0>
-bool Component<M0, NullType, NullType, NullType>::Process(
-    const std::shared_ptr<M0>& msg) {
-  if (is_shutdown_.load()) {
-    return true;
-  }
-  return Proc(msg);
+namespace component_internal {
+
+inline ReaderConfig MakeReaderConfig(const ComponentConfig& config, int i) {
+  ReaderConfig reader_cfg;
+  reader_cfg.channel_name = config.readers(i).channel();
+  reader_cfg.qos_profile.CopyFrom(config.readers(i).qos_profile());
+  reader_cfg.pending_queue_size = config.readers(i).pending_queue_size();
+  return reader_cfg;
 }
 
-inline bool Component<NullType, NullType, NullType>::Initialize(
+}  // namespace component_internal
+
+inline bool Component<NullType, NullType, NullType, NullType>::Initialize(
     const ComponentConfig& config) {
-  node_.reset(new Node(config.name()));
+  node_ = CreateComponentNode(config.name());
   LoadConfigFiles(config);
   if (!Init()) {
     AERROR << "Component Init() failed." << std::endl;
@@ -161,9 +141,18 @@ inline bool Component<NullType, NullType, NullType>::Initialize(
 }
 
 template <typename M0>
+bool Component<M0, NullType, NullType, NullType>::Process(
+    const std::shared_ptr<M0>& msg) {
+  if (is_shutdown_.load()) {
+    return true;
+  }
+  return Proc(msg);
+}
+
+template <typename M0>
 bool Component<M0, NullType, NullType, NullType>::Initialize(
     const ComponentConfig& config) {
-  node_.reset(new Node(config.name()));
+  node_ = CreateComponentNode(config.name());
   LoadConfigFiles(config);
 
   if (config.readers_size() < 1) {
@@ -176,65 +165,25 @@ bool Component<M0, NullType, NullType, NullType>::Initialize(
     return false;
   }
 
-  bool is_reality_mode = GlobalData::Instance()->IsRealityMode();
-
-  ReaderConfig reader_cfg;
-  reader_cfg.channel_name = config.readers(0).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(0).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(0).pending_queue_size();
-
-  auto role_attr = std::make_shared<proto::RoleAttributes>();
-  role_attr->set_node_name(config.name());
-  role_attr->set_channel_name(config.readers(0).channel());
-
   std::weak_ptr<Component<M0>> self =
       std::dynamic_pointer_cast<Component<M0>>(shared_from_this());
-  auto func = [self, role_attr](const std::shared_ptr<M0>& msg) {
-    auto start_time = Time::Now().ToMicrosecond();
+  auto func = [self](const std::shared_ptr<M0>& msg) {
     auto ptr = self.lock();
     if (ptr) {
       ptr->Process(msg);
     } else {
       AERROR << "Component object has been destroyed.";
     }
-    auto end_time = Time::Now().ToMicrosecond();
-    // sampling proc latency and cyber latency in microsecond
-    uint64_t process_start_time;
-    statistics::Statistics::Instance()->SamplingProcLatency<
-                        uint64_t>(*role_attr, end_time-start_time);
-    if (statistics::Statistics::Instance()->GetProcStatus(
-          *role_attr, &process_start_time) && (
-                        start_time-process_start_time) > 0) {
-      statistics::Statistics::Instance()->SamplingCyberLatency(
-                        *role_attr, start_time-process_start_time);
-    }
   };
 
-  std::shared_ptr<Reader<M0>> reader = nullptr;
-
-  if (cyber_likely(is_reality_mode)) {
-    reader = node_->CreateReader<M0>(reader_cfg);
-  } else {
-    reader = node_->CreateReader<M0>(reader_cfg, func);
-  }
-
+  auto reader = node_->template CreateReader<M0>(
+      component_internal::MakeReaderConfig(config, 0), func);
   if (reader == nullptr) {
     AERROR << "Component create reader failed.";
     return false;
   }
   readers_.emplace_back(std::move(reader));
-
-  if (cyber_unlikely(!is_reality_mode)) {
-    return true;
-  }
-
-  data::VisitorConfig conf = {readers_[0]->ChannelId(),
-                              readers_[0]->PendingQueueSize()};
-  auto dv = std::make_shared<data::DataVisitor<M0>>(conf);
-  croutine::RoutineFactory factory =
-      croutine::CreateRoutineFactory<M0>(func, dv);
-  auto sched = scheduler::Instance();
-  return sched->CreateTask(factory, node_->Name());
+  return true;
 }
 
 template <typename M0, typename M1>
@@ -249,7 +198,7 @@ bool Component<M0, M1, NullType, NullType>::Process(
 template <typename M0, typename M1>
 bool Component<M0, M1, NullType, NullType>::Initialize(
     const ComponentConfig& config) {
-  node_.reset(new Node(config.name()));
+  node_ = CreateComponentNode(config.name());
   LoadConfigFiles(config);
 
   if (config.readers_size() < 2) {
@@ -262,103 +211,38 @@ bool Component<M0, M1, NullType, NullType>::Initialize(
     return false;
   }
 
-  bool is_reality_mode = GlobalData::Instance()->IsRealityMode();
-
-  ReaderConfig reader_cfg;
-  reader_cfg.channel_name = config.readers(1).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(1).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(1).pending_queue_size();
-
-  auto reader1 = node_->template CreateReader<M1>(reader_cfg);
-
-  reader_cfg.channel_name = config.readers(0).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(0).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(0).pending_queue_size();
-
-  auto role_attr = std::make_shared<proto::RoleAttributes>();
-  role_attr->set_node_name(config.name());
-  role_attr->set_channel_name(config.readers(0).channel());
-
-  std::shared_ptr<Reader<M0>> reader0 = nullptr;
-  if (cyber_likely(is_reality_mode)) {
-    reader0 = node_->template CreateReader<M0>(reader_cfg);
-  } else {
-    std::weak_ptr<Component<M0, M1>> self =
-        std::dynamic_pointer_cast<Component<M0, M1>>(shared_from_this());
-
-    auto blocker1 = blocker::BlockerManager::Instance()->GetBlocker<M1>(
-        config.readers(1).channel());
-
-    auto func = [self, blocker1, role_attr](const std::shared_ptr<M0>& msg0) {
-      auto start_time = Time::Now().ToMicrosecond();
-      auto ptr = self.lock();
-      if (ptr) {
-        if (!blocker1->IsPublishedEmpty()) {
-          auto msg1 = blocker1->GetLatestPublishedPtr();
-          ptr->Process(msg0, msg1);
-          auto end_time = Time::Now().ToMicrosecond();
-          // sampling proc latency and cyber latency in microsecond
-          uint64_t process_start_time;
-          statistics::Statistics::Instance()->SamplingProcLatency<
-                            uint64_t>(*role_attr, end_time-start_time);
-          if (statistics::Statistics::Instance()->GetProcStatus(
-                *role_attr, &process_start_time) && (
-                                  start_time-process_start_time) > 0) {
-            statistics::Statistics::Instance()->SamplingCyberLatency(
-                              *role_attr, start_time-process_start_time);
-          }
-        }
-      } else {
-        AERROR << "Component object has been destroyed.";
-      }
-    };
-
-    reader0 = node_->template CreateReader<M0>(reader_cfg, func);
+  auto reader1 = node_->template CreateReader<M1>(
+      component_internal::MakeReaderConfig(config, 1));
+  if (reader1 == nullptr) {
+    AERROR << "Component create reader failed.";
+    return false;
   }
-  if (reader0 == nullptr || reader1 == nullptr) {
+
+  std::weak_ptr<Component<M0, M1>> self =
+      std::dynamic_pointer_cast<Component<M0, M1>>(shared_from_this());
+  std::weak_ptr<Reader<M1>> weak1 = reader1;
+  auto func = [self, weak1](const std::shared_ptr<M0>& msg0) {
+    auto ptr = self.lock();
+    auto r1 = weak1.lock();
+    if (!ptr || !r1) {
+      return;
+    }
+    auto msg1 = r1->GetLatestReceived();
+    if (msg1 == nullptr) {
+      return;
+    }
+    ptr->Process(msg0, msg1);
+  };
+
+  auto reader0 = node_->template CreateReader<M0>(
+      component_internal::MakeReaderConfig(config, 0), func);
+  if (reader0 == nullptr) {
     AERROR << "Component create reader failed.";
     return false;
   }
   readers_.push_back(std::move(reader0));
   readers_.push_back(std::move(reader1));
-
-  if (cyber_unlikely(!is_reality_mode)) {
-    return true;
-  }
-
-  auto sched = scheduler::Instance();
-  std::weak_ptr<Component<M0, M1>> self =
-      std::dynamic_pointer_cast<Component<M0, M1>>(shared_from_this());
-  auto func = [self, role_attr](const std::shared_ptr<M0>& msg0,
-                     const std::shared_ptr<M1>& msg1) {
-    auto start_time = Time::Now().ToMicrosecond();
-    auto ptr = self.lock();
-    if (ptr) {
-      ptr->Process(msg0, msg1);
-      auto end_time = Time::Now().ToMicrosecond();
-      // sampling proc latency and cyber latency in microsecond
-      uint64_t process_start_time;
-      statistics::Statistics::Instance()->SamplingProcLatency<
-                        uint64_t>(*role_attr, end_time-start_time);
-      if (statistics::Statistics::Instance()->GetProcStatus(
-            *role_attr, &process_start_time) && (
-                                start_time-process_start_time) > 0) {
-        statistics::Statistics::Instance()->SamplingCyberLatency(
-                          *role_attr, start_time-process_start_time);
-      }
-    } else {
-      AERROR << "Component object has been destroyed.";
-    }
-  };
-
-  std::vector<data::VisitorConfig> config_list;
-  for (auto& reader : readers_) {
-    config_list.emplace_back(reader->ChannelId(), reader->PendingQueueSize());
-  }
-  auto dv = std::make_shared<data::DataVisitor<M0, M1>>(config_list);
-  croutine::RoutineFactory factory =
-      croutine::CreateRoutineFactory<M0, M1>(func, dv);
-  return sched->CreateTask(factory, node_->Name());
+  return true;
 }
 
 template <typename M0, typename M1, typename M2>
@@ -374,7 +258,7 @@ bool Component<M0, M1, M2, NullType>::Process(const std::shared_ptr<M0>& msg0,
 template <typename M0, typename M1, typename M2>
 bool Component<M0, M1, M2, NullType>::Initialize(
     const ComponentConfig& config) {
-  node_.reset(new Node(config.name()));
+  node_ = CreateComponentNode(config.name());
   LoadConfigFiles(config);
 
   if (config.readers_size() < 3) {
@@ -387,118 +271,44 @@ bool Component<M0, M1, M2, NullType>::Initialize(
     return false;
   }
 
-  bool is_reality_mode = GlobalData::Instance()->IsRealityMode();
-
-  ReaderConfig reader_cfg;
-  reader_cfg.channel_name = config.readers(1).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(1).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(1).pending_queue_size();
-
-  auto reader1 = node_->template CreateReader<M1>(reader_cfg);
-
-  reader_cfg.channel_name = config.readers(2).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(2).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(2).pending_queue_size();
-
-  auto reader2 = node_->template CreateReader<M2>(reader_cfg);
-
-  reader_cfg.channel_name = config.readers(0).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(0).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(0).pending_queue_size();
-
-  auto role_attr = std::make_shared<proto::RoleAttributes>();
-  role_attr->set_node_name(config.name());
-  role_attr->set_channel_name(config.readers(0).channel());
-
-  std::shared_ptr<Reader<M0>> reader0 = nullptr;
-  if (cyber_likely(is_reality_mode)) {
-    reader0 = node_->template CreateReader<M0>(reader_cfg);
-  } else {
-    std::weak_ptr<Component<M0, M1, M2, NullType>> self =
-        std::dynamic_pointer_cast<Component<M0, M1, M2, NullType>>(
-            shared_from_this());
-
-    auto blocker1 = blocker::BlockerManager::Instance()->GetBlocker<M1>(
-        config.readers(1).channel());
-    auto blocker2 = blocker::BlockerManager::Instance()->GetBlocker<M2>(
-        config.readers(2).channel());
-
-    auto func = [self, blocker1, blocker2, role_attr](
-                        const std::shared_ptr<M0>& msg0) {
-      auto start_time = Time::Now().ToMicrosecond();
-      auto ptr = self.lock();
-      if (ptr) {
-        if (!blocker1->IsPublishedEmpty() && !blocker2->IsPublishedEmpty()) {
-          auto msg1 = blocker1->GetLatestPublishedPtr();
-          auto msg2 = blocker2->GetLatestPublishedPtr();
-          ptr->Process(msg0, msg1, msg2);
-          auto end_time = Time::Now().ToMicrosecond();
-          // sampling proc latency and cyber latency in microsecond
-          uint64_t process_start_time;
-          statistics::Statistics::Instance()->SamplingProcLatency<
-                              uint64_t>(*role_attr, end_time-start_time);
-          if (statistics::Statistics::Instance()->GetProcStatus(
-                *role_attr, &process_start_time) && (
-                                    start_time-process_start_time) > 0) {
-            statistics::Statistics::Instance()->SamplingCyberLatency(
-                              *role_attr, start_time-process_start_time);
-          }
-        }
-      } else {
-        AERROR << "Component object has been destroyed.";
-      }
-    };
-
-    reader0 = node_->template CreateReader<M0>(reader_cfg, func);
+  auto reader1 = node_->template CreateReader<M1>(
+      component_internal::MakeReaderConfig(config, 1));
+  auto reader2 = node_->template CreateReader<M2>(
+      component_internal::MakeReaderConfig(config, 2));
+  if (reader1 == nullptr || reader2 == nullptr) {
+    AERROR << "Component create reader failed.";
+    return false;
   }
 
-  if (reader0 == nullptr || reader1 == nullptr || reader2 == nullptr) {
+  std::weak_ptr<Component<M0, M1, M2>> self =
+      std::dynamic_pointer_cast<Component<M0, M1, M2>>(shared_from_this());
+  std::weak_ptr<Reader<M1>> weak1 = reader1;
+  std::weak_ptr<Reader<M2>> weak2 = reader2;
+  auto func = [self, weak1, weak2](const std::shared_ptr<M0>& msg0) {
+    auto ptr = self.lock();
+    auto r1 = weak1.lock();
+    auto r2 = weak2.lock();
+    if (!ptr || !r1 || !r2) {
+      return;
+    }
+    auto msg1 = r1->GetLatestReceived();
+    auto msg2 = r2->GetLatestReceived();
+    if (msg1 == nullptr || msg2 == nullptr) {
+      return;
+    }
+    ptr->Process(msg0, msg1, msg2);
+  };
+
+  auto reader0 = node_->template CreateReader<M0>(
+      component_internal::MakeReaderConfig(config, 0), func);
+  if (reader0 == nullptr) {
     AERROR << "Component create reader failed.";
     return false;
   }
   readers_.push_back(std::move(reader0));
   readers_.push_back(std::move(reader1));
   readers_.push_back(std::move(reader2));
-
-  if (cyber_unlikely(!is_reality_mode)) {
-    return true;
-  }
-
-  auto sched = scheduler::Instance();
-  std::weak_ptr<Component<M0, M1, M2, NullType>> self =
-      std::dynamic_pointer_cast<Component<M0, M1, M2, NullType>>(
-          shared_from_this());
-  auto func = [self, role_attr](const std::shared_ptr<M0>& msg0,
-                                const std::shared_ptr<M1>& msg1,
-                                const std::shared_ptr<M2>& msg2) {
-    auto start_time = Time::Now().ToMicrosecond();
-    auto ptr = self.lock();
-    if (ptr) {
-      ptr->Process(msg0, msg1, msg2);
-      auto end_time = Time::Now().ToMicrosecond();
-      // sampling proc latency and cyber latency in microsecond
-      uint64_t process_start_time;
-      statistics::Statistics::Instance()->SamplingProcLatency<
-                        uint64_t>(*role_attr, end_time-start_time);
-      if (statistics::Statistics::Instance()->GetProcStatus(
-            *role_attr, &process_start_time) && (
-                                  start_time-process_start_time) > 0) {
-        statistics::Statistics::Instance()->SamplingCyberLatency(
-                            *role_attr, start_time-process_start_time);
-      }
-    } else {
-      AERROR << "Component object has been destroyed.";
-    }
-  };
-
-  std::vector<data::VisitorConfig> config_list;
-  for (auto& reader : readers_) {
-    config_list.emplace_back(reader->ChannelId(), reader->PendingQueueSize());
-  }
-  auto dv = std::make_shared<data::DataVisitor<M0, M1, M2>>(config_list);
-  croutine::RoutineFactory factory =
-      croutine::CreateRoutineFactory<M0, M1, M2>(func, dv);
-  return sched->CreateTask(factory, node_->Name());
+  return true;
 }
 
 template <typename M0, typename M1, typename M2, typename M3>
@@ -514,148 +324,64 @@ bool Component<M0, M1, M2, M3>::Process(const std::shared_ptr<M0>& msg0,
 
 template <typename M0, typename M1, typename M2, typename M3>
 bool Component<M0, M1, M2, M3>::Initialize(const ComponentConfig& config) {
-  node_.reset(new Node(config.name()));
+  node_ = CreateComponentNode(config.name());
   LoadConfigFiles(config);
 
   if (config.readers_size() < 4) {
-    AERROR << "Invalid config file: too few readers_." << std::endl;
+    AERROR << "Invalid config file: too few readers.";
     return false;
   }
 
   if (!Init()) {
-    AERROR << "Component Init() failed." << std::endl;
+    AERROR << "Component Init() failed.";
     return false;
   }
 
-  bool is_reality_mode = GlobalData::Instance()->IsRealityMode();
-
-  ReaderConfig reader_cfg;
-  reader_cfg.channel_name = config.readers(1).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(1).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(1).pending_queue_size();
-
-  auto reader1 = node_->template CreateReader<M1>(reader_cfg);
-
-  reader_cfg.channel_name = config.readers(2).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(2).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(2).pending_queue_size();
-
-  auto reader2 = node_->template CreateReader<M2>(reader_cfg);
-
-  reader_cfg.channel_name = config.readers(3).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(3).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(3).pending_queue_size();
-
-  auto reader3 = node_->template CreateReader<M3>(reader_cfg);
-
-  reader_cfg.channel_name = config.readers(0).channel();
-  reader_cfg.qos_profile.CopyFrom(config.readers(0).qos_profile());
-  reader_cfg.pending_queue_size = config.readers(0).pending_queue_size();
-
-  auto role_attr = std::make_shared<proto::RoleAttributes>();
-  role_attr->set_node_name(config.name());
-  role_attr->set_channel_name(config.readers(0).channel());
-
-  std::shared_ptr<Reader<M0>> reader0 = nullptr;
-  if (cyber_likely(is_reality_mode)) {
-    reader0 = node_->template CreateReader<M0>(reader_cfg);
-  } else {
-    std::weak_ptr<Component<M0, M1, M2, M3>> self =
-        std::dynamic_pointer_cast<Component<M0, M1, M2, M3>>(
-            shared_from_this());
-
-    auto blocker1 = blocker::BlockerManager::Instance()->GetBlocker<M1>(
-        config.readers(1).channel());
-    auto blocker2 = blocker::BlockerManager::Instance()->GetBlocker<M2>(
-        config.readers(2).channel());
-    auto blocker3 = blocker::BlockerManager::Instance()->GetBlocker<M3>(
-        config.readers(3).channel());
-
-    auto func = [self, blocker1, blocker2,
-                 blocker3, role_attr](const std::shared_ptr<M0>& msg0) {
-      auto start_time = Time::Now().ToMicrosecond();
-      auto ptr = self.lock();
-      if (ptr) {
-        if (!blocker1->IsPublishedEmpty() && !blocker2->IsPublishedEmpty() &&
-            !blocker3->IsPublishedEmpty()) {
-          auto msg1 = blocker1->GetLatestPublishedPtr();
-          auto msg2 = blocker2->GetLatestPublishedPtr();
-          auto msg3 = blocker3->GetLatestPublishedPtr();
-          ptr->Process(msg0, msg1, msg2, msg3);
-          auto end_time = Time::Now().ToMicrosecond();
-          // sampling proc latency and cyber latency in microsecond
-          uint64_t process_start_time;
-          statistics::Statistics::Instance()->SamplingProcLatency<
-                            uint64_t>(*role_attr, end_time-start_time);
-          if (statistics::Statistics::Instance()->GetProcStatus(
-                *role_attr, &process_start_time) && (
-                                      start_time-process_start_time) > 0) {
-            statistics::Statistics::Instance()->SamplingCyberLatency(
-                                *role_attr, start_time-process_start_time);
-          }
-        }
-      } else {
-        AERROR << "Component object has been destroyed.";
-      }
-    };
-
-    reader0 = node_->template CreateReader<M0>(reader_cfg, func);
+  auto reader1 = node_->template CreateReader<M1>(
+      component_internal::MakeReaderConfig(config, 1));
+  auto reader2 = node_->template CreateReader<M2>(
+      component_internal::MakeReaderConfig(config, 2));
+  auto reader3 = node_->template CreateReader<M3>(
+      component_internal::MakeReaderConfig(config, 3));
+  if (reader1 == nullptr || reader2 == nullptr || reader3 == nullptr) {
+    AERROR << "Component create reader failed.";
+    return false;
   }
 
-  if (reader0 == nullptr || reader1 == nullptr || reader2 == nullptr ||
-      reader3 == nullptr) {
-    AERROR << "Component create reader failed." << std::endl;
+  std::weak_ptr<Component<M0, M1, M2, M3>> self =
+      std::dynamic_pointer_cast<Component<M0, M1, M2, M3>>(shared_from_this());
+  std::weak_ptr<Reader<M1>> weak1 = reader1;
+  std::weak_ptr<Reader<M2>> weak2 = reader2;
+  std::weak_ptr<Reader<M3>> weak3 = reader3;
+  auto func = [self, weak1, weak2, weak3](const std::shared_ptr<M0>& msg0) {
+    auto ptr = self.lock();
+    auto r1 = weak1.lock();
+    auto r2 = weak2.lock();
+    auto r3 = weak3.lock();
+    if (!ptr || !r1 || !r2 || !r3) {
+      return;
+    }
+    auto msg1 = r1->GetLatestReceived();
+    auto msg2 = r2->GetLatestReceived();
+    auto msg3 = r3->GetLatestReceived();
+    if (msg1 == nullptr || msg2 == nullptr || msg3 == nullptr) {
+      return;
+    }
+    ptr->Process(msg0, msg1, msg2, msg3);
+  };
+
+  auto reader0 = node_->template CreateReader<M0>(
+      component_internal::MakeReaderConfig(config, 0), func);
+  if (reader0 == nullptr) {
+    AERROR << "Component create reader failed.";
     return false;
   }
   readers_.push_back(std::move(reader0));
   readers_.push_back(std::move(reader1));
   readers_.push_back(std::move(reader2));
   readers_.push_back(std::move(reader3));
-
-  if (cyber_unlikely(!is_reality_mode)) {
-    return true;
-  }
-
-  auto sched = scheduler::Instance();
-  std::weak_ptr<Component<M0, M1, M2, M3>> self =
-      std::dynamic_pointer_cast<Component<M0, M1, M2, M3>>(shared_from_this());
-  auto func =
-      [self, role_attr](const std::shared_ptr<M0>& msg0,
-                        const std::shared_ptr<M1>& msg1,
-                        const std::shared_ptr<M2>& msg2,
-                        const std::shared_ptr<M3>& msg3) {
-        auto start_time = Time::Now().ToMicrosecond();
-        auto ptr = self.lock();
-        if (ptr) {
-          ptr->Process(msg0, msg1, msg2, msg3);
-          auto end_time = Time::Now().ToMicrosecond();
-          // sampling proc latency and cyber latency in microsecond
-          uint64_t process_start_time;
-          statistics::Statistics::Instance()->SamplingProcLatency<
-                            uint64_t>(*role_attr, end_time-start_time);
-          if (statistics::Statistics::Instance()->GetProcStatus(
-                *role_attr, &process_start_time) && (
-                                      start_time-process_start_time) > 0) {
-            statistics::Statistics::Instance()->SamplingCyberLatency(
-                              *role_attr, start_time-process_start_time);
-          }
-        } else {
-          AERROR << "Component object has been destroyed." << std::endl;
-        }
-      };
-
-  std::vector<data::VisitorConfig> config_list;
-  for (auto& reader : readers_) {
-    config_list.emplace_back(reader->ChannelId(), reader->PendingQueueSize());
-  }
-  auto dv = std::make_shared<data::DataVisitor<M0, M1, M2, M3>>(config_list);
-  croutine::RoutineFactory factory =
-      croutine::CreateRoutineFactory<M0, M1, M2, M3>(func, dv);
-  return sched->CreateTask(factory, node_->Name());
+  return true;
 }
-
-#define CYBER_REGISTER_COMPONENT(name) \
-  CLASS_LOADER_REGISTER_CLASS(name, apollo::cyber::ComponentBase)
 
 }  // namespace cyber
 }  // namespace apollo

@@ -1,28 +1,28 @@
-# hesai 2.0 sdk apollo适配驱动
+# hesai 2.0 sdk Apollo adapted driver
 
-## 工程简介
+## Project Overview
 
-基于禾赛开源sdk 2.0驱动适配的apollo版本驱动程序。
+An Apollo driver adapted from the Hesai open-source SDK 2.0 driver.
 
-## 配置
+## Configuration
 
-默认配置文件是AT128的配置文件，路径`/apollo/modules/drivers/lidar/hslidar/conf/hslidar.pb.txt`
+The default configuration file is the one for AT128, located at `/apollo/modules/drivers/lidar/hslidar/conf/hslidar.pb.txt`
 
-1. 更改输出配置，包括frame_id和点云、scan数据输出通道
-2. 更改输入配置，包括设备地址`device_ip`、udp端口`udp_port`、ptc端口`ptc_port`。
-3. 更改两个校正文件路径`correction_file_path`和`firetimes_path`，校正文件需要从官网下载。
-4. 更改lidar型号`lidar_type`，默认为"AT128"
-5. 更改`source_type`，1对应一般lidar输入，2对应pcap输入，3对应scan数据输入。使用scan数据输入需要先将config_base中的source_type调成RAW_PACKET，再将配置文件里source_type调成3
+1. Change the output configuration, including frame_id and the point cloud and scan data output channels
+2. Change the input configuration, including the device address `device_ip`, UDP port `udp_port`, and PTC port `ptc_port`.
+3. Change the paths of the two correction files, `correction_file_path` and `firetimes_path`. The correction files need to be downloaded from the official website.
+4. Change the LiDAR model `lidar_type`; the default is "AT128"
+5. Change `source_type`: 1 corresponds to normal LiDAR input, 2 to pcap input, and 3 to scan data input. To use scan data input, first set source_type in config_base to RAW_PACKET, then set source_type in the configuration file to 3
 
-## 运行
+## Running
 
-**所有驱动均需要在Apollo Docker环境下运行**
+**All drivers must be run in the Apollo Docker environment**
 
 ```sh
 mainboard -d /apollo/modules/drivers/lidar/hslidar/dag/hslidar.dag
 ```
 
-或
+or
 
 ```sh
 cyber_launch start /apollo/modules/drivers/lidar/hslidar/launch/hslidar.launch

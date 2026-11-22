@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <cstring>
+#include <array>
 #include <tuple>
 #include <utility>
 #include <vector>

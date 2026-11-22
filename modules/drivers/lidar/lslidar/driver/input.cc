@@ -16,6 +16,7 @@
 
 #include "modules/drivers/lidar/lslidar/driver/input.h"
 
+#include <cmath>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <poll.h>

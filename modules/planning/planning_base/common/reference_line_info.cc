@@ -27,6 +27,7 @@
 #include "modules/common_msgs/planning_msgs/sl_boundary.pb.h"
 #include "modules/planning/planning_base/proto/planning_status.pb.h"
 
+#include "cyber/common/util.h"
 #include "cyber/task/task.h"
 #include "modules/common/configs/vehicle_config_helper.h"
 #include "modules/common/util/point_factory.h"

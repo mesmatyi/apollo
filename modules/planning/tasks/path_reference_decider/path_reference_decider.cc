@@ -19,6 +19,7 @@
  */
 #include "modules/planning/tasks/path_reference_decider/path_reference_decider.h"
 
+#include <iomanip>
 #include <string>
 #include <utility>
 #include <vector>

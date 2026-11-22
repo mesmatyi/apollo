@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,26 +18,20 @@
 #define CYBER_NODE_READER_H_
 
 #include <algorithm>
+#include <functional>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "cyber/proto/topology_change.pb.h"
 
-#include "cyber/blocker/blocker.h"
-#include "cyber/common/global_data.h"
-#include "cyber/croutine/routine_factory.h"
-#include "cyber/data/data_visitor.h"
+#include "cyber/common/log.h"
 #include "cyber/node/reader_base.h"
-#include "cyber/scheduler/scheduler_factory.h"
-#include "cyber/service_discovery/topology_manager.h"
+#include "cyber/ros2/transport.h"
 #include "cyber/time/time.h"
-#include "cyber/transport/transport.h"
-#include "cyber/statistics/statistics.h"
 
 namespace apollo {
 namespace cyber {
@@ -51,161 +45,50 @@ const uint32_t DEFAULT_PENDING_QUEUE_SIZE = 1;
 
 /**
  * @class Reader
- * @brief Reader subscribes a channel, it has two main functions:
- * 1. You can pass a `CallbackFunc` to handle the message then it arrived
- * 2. You can Observe messages that Blocker cached. Reader automatically push
- * the message to Blocker's `PublishQueue`, and we can use `Observe` to fetch
- * messages from `PublishQueue` to `ObserveQueue`. But, if you have set
- * CallbackFunc, you can ignore this. One Reader uses one `ChannelBuffer`, the
- * message we are handling is stored in ChannelBuffer Reader will Join the
- * topology when init and Leave the topology when shutdown
- * @warning To save resource, `ChannelBuffer` has limited length,
- * it's passed through the `pending_queue_size` param. pending_queue_size is
- * default set to 1, So, If you handle slower than writer sending, older
- * messages that are not handled will be lost. You can increase
- * `pending_queue_size` to resolve this problem.
+ * @brief Subscribes to a channel (a ROS 2 topic of type
+ * apollo_msgs/msg/ProtoMessage).
+ *
+ * Every received message is stored in a history (capacity = qos depth) that
+ * Observe()/GetLatestObserved() expose, and is passed to the optional
+ * callback. Callbacks of one Reader never run concurrently.
  */
 template <typename MessageT>
 class Reader : public ReaderBase {
  public:
-  using BlockerPtr = std::unique_ptr<blocker::Blocker<MessageT>>;
-  using ReceiverPtr = std::shared_ptr<transport::Receiver<MessageT>>;
-  using ChangeConnection =
-      typename service_discovery::Manager::ChangeConnection;
   using Iterator =
       typename std::list<std::shared_ptr<MessageT>>::const_iterator;
 
-  /**
-   * Constructor a Reader object.
-   * @param role_attr is a protobuf message RoleAttributes, which includes the
-   * channel name and other info.
-   * @param reader_func is the callback function, when the message is received.
-   * @param pending_queue_size is the max depth of message cache queue.
-   * @warning the received messages is enqueue a queue,the queue's depth is
-   * pending_queue_size
-   */
   explicit Reader(const proto::RoleAttributes& role_attr,
                   const CallbackFunc<MessageT>& reader_func = nullptr,
                   uint32_t pending_queue_size = DEFAULT_PENDING_QUEUE_SIZE);
   virtual ~Reader();
 
-  /**
-   * @brief Init Reader
-   *
-   * @return true if init successfully
-   * @return false if init failed
-   */
   bool Init() override;
-
-  /**
-   * @brief Shutdown Reader
-   */
   void Shutdown() override;
-
-  /**
-   * @brief Get All data that `Blocker` stores
-   */
   void Observe() override;
-
-  /**
-   * @brief Clear `Blocker`'s data
-   */
   void ClearData() override;
-
-  /**
-   * @brief Query whether we have received data since last clear
-   *
-   * @return true if the reader has received data
-   * @return false if the reader has not received data
-   */
   bool HasReceived() const override;
-
-  /**
-   * @brief Query whether the Reader has data to be handled
-   *
-   * @return true if blocker is empty
-   * @return false if blocker has data
-   */
   bool Empty() const override;
-
-  /**
-   * @brief Get time interval of since last receive message
-   *
-   * @return double seconds delay
-   */
   double GetDelaySec() const override;
-
-  /**
-   * @brief Get pending_queue_size configuration
-   *
-   * @return uint32_t the value of pending queue size
-   */
   uint32_t PendingQueueSize() const override;
 
-  /**
-   * @brief Push `msg` to Blocker's `PublishQueue`
-   *
-   * @param msg message ptr to be pushed
-   */
   virtual void Enqueue(const std::shared_ptr<MessageT>& msg);
-
-  /**
-   * @brief Set Blocker's `PublishQueue`'s capacity to `depth`
-   *
-   * @param depth the value you  want to set
-   */
   virtual void SetHistoryDepth(const uint32_t& depth);
-
-  /**
-   * @brief Get Blocker's `PublishQueue`'s capacity
-   *
-   * @return uint32_t depth of the history
-   */
   virtual uint32_t GetHistoryDepth() const;
-
-  /**
-   * @brief Get the latest message we `Observe`
-   *
-   * @return std::shared_ptr<MessageT> the latest message
-   */
   virtual std::shared_ptr<MessageT> GetLatestObserved() const;
-
-  /**
-   * @brief Get the oldest message we `Observe`
-   *
-   * @return std::shared_ptr<MessageT> the oldest message
-   */
   virtual std::shared_ptr<MessageT> GetOldestObserved() const;
+  virtual Iterator Begin() const { return observed_queue_.begin(); }
+  virtual Iterator End() const { return observed_queue_.end(); }
 
-  /**
-   * @brief Get the begin iterator of `ObserveQueue`, used to traverse
-   *
-   * @return Iterator begin iterator
-   */
-  virtual Iterator Begin() const { return blocker_->ObservedBegin(); }
-
-  /**
-   * @brief Get the end iterator of `ObserveQueue`, used to traverse
-   *
-   * @return Iterator begin iterator
-   */
-  virtual Iterator End() const { return blocker_->ObservedEnd(); }
-
-  /**
-   * @brief Is there is at least one writer publish the channel that we
-   * subscribes?
-   *
-   * @return true if the channel has writer
-   * @return false if the channel has no writer
-   */
   bool HasWriter() override;
-
-  /**
-   * @brief Get all writers pushlish the channel we subscribes
-   *
-   * @param writers result vector of RoleAttributes
-   */
   void GetWriters(std::vector<proto::RoleAttributes>* writers) override;
+
+  /// Latest message received (independent of Observe()); used by
+  /// multi-channel Components to fuse channels.
+  std::shared_ptr<MessageT> GetLatestReceived() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return published_queue_.empty() ? nullptr : published_queue_.front();
+  }
 
  protected:
   double latest_recv_time_sec_ = -1.0;
@@ -213,18 +96,15 @@ class Reader : public ReaderBase {
   uint32_t pending_queue_size_;
 
  private:
-  void JoinTheTopology();
-  void LeaveTheTopology();
-  void OnChannelChange(const proto::ChangeMsg& change_msg);
+  void OnMessage(const std::shared_ptr<void>& msg);
 
   CallbackFunc<MessageT> reader_func_;
-  ReceiverPtr receiver_ = nullptr;
-  std::string croutine_name_;
-
-  BlockerPtr blocker_ = nullptr;
-
-  ChangeConnection change_conn_;
-  service_discovery::ChannelManagerPtr channel_manager_ = nullptr;
+  std::shared_ptr<ros2::SubscriberEndpoint> endpoint_;
+  mutable std::mutex mutex_;
+  uint32_t history_depth_ = 1;
+  // Newest message first, like Cyber's Blocker.
+  std::list<std::shared_ptr<MessageT>> published_queue_;
+  std::list<std::shared_ptr<MessageT>> observed_queue_;
 };
 
 template <typename MessageT>
@@ -234,8 +114,7 @@ Reader<MessageT>::Reader(const proto::RoleAttributes& role_attr,
     : ReaderBase(role_attr),
       pending_queue_size_(pending_queue_size),
       reader_func_(reader_func) {
-  blocker_.reset(new blocker::Blocker<MessageT>(blocker::BlockerAttr(
-      role_attr.qos_profile().depth(), role_attr.channel_name())));
+  history_depth_ = std::max<uint32_t>(role_attr_.qos_profile().depth(), 1);
 }
 
 template <typename MessageT>
@@ -245,14 +124,28 @@ Reader<MessageT>::~Reader() {
 
 template <typename MessageT>
 void Reader<MessageT>::Enqueue(const std::shared_ptr<MessageT>& msg) {
+  std::lock_guard<std::mutex> lock(mutex_);
   second_to_lastest_recv_time_sec_ = latest_recv_time_sec_;
   latest_recv_time_sec_ = Time::Now().ToSecond();
-  blocker_->Publish(msg);
+  published_queue_.push_front(msg);
+  while (published_queue_.size() > history_depth_) {
+    published_queue_.pop_back();
+  }
+}
+
+template <typename MessageT>
+void Reader<MessageT>::OnMessage(const std::shared_ptr<void>& msg) {
+  auto typed = std::static_pointer_cast<MessageT>(msg);
+  Enqueue(typed);
+  if (reader_func_) {
+    reader_func_(typed);
+  }
 }
 
 template <typename MessageT>
 void Reader<MessageT>::Observe() {
-  blocker_->Observe();
+  std::lock_guard<std::mutex> lock(mutex_);
+  observed_queue_ = published_queue_;
 }
 
 template <typename MessageT>
@@ -260,56 +153,17 @@ bool Reader<MessageT>::Init() {
   if (init_.exchange(true)) {
     return true;
   }
-  auto statistics_center = statistics::Statistics::Instance();
-  if (!statistics_center->RegisterChanVar(role_attr_)) {
-    AWARN << "Failed to register reader var!";
+  if (!node_handle_) {
+    node_handle_ = ros2::AuxNodeHandle();
   }
-  std::function<void(const std::shared_ptr<MessageT>&)> func;
-  if (reader_func_ != nullptr) {
-    func = [this](const std::shared_ptr<MessageT>& msg) {
-      uint64_t process_start_time;
-      uint64_t proc_done_time;
-      uint64_t proc_start_time;
-
-      this->Enqueue(msg);
-      this->reader_func_(msg);
-      // sampling proc latency in microsecond
-      proc_done_time = Time::Now().ToMicrosecond();
-      proc_start_time = static_cast<uint64_t>(latest_recv_time_sec_*1000000UL);
-
-      statistics::Statistics::Instance()->SamplingProcLatency<uint64_t>(
-                      this->role_attr_, (proc_done_time-proc_start_time));
-      if (statistics::Statistics::Instance()->GetProcStatus(
-                            this->role_attr_, &process_start_time)) {
-        auto cyber_latency = proc_start_time - process_start_time;
-        if (process_start_time > 0 && cyber_latency > 0) {
-          statistics::Statistics::Instance()->SamplingCyberLatency(
-                                        this->role_attr_, cyber_latency);
-        }
-      }
-    };
-  } else {
-    func = [this](const std::shared_ptr<MessageT>& msg) { this->Enqueue(msg); };
-  }
-  auto sched = scheduler::Instance();
-  croutine_name_ = role_attr_.node_name() + "_" + role_attr_.channel_name();
-  auto dv = std::make_shared<data::DataVisitor<MessageT>>(
-      role_attr_.channel_id(), pending_queue_size_);
-  // Using factory to wrap templates.
-  croutine::RoutineFactory factory =
-      croutine::CreateRoutineFactory<MessageT>(std::move(func), dv);
-  if (!sched->CreateTask(factory, croutine_name_)) {
-    AERROR << "Create Task Failed!";
+  endpoint_ = ros2::SubscriberEndpoint::Create(
+      node_handle_, role_attr_, ros2::GetTypeSupport<MessageT>(),
+      pending_queue_size_,
+      [this](const std::shared_ptr<void>& msg) { this->OnMessage(msg); });
+  if (endpoint_ == nullptr) {
     init_.store(false);
     return false;
   }
-
-  receiver_ = ReceiverManager<MessageT>::Instance()->GetReceiver(role_attr_);
-  this->role_attr_.set_id(receiver_->id().HashValue());
-  channel_manager_ =
-      service_discovery::TopologyManager::Instance()->channel_manager();
-  JoinTheTopology();
-
   return true;
 }
 
@@ -318,69 +172,27 @@ void Reader<MessageT>::Shutdown() {
   if (!init_.exchange(false)) {
     return;
   }
-  LeaveTheTopology();
-  receiver_ = nullptr;
-  channel_manager_ = nullptr;
-
-  if (!croutine_name_.empty()) {
-    scheduler::Instance()->RemoveTask(croutine_name_);
+  if (endpoint_) {
+    endpoint_->Shutdown();
   }
-}
-
-template <typename MessageT>
-void Reader<MessageT>::JoinTheTopology() {
-  // add listener
-  change_conn_ = channel_manager_->AddChangeListener(std::bind(
-      &Reader<MessageT>::OnChannelChange, this, std::placeholders::_1));
-
-  // get peer writers
-  const std::string& channel_name = this->role_attr_.channel_name();
-  std::vector<proto::RoleAttributes> writers;
-  channel_manager_->GetWritersOfChannel(channel_name, &writers);
-  for (auto& writer : writers) {
-    receiver_->Enable(writer);
-  }
-  channel_manager_->Join(this->role_attr_, proto::RoleType::ROLE_READER,
-                         message::HasSerializer<MessageT>::value);
-}
-
-template <typename MessageT>
-void Reader<MessageT>::LeaveTheTopology() {
-  channel_manager_->RemoveChangeListener(change_conn_);
-  channel_manager_->Leave(this->role_attr_, proto::RoleType::ROLE_READER);
-}
-
-template <typename MessageT>
-void Reader<MessageT>::OnChannelChange(const proto::ChangeMsg& change_msg) {
-  if (change_msg.role_type() != proto::RoleType::ROLE_WRITER) {
-    return;
-  }
-
-  auto& writer_attr = change_msg.role_attr();
-  if (writer_attr.channel_name() != this->role_attr_.channel_name()) {
-    return;
-  }
-
-  auto operate_type = change_msg.operate_type();
-  if (operate_type == proto::OperateType::OPT_JOIN) {
-    receiver_->Enable(writer_attr);
-  } else {
-    receiver_->Disable(writer_attr);
-  }
+  endpoint_.reset();
 }
 
 template <typename MessageT>
 bool Reader<MessageT>::HasReceived() const {
-  return !blocker_->IsPublishedEmpty();
+  std::lock_guard<std::mutex> lock(mutex_);
+  return !published_queue_.empty();
 }
 
 template <typename MessageT>
 bool Reader<MessageT>::Empty() const {
-  return blocker_->IsObservedEmpty();
+  std::lock_guard<std::mutex> lock(mutex_);
+  return observed_queue_.empty();
 }
 
 template <typename MessageT>
 double Reader<MessageT>::GetDelaySec() const {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (latest_recv_time_sec_ < 0) {
     return -1.0;
   }
@@ -398,50 +210,61 @@ uint32_t Reader<MessageT>::PendingQueueSize() const {
 
 template <typename MessageT>
 std::shared_ptr<MessageT> Reader<MessageT>::GetLatestObserved() const {
-  return blocker_->GetLatestObservedPtr();
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (observed_queue_.empty()) {
+    return nullptr;
+  }
+  return observed_queue_.front();
 }
 
 template <typename MessageT>
 std::shared_ptr<MessageT> Reader<MessageT>::GetOldestObserved() const {
-  return blocker_->GetOldestObservedPtr();
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (observed_queue_.empty()) {
+    return nullptr;
+  }
+  return observed_queue_.back();
 }
 
 template <typename MessageT>
 void Reader<MessageT>::ClearData() {
-  blocker_->ClearPublished();
-  blocker_->ClearObserved();
+  std::lock_guard<std::mutex> lock(mutex_);
+  published_queue_.clear();
+  observed_queue_.clear();
 }
 
 template <typename MessageT>
 void Reader<MessageT>::SetHistoryDepth(const uint32_t& depth) {
-  blocker_->set_capacity(depth);
+  std::lock_guard<std::mutex> lock(mutex_);
+  history_depth_ = std::max<uint32_t>(depth, 1);
+  while (published_queue_.size() > history_depth_) {
+    published_queue_.pop_back();
+  }
+  while (observed_queue_.size() > history_depth_) {
+    observed_queue_.pop_back();
+  }
 }
 
 template <typename MessageT>
 uint32_t Reader<MessageT>::GetHistoryDepth() const {
-  return static_cast<uint32_t>(blocker_->capacity());
+  std::lock_guard<std::mutex> lock(mutex_);
+  return history_depth_;
 }
 
 template <typename MessageT>
 bool Reader<MessageT>::HasWriter() {
-  if (!init_.load()) {
+  if (!init_.load() || !endpoint_) {
     return false;
   }
-
-  return channel_manager_->HasWriter(role_attr_.channel_name());
+  return endpoint_->PeerCount() > 0;
 }
 
 template <typename MessageT>
 void Reader<MessageT>::GetWriters(std::vector<proto::RoleAttributes>* writers) {
-  if (writers == nullptr) {
+  if (writers == nullptr || !init_.load() || !endpoint_) {
     return;
   }
-
-  if (!init_.load()) {
-    return;
-  }
-
-  channel_manager_->GetWritersOfChannel(role_attr_.channel_name(), writers);
+  endpoint_->GetPeers(writers);
 }
 
 }  // namespace cyber

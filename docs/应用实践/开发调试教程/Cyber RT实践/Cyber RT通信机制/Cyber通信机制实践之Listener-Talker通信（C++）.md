@@ -1,26 +1,26 @@
-## 实验简介
+## Experiment Overview
 
-构建一个简单的通信流程，发送方通过 Cyber 的 Node 创建 Writer，接受方通过 Cyber 的 Node 创建 Reader，发送方实时发送车辆的速度，接受方将接受到的车辆速度进行打印。
+Build a simple communication flow: the sender creates a Writer through a Cyber Node, the receiver creates a Reader through a Cyber Node, the sender sends the vehicle speed in real time, and the receiver prints the received vehicle speed.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_9baa590.png)
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/37
 
-## 实验目的
+## Experiment Objectives
 
-通过 Cyber 的发布-订阅机制，实现一个节点发布消息，另一个节点订阅并接收该消息，了解 cyber 的基础通信知识。
+Through Cyber's publish-subscribe mechanism, implement one node that publishes messages and another node that subscribes to and receives them, in order to learn the basics of cyber communication.
 
-## 前置条件
+## Prerequisites
 
-本实验需要您对 C++ 代码有一定的了解。
+This experiment requires some understanding of C++ code.
 
-## 实践流程
+## Practice Procedure
 
-### 1. 编写代码
+### 1. Write the Code
 
-1. 创建代码结构目录。
+1. Create the code directory structure.
    
    ```bash
    buildtool create --template component communication
@@ -28,15 +28,15 @@ https://apollo.baidu.com/community/course/37
    touch /apollo_workspace/communication/talker.cc
    ```
    
-   检验目录结构是否正确。
+   Check that the directory structure is correct.
    
-   输入指令：
+   Enter the command:
    
    ```bash
    tree communication/
    ```
    
-   目录结构：
+   Directory structure:
    
    ```bash
    communication
@@ -51,21 +51,21 @@ https://apollo.baidu.com/community/course/37
     │   └── communication.dag
     ├── launch
     │   └── communication.launch
-    ├── listener.cc <必须有>
-    ├── proto <必须有>
-    │   ├── BUILD <必须有>
-    │   └── communication.proto <必须有>
-    └── talker.cc <必须有>
+    ├── listener.cc <required>
+    ├── proto <required>
+    │   ├── BUILD <required>
+    │   └── communication.proto <required>
+    └── talker.cc <required>
    ```
 
-2. 定义此次通信消息的数据结构，编写`proto/communication.proto`文件，内容如下：
+2. Define the data structure of the communication message by writing the `proto/communication.proto` file with the following content:
    
    ```bash
    syntax = "proto2";
    
    package apollo.communication.proto;
    
-    //定义一个车的消息，车的型号，车主，车的车牌号,已跑公里数,车速
+    // Define a car message: car model, owner, license plate number, kilometers driven, and speed
     message Car{
         optional string plate = 1;
         optional string type = 2;
@@ -75,31 +75,31 @@ https://apollo.baidu.com/community/course/37
     };
    ```
 
-3. 编写发送方 talker 代码，talker.cc 代码如下：
+3. Write the sender talker code. The talker.cc code is as follows:
    
    ```bash
    #include "communication/proto/communication.pb.h"
     #include "cyber/cyber.h"
     #include "cyber/time/rate.h"
    
-    //car数据定义的引用，可以看出其定义来源于一个proto
+    // Reference to the car data definition; as you can see, its definition comes from a proto
     using apollo::communication::proto::Car;
    
     int main(int argc, char *argv[]) {
-      // 初始化一个cyber框架
+      // Initialize the cyber framework
       apollo::cyber::Init(argv[0]);
-      // 创建talker节点
+      // Create the talker node
       auto talker_node = apollo::cyber::CreateNode("talker");
-      // 从节点创建一个Topic,来实现对车速的查看
+      // Create a Topic from the node to publish the vehicle speed
       auto talker = talker_node->CreateWriter<Car>("car_speed");
       AINFO << "I'll start telling you the current speed of the car.";
    
-      //设置初始速度为0，然后速度每秒增加5km/h
+      // Set the initial speed to 0, then increase the speed by 5 km/h every second
       uint64_t speed = 0;
       while (apollo::cyber::OK()) {
           auto msg = std::make_shared<Car>();
           msg->set_speed(speed);
-          //假设车速持续增加
+          // Assume the vehicle speed keeps increasing
           speed += 5;
           talker->Write(msg);
           sleep(1);
@@ -108,7 +108,7 @@ https://apollo.baidu.com/community/course/37
     }
    ```
 
-4. 编写接受方 listener 代码，listener.cc 代码如下：
+4. Write the receiver listener code. The listener.cc code is as follows:
    
    ```bash
    #include "communication/proto/communication.pb.h"
@@ -116,18 +116,18 @@ https://apollo.baidu.com/community/course/37
    
     using apollo::communication::proto::Car;
    
-    //接收到消息后的响应函数
+    // Callback function invoked after a message is received
     void message_callback(
             const std::shared_ptr<Car>& msg) {
         AINFO << "now speed is: " << msg->speed();
     }
    
     int main(int argc, char* argv[]) {
-        //初始化cyber框架
+        // Initialize the cyber framework
         apollo::cyber::Init(argv[0]);
-        //创建监听节点
+        // Create the listener node
         auto listener_node = apollo::cyber::CreateNode("listener");
-        //创建监听响应进行消息读取
+        // Create a listener reader to read messages
         auto listener = listener_node->CreateReader<Car>(
                 "car_speed", message_callback);
         apollo::cyber::WaitForShutdown();
@@ -135,7 +135,7 @@ https://apollo.baidu.com/community/course/37
     }
    ```
 
-5. 修改 BUILD 文件，将新写的代码加入到编译中，`communication/BUILD`文件修改如下：
+5. Modify the BUILD file to add the newly written code to the build. Modify the `communication/BUILD` file as follows:
    
    ```bash
        load("//tools:apollo_package.bzl", "apollo_cc_library", "apollo_cc_binary", "apollo_package", "apollo_component")
@@ -167,52 +167,52 @@ https://apollo.baidu.com/community/course/37
     cpplint()
    ```
 
-### 2. 编译程序
+### 2. Compile the Program
 
 ```bash
-//回到 /apollo_workspace目录下编译
+//Go back to the /apollo_workspace directory to compile
 cd /apollo_workspace
 buildtool build -p communication
 ```
 
-编译成功后显示如下信息：
+After a successful build, the following information is displayed:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_ff7ffc5.png)
 
-### 3. 运行通信程序
+### 3. Run the Communication Programs
 
-#### 1. 运行 talker 程序
+#### 1. Run the talker program
 
-打开新的终端，执行以下命令。
+Open a new terminal and run the following commands.
 
 ```bash
-// 设置将输出结果到控制台
+// Output results to the console
 export GLOG_alsologtostderr=1
-// 编译产生的可执行文件在 /opt/apollo/neo/bin/
+// The executable generated by the build is in /opt/apollo/neo/bin/
 cd /opt/apollo/neo/bin/
-// 执行talker
+// Run talker
 ./talker
 ```
 
-#### 2. 运行 listener 程序
+#### 2. Run the listener program
 
-再次打开一个新的终端，执行以下命令。
+Open another new terminal and run the following commands.
 
 ```bash
-// 设置将输出结果到控制台
+// Output results to the console
 export GLOG_alsologtostderr=1
-// 编译产生的可执行文件在 /opt/apollo/neo/bin/
+// The executable generated by the build is in /opt/apollo/neo/bin/
 cd /opt/apollo/neo/bin/
-// 执行listener
+// Run listener
 ./listener
 ```
 
-### 4. 运行结果
+### 4. Results
 
-talker 会一直给 listener 发送实时速度信息。
+The talker keeps sending real-time speed information to the listener.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_151fd6c.png)
 
-listener 收到后会将速度输出到控制台。
+After receiving it, the listener prints the speed to the console.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a5150d7.png)

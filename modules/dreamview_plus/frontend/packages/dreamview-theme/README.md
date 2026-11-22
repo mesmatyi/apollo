@@ -1,7 +1,7 @@
 ## @dreamview/dreamview-theme
-##### 1、dreamview-theme是什么
-dreamview-theme是dreamview主题样式变量的全集，赋予每一个变量一种语义，在开发过程中避免直接使用css样式，以达到统一管理样式的目的
-##### 2、Usage
+##### 1. What is dreamview-theme
+dreamview-theme is the complete set of Dreamview theme style variables. Each variable is given a semantic meaning, so that raw CSS styles can be avoided during development and styles are managed in a unified way.
+##### 2. Usage
 ```
 import {Provider as ThemeProvider, makeStyles} from '@dreamview/dreamview-theme';
 
@@ -26,8 +26,8 @@ function App(){
     )
 }
 ```
-##### 3、自定义主题
-通过替换tokens的变量的值达到替换主题的效果
+##### 3. Custom themes
+A theme is replaced by overriding the values of the tokens variables.
 ```
 import {Provider as ThemeProvider, makeStyles} from '@dreamview/dreamview-theme';
 
@@ -58,11 +58,11 @@ function App(){
     )
 }
 ```
-##### 4、使用components，dremview-colors中提供了一部分定义好的样式的合集，包含了组件样式和部分功能样式，正在完善中，我们称为components
+##### 4. Using components. dremview-colors provides a collection of predefined styles, including component styles and some functional styles. It is still being improved, and we call it components
 ```
 import {Provider as ThemeProvider, makeStyles} from '@dreamview/dreamview-theme';
 
-// 这里以button组件样式为例
+// Here the button component style is used as an example
 const useStyle = makeStyles((theme) => {
     root: theme.components.button.primary,
 })
@@ -81,29 +81,28 @@ function App(){
     )
 }
 ```
-##### 5、开发
+##### 5. Development
 ```
 ├── README.md
-├── createStyles.tsx // 创建provider和context
-├── main.ts // 入口文件
+├── createStyles.tsx // Creates the provider and context
+├── main.ts // Entry file
 ├── scripts
-│   └── generateType.js // 生成类型定义的脚本
-├── tokens // 变量合集
-│   ├── baseToken // 基础变量
-│   │   ├── allColors.js // 主题色的全集
-│   │   ├── colors.ts // 把每个主题色衍生出10个与之颜色相近的颜色
-│   │   ├── index.ts // 基础变量
+│   └── generateType.js // Script that generates type definitions
+├── tokens // Collection of variables
+│   ├── baseToken // Base variables
+│   │   ├── allColors.js // Complete set of theme colors
+│   │   ├── colors.ts // Derives 10 similar colors from each theme color
+│   │   ├── index.ts // Base variables
 │   │   └── type.ts // 
 │   └── components // components
-│       ├── button.ts // button组件的样式
+│       ├── button.ts // Styles of the button component
 │       └── index.ts
 ```
-- 增加主题色
-	1. 在allColors.js中增加主题色
-	2. 运行命令生成类型文件yarn lerna run generate:types --scope=@dreamview/dreamview-theme
-- 修改/增加/删除基础变量
-	1. 修改tokens/baseToke/index.ts文件即可
-- 增加一组样式的合集
-	1. 在tokens/components下创建文件夹编写自己的样式合集
-	2. 在tokens/components/index.ts中导出你创建的文件
-
+- Add a theme color
+	1. Add the theme color in allColors.js
+	2. Run the command to generate the type file: yarn lerna run generate:types --scope=@dreamview/dreamview-theme
+- Modify/add/delete base variables
+	1. Just modify the tokens/baseToke/index.ts file
+- Add a collection of styles
+	1. Create a folder under tokens/components and write your own style collection
+	2. Export the folder you created in tokens/components/index.ts

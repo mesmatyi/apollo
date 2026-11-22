@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+# ****************************************************************************
+# Copyright 2026 The Apollo Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ****************************************************************************
+"""cyber_launch on ROS 2: runs cyber_launch XML files (and dag files) with
+`ros2 launch`.
+
+    cyber_launch start <file.launch|file.dag|file.launch.py> [launch args...]
+    cyber_launch stop [<file.launch>]
+    cyber_launch convert <file.launch|file.dag> [-o <out.launch.py>]
+
+`start` converts the file on the fly with tools/ros2/dag2launch.py when the
+converter can be found (in $APOLLO_ROOT, the checkout holding this script or
+the launch file, or /apollo), otherwise it runs the generated launch file next
+to it (P/launch/bar.launch -> P/launch/bar.launch.py,
+P/dag/foo.dag -> P/launch/foo.dag.launch.py).  Extra arguments are passed to
+`ros2 launch`, e.g. `runner:=mainboard`.  See docs/ros2/launch.md.
+
+`stop` sends SIGINT to the matching `cyber_launch start` processes, which stop
+their `ros2 launch`; after a timeout it sends SIGTERM, which makes the wrapper
+kill the whole process group.
+"""
+
+import argparse
+import importlib.util
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+PROG = 'cyber_launch'
+# `ros2 launch` itself escalates SIGINT -> SIGTERM -> SIGKILL for its processes
+# (5 s each by default), so give it time before killing everything.
+STOP_TIMEOUT_SECS = 20
+
+
+def log(msg, *args):
+    print('[%s] %s' % (PROG, msg % args if args else msg), file=sys.stderr, flush=True)
+
+
+# -----------------------------------------------------------------------------
+# Locating files
+# -----------------------------------------------------------------------------
+
+def find_launch_file(name):
+    """Resolves a launch file like the Cyber cyber_launch did ($APOLLO_LAUNCH_PATH,
+    default /apollo), plus $APOLLO_ROOT for /apollo/... paths."""
+    if os.path.isfile(name):
+        return os.path.abspath(name)
+    apollo_root = os.environ.get('APOLLO_ROOT')
+    candidates = [os.path.join(os.environ.get('APOLLO_LAUNCH_PATH') or '/apollo', name)]
+    if apollo_root:
+        if name.startswith('/apollo/'):
+            candidates.append(os.path.join(apollo_root, name[len('/apollo/'):]))
+        elif not os.path.isabs(name):
+            candidates.append(os.path.join(apollo_root, name))
+    for path in candidates:
+        if os.path.isfile(path):
+            return os.path.abspath(path)
+    return None
+
+
+def _checkout_roots(launch_file=None):
+    roots = []
+    if os.environ.get('APOLLO_ROOT'):
+        roots.append(os.environ['APOLLO_ROOT'])
+    # this script lives in <root>/cyber/tools/cyber_launch/
+    here = os.path.dirname(os.path.realpath(__file__))
+    roots.append(os.path.normpath(os.path.join(here, os.pardir, os.pardir, os.pardir)))
+    if launch_file:
+        d = os.path.dirname(os.path.abspath(launch_file))
+        while d != os.path.dirname(d):
+            roots.append(d)
+            d = os.path.dirname(d)
+    roots.append('/apollo')
+    return roots
+
+
+def load_converter(launch_file=None):
+    """Returns (dag2launch module, repository root) or (None, None)."""
+    seen = set()
+    for root in _checkout_roots(launch_file):
+        path = os.path.join(root, 'tools', 'ros2', 'dag2launch.py')
+        if path in seen or not os.path.isfile(path):
+            seen.add(path)
+            continue
+        spec = importlib.util.spec_from_file_location('dag2launch', path)
+        module = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(module)
+        except Exception as e:  # a broken checkout must not prevent the fallback
+            log('cannot import %s: %s', path, e)
+            continue
+        return module, os.path.dirname(os.path.dirname(os.path.dirname(path)))
+    return None, None
+
+
+def generated_launch_file(path):
+    """Mirror of dag2launch.output_path_for() for installs without the converter."""
+    directory, base = os.path.split(path)
+    name = base + ('.launch.py' if base.endswith('.dag') else '.py')
+    parent = os.path.basename(directory)
+    if parent == 'launch':
+        out_dir = directory
+    elif parent == 'dag':
+        out_dir = os.path.join(os.path.dirname(directory), 'launch')
+    else:
+        out_dir = os.path.join(directory, 'launch')
+    return os.path.join(out_dir, name)
+
+
+# -----------------------------------------------------------------------------
+# start
+# -----------------------------------------------------------------------------
+
+def prepare(launch_file, tmpdir):
+    """Returns the Python launch file to run for launch_file."""
+    if launch_file.endswith('.py'):
+        return launch_file
+    converter, root = load_converter(launch_file)
+    if converter is not None:
+        result = converter.Converter(root).convert(launch_file)
+        for msg in result.errors:
+            log('warning: %s', msg)
+        if result.content is None:
+            log('cannot convert %s: %s', launch_file, result.skipped)
+            return None
+        out = os.path.join(tmpdir, os.path.basename(result.output))
+        with open(out, 'w') as f:
+            f.write(result.content)
+        log('converted %s with %s', launch_file, os.path.join(root, converter.TOOL))
+        return out
+    generated = generated_launch_file(launch_file)
+    if os.path.isfile(generated):
+        log('using %s', generated)
+        return generated
+    log('no converter (tools/ros2/dag2launch.py) and no generated %s', generated)
+    return None
+
+
+def _child_setup():
+    # Own process group: a terminal Ctrl-C reaches only this wrapper, which
+    # forwards exactly one SIGINT.  `cmd &` in a non-interactive shell ignores
+    # SIGINT, and an ignored SIGINT would be inherited by `ros2 launch`.
+    os.setpgrp()
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+
+def start(launch_file, launch_args):
+    path = find_launch_file(launch_file)
+    if path is None:
+        log('Cannot find launch file: %s', launch_file)
+        return 1
+    ros2 = shutil.which('ros2')
+    if ros2 is None:
+        log('`ros2` not found: source the ROS 2 / Apollo environment first')
+        return 1
+    tmpdir = tempfile.mkdtemp(prefix='cyber_launch_')
+    try:
+        launch_py = prepare(path, tmpdir)
+        if launch_py is None:
+            return 1
+        cmd = [ros2, 'launch', launch_py] + list(launch_args)
+        log('Launch file [%s]: %s', path, ' '.join(cmd))
+        child = subprocess.Popen(cmd, preexec_fn=_child_setup)
+        stopping = []
+
+        def forward(sig, _frame):
+            # `ros2 launch` only shuts down cleanly on SIGINT (SIGTERM kills it
+            # and orphans its processes), so every first stop request becomes
+            # one SIGINT; SIGTERM while stopping kills the process group.
+            try:
+                if not stopping:
+                    log('stopping (%s)', signal.Signals(sig).name)
+                    child.send_signal(signal.SIGINT)
+                elif sig == signal.SIGTERM:
+                    log('killing the launched processes (SIGKILL)')
+                    os.killpg(child.pid, signal.SIGKILL)
+                else:
+                    log('still stopping; send SIGTERM to kill everything')
+            except ProcessLookupError:
+                pass
+            stopping.append(sig)
+
+        signal.signal(signal.SIGINT, forward)
+        signal.signal(signal.SIGTERM, forward)
+        if signal.getsignal(signal.SIGHUP) != signal.SIG_IGN:  # not under nohup
+            signal.signal(signal.SIGHUP, forward)
+        code = child.wait()
+        log('ros2 launch exited with %d', code)
+        return code
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# -----------------------------------------------------------------------------
+# stop
+# -----------------------------------------------------------------------------
+
+def _processes():
+    """[(pid, ppid, argv)] of the running processes (Linux /proc)."""
+    procs = []
+    for entry in os.listdir('/proc'):
+        if not entry.isdigit():
+            continue
+        try:
+            with open('/proc/%s/cmdline' % entry, 'rb') as f:
+                argv = [a.decode('utf-8', 'replace') for a in f.read().split(b'\0') if a]
+            with open('/proc/%s/stat' % entry) as f:
+                ppid = int(f.read().rsplit(')', 1)[1].split()[1])
+        except (OSError, IndexError, ValueError):
+            continue
+        if argv:
+            procs.append((int(entry), ppid, argv))
+    return procs
+
+
+def _is_wrapper_start(argv):
+    for i, arg in enumerate(argv[:3]):
+        if os.path.basename(arg) in ('cyber_launch', 'cyber_launch.py'):
+            return 'start' in argv[i + 1:i + 2]
+    return False
+
+
+def _mentions(argv, launch_file):
+    if launch_file is None:
+        return True
+    real = find_launch_file(launch_file)
+    real = os.path.realpath(real) if real else None
+    for arg in argv:
+        if launch_file in arg:  # the old `pkill -f <file>` behaviour
+            return True
+        if real and os.path.exists(arg) and os.path.realpath(arg) == real:
+            return True
+    return False
+
+
+def _alive(pid):
+    try:
+        with open('/proc/%d/stat' % pid) as f:
+            return f.read().rsplit(')', 1)[1].split()[0] != 'Z'
+    except OSError:
+        return False
+
+
+def stop(launch_file=None):
+    if not os.path.isdir('/proc'):
+        pattern = launch_file or 'cyber_launch.* start'
+        return subprocess.call(['pkill', '-INT', '-f', pattern])
+    me = os.getpid()
+    procs = _processes()
+    wrappers = [pid for pid, _, argv in procs
+                if pid != me and _is_wrapper_start(argv) and _mentions(argv, launch_file)]
+    # `ros2 launch` of a generated file started without this wrapper
+    others = []
+    if launch_file:
+        name = os.path.basename(launch_file)
+        targets = {name + '.py', name + '.launch.py', name}
+        for pid, ppid, argv in procs:
+            if pid == me or ppid in wrappers or 'launch' not in argv:
+                continue
+            if any(os.path.basename(a) == 'ros2' for a in argv[:3]) and any(
+                    os.path.basename(a) in targets and a.endswith('.py') for a in argv):
+                others.append(pid)
+    victims = wrappers + others
+    if not victims:
+        log('no running cyber_launch%s', ' for %s' % launch_file if launch_file else '')
+        return 0
+    for pid in victims:
+        log('stopping pid %d', pid)
+        try:
+            os.kill(pid, signal.SIGINT)
+        except ProcessLookupError:
+            pass
+    deadline = time.time() + STOP_TIMEOUT_SECS
+    while time.time() < deadline and any(_alive(p) for p in victims):
+        time.sleep(0.2)
+    for pid in victims:
+        if _alive(pid):
+            # the wrapper kills its process group on SIGTERM; a bare
+            # `ros2 launch` only dies (its processes may be left behind)
+            log('pid %d did not exit after %ds, sending SIGTERM', pid, STOP_TIMEOUT_SECS)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+    log('Stop cyber launch finished.')
+    return 0
+
+
+# -----------------------------------------------------------------------------
+# convert
+# -----------------------------------------------------------------------------
+
+def convert(launch_file, output):
+    path = find_launch_file(launch_file)
+    if path is None:
+        log('Cannot find file: %s', launch_file)
+        return 1
+    converter, root = load_converter(path)
+    if converter is None:
+        log('tools/ros2/dag2launch.py not found (set APOLLO_ROOT to an Apollo checkout)')
+        return 1
+    return converter.main(['--root', root, path, '-o', output or '-'])
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog=PROG, description='cyber launcher (runs cyber_launch files with ros2 launch)')
+    sub = parser.add_subparsers(dest='command', metavar='{start,stop,convert}')
+    p = sub.add_parser('start', help='launch a .launch/.dag file (converted to ROS 2)')
+    p.add_argument('file', help='cyber_launch file, dag file or ROS 2 Python launch file')
+    p.add_argument('launch_args', nargs=argparse.REMAINDER,
+                   help='passed to ros2 launch, e.g. runner:=mainboard')
+    p = sub.add_parser('stop', help='stop the cyber_launch processes of a file (default: all)')
+    p.add_argument('file', nargs='?')
+    p = sub.add_parser('convert', help='print the ROS 2 launch file for a .launch/.dag file')
+    p.add_argument('file')
+    p.add_argument('-o', '--output', help="output file (default '-': stdout)")
+    args = parser.parse_args(argv)
+    if args.command == 'start':
+        return start(args.file, args.launch_args)
+    if args.command == 'stop':
+        return stop(args.file)
+    if args.command == 'convert':
+        return convert(args.file, args.output)
+    parser.print_help()
+    return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

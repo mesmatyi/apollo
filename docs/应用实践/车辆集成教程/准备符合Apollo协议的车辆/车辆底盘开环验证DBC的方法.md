@@ -1,138 +1,138 @@
-上一篇文档介绍了利用 Apollo 工具生成 CANBUS 适配代码。为了验证 CANBUS 适配代码的正确性，本文档介绍如何以车辆底盘开环的方式，验证 DBC 是否正常运行。
+The previous document described how to use Apollo tools to generate CANBUS adaptation code. To verify the correctness of the CANBUS adaptation code, this document describes how to verify whether the DBC runs properly by testing the vehicle chassis in open loop.
 
-## 前提条件
+## Prerequisites
 
-您需要先阅读以下内容：
+You need to read the following first:
 
-- [概览](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/概览.md)
+- [Overview](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/概览.md)
 
-- [符合 Apollo 线控标准的车辆](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/符合Apollo线控标准的车辆.md)
+- [Vehicles Conforming to the Apollo Drive-by-Wire Standard](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/符合Apollo线控标准的车辆.md)
 
-- [利用 Apollo 工具生成 CANBUS 适配代码](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/利用Apollo工具生成CANBUS适配代码.md)
+- [Generating CANBUS Adaptation Code with Apollo Tools](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/利用Apollo工具生成CANBUS适配代码.md)
 
-## 车辆底盘开环验证 DBC
+## Verifying the DBC with Open-Loop Vehicle Chassis Testing
 
-### 开环测试
+### Open-Loop Testing
 
-在确定了车辆底盘 DBC 后，对 DBC 内定义的信号进行开环测试。开环测试的主要目的是测试车辆线控信号与车辆的实际功能是否相符，测试车辆的转向、加减速性能响应是否满足车辆的线控需求，测试车辆接管逻辑是否满足要求。
+After the vehicle chassis DBC has been determined, carry out open-loop testing of the signals defined in the DBC. The main purposes of open-loop testing are to test whether the vehicle drive-by-wire signals match the actual functions of the vehicle, whether the vehicle's steering and acceleration/deceleration performance responses meet the vehicle's drive-by-wire requirements, and whether the vehicle takeover logic meets the requirements.
 
-底盘的开环单侧中，开发者要针对前文所述的DBC重点要求进行测试，如车辆横纵向使能独立性，横纵向接管的独立性，每个控制信号是否满足控制要求和控制边界，反馈信号是否反馈正确。在性能上，控制信号的转向和加减速延迟是否满足 Apollo 控制性能要求，超调误差是否在线控列表范围内。请根据线控列表内的性能要求，对控制信号进行测试。
+In the open-loop chassis testing, developers should test against the key DBC requirements described earlier, such as the independence of the vehicle's lateral and longitudinal enables, the independence of lateral and longitudinal takeover, whether every control signal meets the control requirements and control boundaries, and whether the feedback signals are fed back correctly. In terms of performance, check whether the steering and acceleration/deceleration delays of the control signals meet Apollo's control performance requirements, and whether the overshoot error is within the range given in the drive-by-wire list. Please test the control signals according to the performance requirements in the drive-by-wire list.
 
-### teleop 底盘联调测试
+### teleop Chassis Joint Debugging Test
 
-底盘联调测试就是通过将 Apollo 与车辆进行 canbus 通信后，测试 Apollo 下发控制信号（如：加速/减速/转向/使能等）是否能够准确控制车辆，测试车辆的底盘反馈信号（如：当前踏板百分比反馈/当前转角反馈/使能反馈/接管反馈等）是否与反馈了车辆的实际状态，验证 Apollo 下发的控制指令，车辆底盘能够准确执行。
+The chassis joint debugging test establishes canbus communication between Apollo and the vehicle, and then tests whether the control signals issued by Apollo (such as accelerate/decelerate/steer/enable) can accurately control the vehicle, whether the chassis feedback signals of the vehicle (such as current pedal percentage feedback, current steering angle feedback, enable feedback and takeover feedback) reflect the actual state of the vehicle, and verifies that the vehicle chassis can accurately execute the control commands issued by Apollo.
 
-下文介绍 teleop 测试工具。
+The teleop test tool is described below.
 
-#### teleop 测试工具
+#### teleop Test Tool
 
-Apollo 里提供了一个 teleop 的测试工具，在 `apollo/modules/canbus/tools/teleop.cc`，在 `term` 内输入以下命令：
+Apollo provides a teleop test tool at `apollo/modules/canbus/tools/teleop.cc`. Enter the following command in `term`:
 
 ```
 bash scripts/canbus_teleop.sh
 ```
 
-即可进入 teleop 界面，如下图所示：
+to enter the teleop interface, as shown in the figure below:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_531fa30.png)
 
-按 `h` 键，可以调出上图所示的帮助界面，可以查询 Teleop 工具的使用方法，下面简单对 teleop 各个控制指令介绍下。
+Press the `h` key to bring up the help screen shown above, which tells you how to use the Teleop tool. The teleop control commands are briefly introduced below.
 
-- **Set Action 执行 Apollo 对车辆的使能控制**
+- **Set Action: executes Apollo's enable control of the vehicle**
 
-  - 按 `m` 和 `0` 键组合，表示执行 reset 指令，车辆退出自动驾驶模式，
+  - Pressing `m` and `0` together executes the reset command, and the vehicle exits autonomous driving mode,
 
-  - 按 `m` 和 `1` 键组合，表示执行 start 指令，车辆进入自动驾驶模式。
+  - Pressing `m` and `1` together executes the start command, and the vehicle enters autonomous driving mode.
 
-- **Set Gear 表示设置档位，按 `g` 和 `数字` 组合，进行相应档位设置**
+- **Set Gear sets the gear; press `g` together with a `number` to set the corresponding gear**
 
-  - 按 `g`+`0` 挂入 N 档（空挡），
+  - Press `g`+`0` to shift into N (neutral),
 
-  - 按 `g`+`1` 挂入 D 档（前进挡），
+  - Press `g`+`1` to shift into D (drive),
 
-  - 按 `g`+`2` 挂入 R 档（倒车档），
+  - Press `g`+`2` to shift into R (reverse),
 
-  - 按 `g`+`3` 挂入 P 档（驻车档），
+  - Press `g`+`3` to shift into P (park),
 
-  其它档位控制指令暂不需要，根据 DBC 要求，一般车辆控制档位指令就这几个。
+  Other gear control commands are not needed for now; according to the DBC requirements, a typical vehicle's gear control commands are just these.
 
-- **Throttle/Speed up 表示每次增加油门踏板量 2%，车辆加速**
+- **Throttle/Speed up increases the throttle pedal by 2% each time, accelerating the vehicle**
 
-  按 `w` 键增加油门踏板 2%，使车辆加速。如果当前已经执行 brake 刹车指令，按 `w` 表示减少刹车踏板量 2%。
+  Press the `w` key to increase the throttle pedal by 2% and accelerate the vehicle. If a brake command is currently being executed, pressing `w` reduces the brake pedal amount by 2%.
 
-  油门踏板量的控制范围是 0~100%，即 100% 时相当于油门踏板全部踩下。默认每按 `w` 键一次，油门踏板量增加 2%，这个值您可以根据实车测试进行修改。根据经验，每次变化 2% 比较合适。
+  The throttle pedal control range is 0 to 100%, where 100% is equivalent to the throttle pedal being fully depressed. By default, each press of the `w` key increases the throttle pedal by 2%; you can change this value according to real-vehicle testing. Based on experience, a change of 2% each time is appropriate.
 
-  > 注意：请先用 teleop 执行挂 D 档后再执行加油命令，请在开放场地测试，注意安全。
+  > Note: Please first use teleop to shift into D before executing the throttle command, test in an open area, and pay attention to safety.
 
-- **Set Throttle 设置油门踏板百分比**
+- **Set Throttle sets the throttle pedal percentage**
 
-  按 `t`+`数字` 可以直接设置具体的油门踏板百分比，油门踏板可设置的百分比数为 0~100。如执行 t20，表示直接设置当前油门踏板量为 20%，并将刹车踏板百分比置为 0，这一点与实际开车逻辑一致，如果踩下油门踏板，就不能踩刹车踏板。
+  Press `t`+`number` to directly set a specific throttle pedal percentage; the throttle pedal can be set to a percentage from 0 to 100. For example, executing t20 directly sets the current throttle pedal amount to 20% and sets the brake pedal percentage to 0, which is consistent with real driving logic: if the throttle pedal is pressed, the brake pedal cannot be pressed.
 
-  > 注意：直接设置油门踏板百分比时，注意每次不要设置太大，开放场地测试，注意安全。请在车辆为 D 档状态下执行该命令。
+  > Note: When directly setting the throttle pedal percentage, do not set too large a value each time, test in an open area, and pay attention to safety. Execute this command with the vehicle in D.
 
-- **Brake/Speed down 表示每次增加油门踏板量 2%，车辆加速**
+- **Brake/Speed down increases the throttle pedal amount by 2% each time, accelerating the vehicle**
 
-  按 `s` 键增加刹车踏板百分比，使车辆减速。如当前已经执行 throttle 加速指令，按 `s` 键表示减少油门踏板百分比。
+  Press the `s` key to increase the brake pedal percentage and decelerate the vehicle. If a throttle acceleration command is currently being executed, pressing the `s` key reduces the throttle pedal percentage.
 
-  > 注意：请先用 teleop 执行挂 D 档后再执行加油命令，请在开放场地测试，注意安全。
+  > Note: Please first use teleop to shift into D before executing the throttle command, test in an open area, and pay attention to safety.
 
-- **Set Brake 设置刹车踏板百分比**
+- **Set Brake sets the brake pedal percentage**
 
-  按 `b`+`数字` 可以直接设置具体的刹车踏板百分比，刹车踏板可设置的百分比数为 0~100。如执行 b20，表示直接设置当前刹车踏板量为 20%，并将油门踏板百分比置为 0，这一点与实际开车逻辑一致，如果踩下刹车踏板，就不能踩油门踏板。
+  Press `b`+`number` to directly set a specific brake pedal percentage; the brake pedal can be set to a percentage from 0 to 100. For example, executing b20 directly sets the current brake pedal amount to 20% and sets the throttle pedal percentage to 0, which is consistent with real driving logic: if the brake pedal is pressed, the throttle pedal cannot be pressed.
 
-  > 注意：直接设置油门踏板百分比时，注意每次不要设置太大，开放场地测试，注意安全。请在车辆为 D 档状态下执行该命令。
+  > Note: When directly setting the throttle pedal percentage, do not set too large a value each time, test in an open area, and pay attention to safety. Execute this command with the vehicle in D.
 
-- **Steer LEFT 表示方向盘每次向左转 2%**
+- **Steer LEFT turns the steering wheel left by 2% each time**
 
-  按 `a` 键表示每次向左转2%的方向盘最大转角，具体转动角度应根据车辆设置的最大方向盘转角乘以 2% 进行换算。
+  Press the `a` key to turn left by 2% of the maximum steering wheel angle each time; the actual rotation angle is obtained by multiplying the maximum steering wheel angle set for the vehicle by 2%.
 
-  该指令执行可以在车辆静止时执行，也可以在车辆启动后执行。
+  This command can be executed while the vehicle is stationary or after the vehicle has started.
 
-- **Steer RIGHT 表示方向盘每次向右转 2%**
+- **Steer RIGHT turns the steering wheel right by 2% each time**
 
-  按 `s` 键表示每次向右转 2% 的方向盘最大转角，具体转动角度应根据车辆设置的最大方向盘转角乘以 2% 进行换算。
+  Press the `s` key to turn right by 2% of the maximum steering wheel angle each time; the actual rotation angle is obtained by multiplying the maximum steering wheel angle set for the vehicle by 2%.
 
-  该指令执行可以在车辆静止时执行，也可以在车辆启动后执行。
+  This command can be executed while the vehicle is stationary or after the vehicle has started.
 
-- **Parking Brake 打开电子手刹**
+- **Parking Brake turns on the electronic parking brake**
 
-  按 `P` 键（注意是大写 P）可以手动控制车辆电子手刹开关。这个功能根据车辆的是否提供了电子手刹的控制接口而实现。
+  Press the `P` key (note the uppercase P) to manually switch the vehicle's electronic parking brake on or off. This function works depending on whether the vehicle provides a control interface for the electronic parking brake.
 
-  > 注意：执行电子手刹开启或释放时，请将车辆用 teleop 设置为 P 档状态。
+  > Note: When applying or releasing the electronic parking brake, use teleop to put the vehicle in P.
 
-- **Emergency Stop 紧急停车**
+- **Emergency Stop**
 
-  按 `E` 键（注意是大写 E）可以进行车辆紧急停车，默认执行 50% 刹车。
+  Press the `E` key (note the uppercase E) to perform an emergency stop of the vehicle, which applies 50% braking by default.
 
-  建议您在测试时尽量少用此功能，体感差，调试车辆时多注意周围情况。发生突发情况时及时用外接踩刹车踏板的方式进行手动接管车辆。
+  It is recommended to use this function as little as possible during testing, as it feels poor. Pay attention to the surroundings when debugging the vehicle. In case of an emergency, take over the vehicle manually in time by stepping on the brake pedal with an external pedal.
 
-#### 诊断工具
+#### Diagnostic Tools
 
-了解 teleop 的基本操作后，根据相应的指令，对车辆执行具体的控制命令，然后通过 Apollo 的可视化监控工具 `cyber_monitor` 查看车辆当前的反馈信号，确认控制下发后车辆的执行结果是否正确。
+After understanding the basic operation of teleop, execute specific control commands on the vehicle with the corresponding instructions, then use Apollo's visual monitoring tool `cyber_monitor` to view the vehicle's current feedback signals and confirm whether the vehicle's execution result is correct after the control command is issued.
 
-在 Apollo 里提供了一个可视化的监控工具，可以用来监控底盘 `chassis` 和 `chassis_detail` 信息，通过执行：
+Apollo provides a visual monitoring tool that can monitor the chassis `chassis` and `chassis_detail` information. Run:
 
 ```
 cyber_monitor
 ```
 
-在 `apollo/modules/canbus/conf/canbus.conf` 文件内：
-修改配置 `--noenable_chassis_detail_pub` 为 `--enable_chassis_detail_pub`，表示在打开 `chassis_detail` 底盘详细信息，即可以查看底盘反馈信号的每一帧报文原始信息。
+In the file `apollo/modules/canbus/conf/canbus.conf`:
+Change the configuration `--noenable_chassis_detail_pub` to `--enable_chassis_detail_pub`, which turns on `chassis_detail` chassis detail information, so that the original information of every message frame of the chassis feedback signals can be viewed.
 
-修改配置 `--receive_guardian` 为 `--noreceive_guardian`，即可以关闭 guardian 模式，进入 canbus 的调试模式，这样 teleop 时就能够控制车辆了。如下图所示是修改 `canbus_conf` 配置文件。
+Change the configuration `--receive_guardian` to `--noreceive_guardian`, which turns off guardian mode and enters canbus debugging mode, so that the vehicle can be controlled during teleop. The figure below shows the modified `canbus_conf` configuration file.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_0f6580b.png)
 
-打开 `cyber_monitor` 界面如下：
+The `cyber_monitor` interface opens as follows:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_15359f3.png)
 
-可以看到 `chassis` 和 `chassis_detail` 均有数据，频率约 100Hz。`chassis` 下数据主要是车辆的实际转速、实际踏板百分比的反馈，实际方向盘转角百分比，实际档位反馈等信息，在 `chassis_detail` 是底盘上传给 Apollo 的反馈报文（即 Apollo 接收底盘全部报文）的全部信息。
-如下图所示为 `chassis` 信息：
+You can see that both `chassis` and `chassis_detail` have data, at a frequency of about 100 Hz. The data under `chassis` is mainly the vehicle's actual speed, the feedback of the actual pedal percentages, the actual steering wheel angle percentage, the actual gear feedback and so on, while `chassis_detail` holds all the information of the feedback messages uploaded by the chassis to Apollo (that is, all the messages Apollo receives from the chassis).
+The figure below shows the `chassis` information:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_5eae9f5.png)
 
-下图所示为 `chassis_detail` 信息：
+The figure below shows the `chassis_detail` information:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_5095afc.png)
 

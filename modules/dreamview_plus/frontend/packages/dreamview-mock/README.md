@@ -1,30 +1,30 @@
 # `dreamview-mock`
 
-> `dreamview-mock`是一个用于模拟Dreamview WebSocket服务器的Node.js模块。它提供了一个便捷的方法，使开发者能够快速添加自己的实际业务接口。
+> `dreamview-mock` is a Node.js module for simulating the Dreamview WebSocket server. It provides a convenient way for developers to quickly add their own real business interfaces.
 
 ## Usage
 
-在你的项目中，你可以直接使用dreamview-mock命令启动模拟服务器：
+In your project, you can start the mock server directly with the dreamview-mock command:
 ```bash
 yarn lerna run dreamview-mock
 ```
-服务器会自动启动，并监听指定的端口。
+The server starts automatically and listens on the specified port.
 
 ## Capacity
-`dreamview-mock`提供了两种通讯方式：
+`dreamview-mock` provides two communication modes:
 
-发布订阅模式：当客户端连接到服务器时，可以向服务器发送subscribe消息来订阅某种类型的数据。服务器会定时向所有已订阅的客户端发送这种类型的数据。客户端也可以发送unsubscribe消息来取消订阅。
+Publish-subscribe mode: after a client connects to the server, it can send a subscribe message to subscribe to a certain type of data. The server periodically sends this type of data to all subscribed clients. A client can also send an unsubscribe message to cancel the subscription.
 
-请求响应模式：客户端可以发送带有requestId的请求，服务器会在响应中返回相同的requestId。这模拟了类似HTTP的请求响应模式。
+Request-response mode: a client can send a request carrying a requestId, and the server returns the same requestId in its response. This simulates an HTTP-like request-response pattern.
 
 # `dreamview-recorder`
 
-> `dreamview-recorder`是一个用于记录Dreamview WebSocket服务器数据的Node.js模块。它提供了一个便捷的方法，使开发者能够快速记录自己的实际业务接口。
+> `dreamview-recorder` is a Node.js module for recording data from the Dreamview WebSocket server. It provides a convenient way for developers to quickly record their own real business interfaces.
 
 ## Usage
 
-命令行工具：
+Command-line tool:
 ```bash
-// 查看帮助
+// Show help
 yarn workspace @dreamview/dreamview-mock dreamview-record -H
 ```

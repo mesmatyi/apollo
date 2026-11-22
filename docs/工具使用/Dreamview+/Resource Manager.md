@@ -1,104 +1,104 @@
-- 如果您没有登录，请您根据页面提示先登录。
-- 如果您已经登录，请您按照以下方式操作。
+- If you are not logged in, please log in first as prompted on the page.
+- If you are already logged in, please proceed as follows.
 
-## Records/数据包
+## Records
 
-系统提供的数据包，您可以根据需要下载到本地使用。
+Data packages provided by the system, which you can download to the local machine for use as needed.
 
-### 查看数据包类型
+### View Data Package Types
 
-数据类型：Oﬃcial、Personal。
+Data types: Official, Personal.
 
-### 下载数据包
+### Download a Data Package
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_8c07291.png)
 
-### 查看数据包状态
+### View Data Package Status
 
-数据包的状态包括待下载，下载中，下载成功，下载失败。您可以查看您想要使用的数据包状态：
+The status of a data package can be: waiting to download, downloading, downloaded successfully, or download failed. You can check the status of the data package you want to use:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_58f1e3f.png)
 
-### 取消下载数据包
+### Cancel Downloading a Data Package
 
-如果不需要下载中的数据包，点击 **Cancel Download/取消下载**：
+If you do not need a data package that is downloading, click **Cancel Download**:
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_4aa1275.png)
 
-### 删除数据包
+### Delete a Data Package
 
-您可以点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_bf95e99.png)图标删除不需要的数据包：
+You can click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_bf95e99.png) icon to delete data packages you do not need:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_c1ea1ea.png)
 
-## Scenarios/场景
+## Scenarios
 
-云端的场景集，您可以根据需要下载到本地使用，或进行更新。
+Cloud scenario sets, which you can download to the local machine for use or update as needed.
 
-### 下载场景集
+### Download a Scenario Set
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_e52e3f7.png)图标下载云端场景集：
+Click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_e52e3f7.png) icon to download a cloud scenario set:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_22505ab.png)
 
-### 更新场景集
+### Update a Scenario Set
 
-### 查看场景集下载状态
+### View Scenario Set Download Status
 
-场景集的状态包括待下载，下载中，下载成功，下载失败。您可以查看您想要使用的场景集的状态：
+The status of a scenario set can be: waiting to download, downloading, downloaded successfully, or download failed. You can check the status of the scenario set you want to use:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_cca1446.png)
 
-## Vehicle/车辆
+## Vehicle
 
-系统提供的车辆，可在 [Apollo Studio](https://apollo.baidu.com/workspace/fuel/vehicle) 中申请使用权限。
+Vehicles provided by the system. You can apply for permission to use them in [Apollo Studio](https://apollo.baidu.com/workspace/fuel/vehicle).
 
 <!--
-系统提供的车辆，系统提供 2 个车辆（即Lincoln2017 MKZLGSVL、MKZ），您还可以从云端下载到已购买的车辆，
+Vehicles provided by the system. The system provides 2 vehicles (namely Lincoln2017 MKZLGSVL and MKZ), and you can also download purchased vehicles from the cloud,
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_a5b6917.png)-->
 
-### 上传车辆配置
+### Upload a Vehicle Configuration
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_2961dee.png)图标上传车辆配置文件到云端：
+Click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_2961dee.png) icon to upload a vehicle configuration file to the cloud:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_bde1379.png)
 
-### 下载车辆配置
+### Download a Vehicle Configuration
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_1bb6c4e.png)下载车辆配置：
+Click ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_1bb6c4e.png) to download a vehicle configuration:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_e7eac0b.png)
 
-### 更新车辆配置
+### Update a Vehicle Configuration
 
-点击 **To be updated** 重新获取车辆配置文件：
+Click **To be updated** to fetch the vehicle configuration file again:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_60aee4b.png)
 
-### 删除车辆配置
+### Delete a Vehicle Configuration
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_9100388.png)图标删除车辆配置文件。
+Click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_9100388.png) icon to delete a vehicle configuration file.
 
 ## V2X
 
-云端的 V2X，您可以根据需要下载并获取云端绑定注册的所有 V2X 设备并按需对 V2X 配置进行更新。
-资源面向商业用户开放，可在 [Apollo Studio](https://apollo.baidu.com/workspace/fuel/vehicle) 中申请使用权限。
+Cloud V2X: you can download and obtain all V2X devices bound and registered in the cloud as needed, and update the V2X configuration on demand.
+This resource is open to commercial users. You can apply for permission to use it in [Apollo Studio](https://apollo.baidu.com/workspace/fuel/vehicle).
 
-### 查看 V2X 状态
+### View V2X Status
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_0e6d966.png)
 
-### 上传 V2X 配置
+### Upload a V2X Configuration
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_043c323.png)图标上传 V2X 配置文件。
+Click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_043c323.png) icon to upload a V2X configuration file.
 
-### 下载 V2X 配置
+### Download a V2X Configuration
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_4ff7a17.png)图标下载 V2X 配置文件。
+Click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_4ff7a17.png) icon to download a V2X configuration file.
 
-### 删除 V2X 配置
+### Delete a V2X Configuration
 
-点击![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_e8d939d.png)图标删除 V2X 配置文件。
+Click the ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_e8d939d.png) icon to delete a V2X configuration file.
 
-### 更新 V2X 配置
+### Update a V2X Configuration
 
-点击 **To be updated** 重新获取 V2X 配置文件。
+Click **To be updated** to fetch the V2X configuration file again.

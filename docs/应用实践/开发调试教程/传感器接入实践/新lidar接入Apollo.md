@@ -1,120 +1,120 @@
-## 激光雷达接入要求
+## LiDAR Integration Requirements
 
-Apollo 自动驾驶开放平台主要为园区、教育、低速场景提供完整的解决方案。Apollo 以激光雷达为主，支持市场中主流的机械、半固态激光雷达方案。目前 Apollo 已经支持禾赛、速腾、镭神、Velodyne、法雷奥、LeddarTech 等品牌的部分激光雷达接入。
+The Apollo autonomous driving open platform mainly provides complete solutions for campus, education and low-speed scenarios. Apollo is LiDAR-centric and supports the mainstream mechanical and semi-solid-state LiDAR solutions on the market. Apollo currently supports the integration of some LiDARs from brands such as Hesai, RoboSense, LSLIDAR, Velodyne, Valeo and LeddarTech.
 
-激光雷达的发展日新月异，设备厂商开发出更多、更好、更具性价比的激光雷达，为了帮助厂商更快建立激光雷达测试环境，帮助开发者使用最新的激光雷达，本指导手册详细说明了Apollo激光雷达驱动开发、驱动测试、驱动代码贡献的方法。
+LiDAR technology is developing rapidly, and device manufacturers keep developing more, better and more cost-effective LiDARs. To help manufacturers set up LiDAR test environments faster and help developers use the latest LiDARs, this guide describes in detail how to develop, test and contribute Apollo LiDAR drivers.
 
-## 激光雷达接入流程
+## LiDAR Integration Process
 
-### 驱动开发与测试
+### Driver Development and Testing
 
-- 根据本文指引，以及参考代码，完成激光雷达驱动开发；
+- Following this document and the reference code, complete the LiDAR driver development;
 
-- 调度、运行代码，确认驱动输出内容满足Apollo要求；
+- Schedule and run the code, and confirm that the driver output meets Apollo's requirements;
   
-  ### 成为贡献者
+  ### Becoming a Contributor
 
-- 连接真实设备，运行代码，确认输出信息正确；
+- Connect a real device, run the code, and confirm that the output information is correct;
 
-- 录制测试视频、激光雷达输出信息；
+- Record a test video and the LiDAR output information;
 
-- 提供测试过程数据、开发者信息到 Apollo 团队；
+- Provide the test process data and developer information to the Apollo team;
 
-- 提交代码到 Github，等待 Apollo 团队审核。
+- Submit the code to Github and wait for the Apollo team to review it.
   
-  ### 贡献者宣传
+  ### Contributor Promotion
 
-- 硬件设备进入 Apollo 开发平台官网硬件展示；
+- The hardware device is featured in the hardware showcase on the official website of the Apollo development platform;
 
-- 作为贡献者，信息在 Apollo 官网展示。
+- As a contributor, your information is displayed on the Apollo official website.
 
-## 激光雷达技术要求
+## LiDAR Technical Requirements
 
-* 【强制】lidar 支持网口通过 TCP 或者 UDP 协议输出点云数据；
-* 【强制】lidar 能够稳定以 10HZ 频率输出点云；
-* 【强制】可以获取每个 lidar 点的 x、y、z、强度值以及时间戳信息；
-* 【建议】提供 lidar C++ SDK，通过 SDK 可以获取原始数据包，以及提供原始数据包转成点云格式接口；
-* 【建议】lidar SDK 可以按照角度、距离过滤 lidar 点云；
-* 【建议】可以获取每个 lidar 点的 ring 信息；
-* 【强制】【不支持】Apollo 感知算法暂不支持基于 2D 激光雷达的感知，故暂不支持2D激光雷达的接入。使用 2D 激光雷达，建议由对 Apollo 系统有良好的认知专家介入。
+* [Mandatory] The LiDAR supports outputting point cloud data through its Ethernet port over the TCP or UDP protocol;
+* [Mandatory] The LiDAR can stably output point clouds at 10 Hz;
+* [Mandatory] The x, y, z, intensity and timestamp information of every LiDAR point can be obtained;
+* [Recommended] Provide a LiDAR C++ SDK through which the raw data packets can be obtained, together with an interface that converts raw data packets into the point cloud format;
+* [Recommended] The LiDAR SDK can filter the LiDAR point cloud by angle and distance;
+* [Recommended] The ring information of every LiDAR point can be obtained;
+* [Mandatory] [Not supported] Apollo's perception algorithms do not currently support perception based on 2D LiDAR, so integration of 2D LiDARs is not supported for now. If you use a 2D LiDAR, we recommend involving experts who have a good understanding of the Apollo system.
 
-## 开发流程说明
+## Development Process
 
-### 准备工作
+### Preparation
 
-1. 学习 [Apollo 组件开发流程](https://apollo.baidu.com/community/Apollo-Homepage-Document?doc=BYFxAcGcC4HpYIbgPYBtXIHQCMEEsATAV0wGNkBbWA5UyRFdZWVBEAU0hFjwDsD2AD0ygKqIA)；
-2. 学习 github pull request 相关资料 [拉取请求文档](https://docs.github.com/zh/pull-requests)；
-3. 准备好 lidar SDK 驱动，在 x86_64、aarch64 架构编译 Linux 动态库；
-4. 熟悉`modules/drivers/lidar`下的禾赛、速腾激光雷达驱动程序；
-5. 了解 apollo lidar 驱动框架，选择轮询或订阅方式开发驱动。
+1. Learn the [Apollo component development process](https://apollo.baidu.com/community/Apollo-Homepage-Document?doc=BYFxAcGcC4HpYIbgPYBtXIHQCMEEsATAV0wGNkBbWA5UyRFdZWVBEAU0hFjwDsD2AD0ygKqIA);
+2. Learn about github pull requests: [Pull request documentation](https://docs.github.com/zh/pull-requests);
+3. Prepare the LiDAR SDK driver and compile Linux dynamic libraries on the x86_64 and aarch64 architectures;
+4. Become familiar with the Hesai and RoboSense LiDAR drivers under `modules/drivers/lidar`;
+5. Understand the apollo lidar driver framework and choose either polling or subscription to develop the driver.
 
-### 开发工作
+### Development
 
-1. Fork Apollo 代码库：进入 [https://github.com/ApolloAuto](https://github.com/ApolloAuto), 点击左上角 Fork 按钮；
-2. 以禾赛、速腾驱动为模板，开发新的激光雷达驱动；
-3. 通过 cyber tools 查看驱动输出信息；
-4. 提交代码，通过评审，合入代码。
+1. Fork the Apollo repository: go to [https://github.com/ApolloAuto](https://github.com/ApolloAuto) and click the Fork button in the upper left corner;
+2. Using the Hesai and RoboSense drivers as templates, develop the new LiDAR driver;
+3. View the driver output information with cyber tools;
+4. Submit the code, pass the review, and get the code merged.
 
-## lidar开发框架简介
+## Introduction to the LiDAR Development Framework
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a2f71a5.png)
 
-激光雷达驱动运行框架需要满足下面的两个目标：
+The LiDAR driver runtime framework must meet the following two goals:
 
-- 读取激光雷达设备数据，并将设备原始数据转换成感知组件需要的点云数据格式。
-- 为了保障自动驾驶落盘过程中尽量节省磁盘空间，数据落盘默认只保存原始数据。
+- Read data from the LiDAR device and convert the raw device data into the point cloud data format required by the perception component.
+- To save as much disk space as possible when recording autonomous driving data, only the raw data is saved to disk by default.
 
-点云数据占用的空间远高于原始数据包，故而在驱动框架设计时，提供`ONLINE_LIDAR`和`RAW_PACKET`两种模式，分别是从连接 lidar 的网卡读取二进制数据和从 scan 通道读取二进制数据。在自动驾驶过程中应使用`ONLINE_LIDAR`模式从连接 lidar 的网口读入，并输出原始数据以及点云数据。在数据落盘后，启动`RAW_PACKET`模式可根据落盘的原始数据还原出当时的点云数据。
+Point cloud data takes up much more space than raw data packets, so the driver framework provides two modes, `ONLINE_LIDAR` and `RAW_PACKET`, which read binary data from the network interface connected to the lidar and from the scan channel, respectively. During autonomous driving, the `ONLINE_LIDAR` mode should be used to read from the network port connected to the lidar and output both the raw data and the point cloud data. After the data has been recorded, starting the `RAW_PACKET` mode can restore the point cloud data of that time from the recorded raw data.
 
-## Lidar驱动代码开发
+## LiDAR Driver Code Development
 
-### 驱动开发目录
+### Driver Development Directory
 
-lidar 驱动目录统一放在 Apollo 源码的`drivers/lidar`目录下，新设备需要创建新的目录结构，目录内容如下所示。
+The lidar driver directories are placed uniformly under the `drivers/lidar` directory of the Apollo source code. A new device needs to create a new directory structure, with the contents shown below.
 
 ```bash
-xxlidar： # 以lidar类型名创建目录
-    - conf：# conf目录存放lidar驱动配置
-    - dag： # dag目录存放启动lidar驱动的dag文件
-    - launch:  # luanch目录存放启动lidar驱动的launch文件
-    - proto： # 存放conf格式定义以及其他自定义类型的proto配置
-    - src：  # 存放lidar驱动的源代码
-    - README_cn.md  # lidar驱动的中文说明
-    - README_en.md  # lidar驱动的英文说明
+xxlidar:  # create the directory named after the lidar type
+    - conf:  # the conf directory stores the lidar driver configuration
+    - dag:  # the dag directory stores the dag file that starts the lidar driver
+    - launch:  # the launch directory stores the launch file that starts the lidar driver
+    - proto:  # stores the conf format definition and other custom-type proto configurations
+    - src:  # stores the source code of the lidar driver
+    - README_cn.md  # Chinese description of the lidar driver
+    - README_en.md  # English description of the lidar driver
 ```
 
-### Lidar SDK 准备
+### LiDAR SDK Preparation
 
-考虑到厂商代码维护，也考虑到第三方代码库与 Apollo 代码规范/编译工具的兼容，Apollo 建议通过提供 SDK 包引入方式加速驱动开发。
+Considering vendor code maintenance, and the compatibility of third-party code libraries with Apollo's code conventions and build tools, Apollo recommends speeding up driver development by introducing an SDK package.
 
-对于 SDK 代码，不限制用 cmake 或者其他编译工具链，但必须支持 x86_64、aarch64 架构编译，支持指定目录安装，安装输出需满足：
+For the SDK code, the use of cmake or other build toolchains is not restricted, but it must support compilation on the x86_64 and aarch64 architectures and installation into a specified directory, and the installation output must satisfy:
 
-* 包含 include 目录，include 目录的（路径）头文件名不能和系统以及第三方库相同，否则会导致其他程序发生引用错误问题，建议 include 下放一层 lidar 名的子目录，比如`include/xxlidar/point_cloud.h`。
-* 包含 lib 目录，lib 目录下存放编译产出的 so 库，最好只输出一个 so，注意必须是动态链接库，不能是 .a 的静态库；
+* It contains an include directory. The header file names (paths) in the include directory must not be the same as those of the system or third-party libraries, otherwise other programs will have reference errors. It is recommended to place a subdirectory named after the lidar under include, for example `include/xxlidar/point_cloud.h`.
+* It contains a lib directory in which the so libraries produced by the build are stored. Ideally only one so is output, and it must be a dynamic link library, not a static .a library;
 
-以上准备好后，把改好的代码提供给 Apollo 团队，由 Apollo 团队完成编译（会修改一些编译参数，兼容各种 CPU 型号）以及 deb 包制作，确认可发布后，Apollo 团队会把 deb 包发布到 Apollo apt 源。
+Once the above is ready, provide the modified code to the Apollo team. The Apollo team will complete the compilation (some compile parameters will be modified for compatibility with various CPU models) and the deb package creation, and after confirming that it can be released, the Apollo team will publish the deb package to the Apollo apt source.
 
-SDK 引用方式：参考样例的 hesai、rslidar下面的 BUILD 和 cyberfile.xml 配置。
+How to reference the SDK: refer to the BUILD and cyberfile.xml configurations under the sample hesai and rslidar.
 
-* BUILD：build 文件中加上`-l`参数直接使用，
-* cyberfile.xml: 加上 SDK 的依赖，包的名字在代码给到 Apollo 团队后提供。
+* BUILD: add the `-l` parameter in the build file to use it directly,
+* cyberfile.xml: add the SDK dependency; the package name will be provided after the code is given to the Apollo team.
 
-自己调试阶段时，直接把编译产出安装到`/usr/`或者`/usr/local`目录下即可。
+During your own debugging stage, simply install the build output into the `/usr/` or `/usr/local` directory.
 
-### 配置文件说明
+### Configuration File Description
 
-驱动配置需包含 lidar 驱动基础配置以及自定义配置。
-用户自定义配置主要是定义一些 lidar 型号、IP、端口、过滤规则等，一份完整配置样例如下：
+The driver configuration must include the basic lidar driver configuration and the custom configuration.
+The user-defined configuration mainly defines items such as the lidar model, IP, port and filtering rules. A complete configuration example is as follows:
 
 ```bash
-# 基本配置
+# Basic configuration
 base_config {
     scan_channel: "/apollo/sensor/hesai40/Scan"
     frame_id: "hesai40"
     pointcloud_channel: "/apollo/sensor/hesai40/PointCloud2"
     source_type: ONLINE_LIDAR
 }
-# 自定义配置
+# Custom configuration
 model: HESAI40P
 ip: "192.168.20.13"
 lidar_recv_port: 2368
@@ -123,76 +123,76 @@ start_angle: 0
 time_zone: 8
 ```
 
-基础配置主要是一些共性配置，Apollo 驱动中已经定义好，格式为：
+The basic configuration consists mainly of common settings, which are already defined in the Apollo driver. The format is:
 
 ```bash
 message LidarComponentBaseConfig {
-    required string scan_channel = 1;  // 原始数据输出channel名称
-    required string point_cloud_channel = 2;  // 点云数据输出channel名称
-    required string frame_id = 3;  // lidar的frame_id, 要求全局唯一，外参转换、感知程序都会用到这个
-    required SourceType source_type = 4; // 二进制数据来源；定义为ONLINE_LIDAR时，将从lidar采集二进制数据，并将二进制数据写入scan_channel；定义为RAW_PACKET时，将从scan_channel采集二进制数据。
-    optional uint8_t lidar_id = 5; // 记录一个lidar序号，要求全局唯一，感知程序会用，非必须
-    optional uint16_t buffer_size = 6 [default = 50]; // 点云分配buffer大小，通常不需要设置
+    required string scan_channel = 1;  // name of the channel that outputs the raw data
+    required string point_cloud_channel = 2;  // name of the channel that outputs the point cloud data
+    required string frame_id = 3;  // the frame_id of the lidar; must be globally unique, and is used by extrinsic transformation and the perception programs
+    required SourceType source_type = 4; // source of the binary data; when defined as ONLINE_LIDAR, the binary data is collected from the lidar and written to scan_channel; when defined as RAW_PACKET, the binary data is collected from scan_channel.
+    optional uint8_t lidar_id = 5; // records a lidar serial number; must be globally unique and is used by the perception programs; not required
+    optional uint16_t buffer_size = 6 [default = 50]; // size of the buffer allocated for the point cloud; usually does not need to be set
 }
 ```
 
-### Lidar 驱动开发接口说明
+### LiDAR Driver Development Interface
 
-Apollo 官方提供了 Lidar 驱动组件基类，新 lidar 驱动需继承此基类，基类的接口如下：
+Apollo officially provides a LiDAR driver component base class. A new lidar driver must inherit from this base class. The interfaces of the base class are as follows:
 
-**Lidar驱动组件基类**
+**LiDAR driver component base class**
 
 ```bash
-// LidarComponentBase模板类，T是scan数据的类型
+// LidarComponentBase template class; T is the type of the scan data
 template <typename T>
 class LidarComponentBase: public cyber::Component<T> {
 public:
-  // 用户需要实现Init方法，在Init方法中调用InitBase完成初始化配置；
+  // The user needs to implement the Init method and call InitBase in it to complete the initialization configuration;
   void Init() = 0; 
 
-  // 用户需要实现ReadScanCallback，当选择RAW_PACKET模式时，组件将读取scan通道的数据。用户需要实现读取scan数据后输入到lidar sdk的过程
+  // The user needs to implement ReadScanCallback. When the RAW_PACKET mode is selected, the component reads data from the scan channel. The user needs to implement the process of feeding the scan data it reads into the lidar sdk
   void ReadScanCallback(shared_ptr<T> scan_message);
 
 protected:
-   // 基类中实现: 完成Scan/Pcd writer等创建
+   // Implemented in the base class: creates the Scan/Pcd writers, etc.
    bool InitBase(const driver::lidar::BaseConfig& base_config);
 
-   // 基类中实现: 写scan channel数据
+   // Implemented in the base class: writes data to the scan channel
    bool WriteScan(const std::shared_ptr<T>& scan_packet);
 
-   // 基类中实现:分配一个点云对象，注意需要使用此方法获取输出点云对象，否则可能会引入性能问题；
+   // Implemented in the base class: allocates a point cloud object. Note that this method must be used to obtain the output point cloud object, otherwise performance problems may be introduced;
    std::shared_ptr<driver::PointCloud> AllocatePointCloud();
 
-   // 基类类中实现: 写pcd channel数据
+   // Implemented in the base class: writes data to the pcd channel
    bool WritePointCloud(const std::shared_ptr<driver::PointCloud>& pcd);   
 }
 ```
 
-lidar 驱动库的 common 目录提供基类 LidarComponentBase，该基类会完成基础配置的读取，并完成点云和 scan 读写通道的初始化操作，并提供`RAW_PACKET`和`ONLINE_LIDAR`两种数据输入模式。适配者需要关注以下方面的实现：
+The common directory of the lidar driver library provides the base class LidarComponentBase. The base class reads the basic configuration, initializes the point cloud and scan read/write channels, and provides two data input modes, `RAW_PACKET` and `ONLINE_LIDAR`. The adapter needs to pay attention to implementing the following:
 
-* 适配者需要实现`ONLINE_LIDAR`和`RAW_PACKET`两种输入模式下驱动的行为。`ONLINE_LIDAR`模式从网卡读取数据并经 SDK 解析后输出点云、scan 信息；而`RAW_PACKET`模式则是从 scan 通道读取雷达数据，需要经 SDK 解析 scan 数据中的二进制数据输出点云数据。两种模式的差别在于`ONLINE_LIDAR`需要输出 scan 通道的数据，而`RAW_PACKET`需要从 scan 通道获取数据，然后根据获得的数据输出点云。
+* The adapter needs to implement the driver's behavior in both the `ONLINE_LIDAR` and `RAW_PACKET` input modes. In the `ONLINE_LIDAR` mode, data is read from the network card and, after being parsed by the SDK, the point cloud and scan information are output; in the `RAW_PACKET` mode, the lidar data is read from the scan channel and the binary data in the scan data must be parsed by the SDK to output the point cloud data. The difference between the two modes is that `ONLINE_LIDAR` needs to output data on the scan channel, whereas `RAW_PACKET` needs to obtain data from the scan channel and then output the point cloud according to the data obtained.
 
-* 驱动初始化：用户实现 Init 函数，用于配置 SDK 的网卡数据监听，并根据上述两种输入模式设置 SDK 的行为；并在此过程中，调用 InitBase 函数完成初始化配置。
+* Driver initialization: the user implements the Init function to configure the SDK's network card data listening and to set the SDK's behavior according to the two input modes above; in this process, the InitBase function is called to complete the initialization configuration.
 
-* 调用 scan 发布函数：LidarComponentBase 提供了封装和发布 scan 数据的函数 WriteScan，适配者需要在接收到数据包时，传入二进制的数据包。执行后将会完成 scan 数据在配置通道的发布。
+* Calling the scan publish function: LidarComponentBase provides the function WriteScan for packaging and publishing scan data. When the adapter receives a data packet, it needs to pass in the binary data packet. After execution, the scan data is published on the configured channel.
   
-  > 注意：确保只在`ONLINE_LIDAR`模式下调用该函数。
+  > Note: Make sure to call this function only in the `ONLINE_LIDAR` mode.
 
-* 实现 scan 通道数据写入：用户实现 ReadScanCallback 函数，将自定义类型的 scan 数据输入 SDK。
+* Implementing the writing of scan channel data: the user implements the ReadScanCallback function to feed the custom-type scan data into the SDK.
 
-* 调用 pcd 发布相关函数：LidarComponentBase 提供了封装和发布 scan 数据的函数 AllocatePointCloud 和 WritePointCloud。用户需要调用 AllocatePointCloud 分配点云内存空间，在点云信息写入完毕后调用 WritePointCloud 发布。
+* Calling the pcd publish functions: LidarComponentBase provides the functions AllocatePointCloud and WritePointCloud for packaging and publishing point cloud data. The user needs to call AllocatePointCloud to allocate the point cloud memory, and call WritePointCloud to publish after the point cloud information has been written.
 
-速腾驱动适配参考伪代码：
+Pseudocode for adapting the RoboSense driver:
 
 ```bash
 // rslidar_component.h
 class RslidarComponent : LidarPacketComponentBase<ScanType> {
 public:
   bool Init() override; 
-  // 收到apollo scan数据的处理方式
+  // How to handle the received apollo scan data
   void ReadScanCallback(const std::shared_ptr<ScanType>& scan_message) override;
 
-     // 适配者自定义的点云回调函数，返回sdk对应类型的点云数据
+     // Adapter-defined point cloud callback function, returns point cloud data of the type corresponding to the sdk
   void RsPointCloudCallback(raw_pcd_message);
   void RsPacketCallback(raw_scan_message);
 }
@@ -200,18 +200,18 @@ public:
 // ------------------------------------------------------------------------
 // rslidar_component.cpp
 void RslidarComponent::Init() override {
-  // 配置文件读取
-  // 速腾sdk初始化...
-  // 注册sdk scan帧回调函数、点云帧回调函数
+  // Read the configuration file
+  // Initialize the RoboSense sdk...
+  // Register the sdk scan frame callback and point cloud frame callback
   sdk->regiest(this->RsPacketCallback);
   sdk->regiest(this->RsPointCloudCallback);
 
-  // 调用父类方法，初始化cyber节点
+  // Call the parent class method to initialize the cyber node
   InitBase(base_config);
 }
 
 int RslidarConvertCompoment::ReadScanCallback(shared_ptr<ScanType> scan_message) override {
-    // 当收到scan数据时，调用Proc函数将数据输入sdk解析
+    // When scan data is received, call the Proc function to feed the data into the sdk for parsing
     sdk->decodePacket(scan_message);
 }
 
@@ -220,39 +220,39 @@ void RslidarPacketComponent::packetCallback(const RslidarPacket& rslidar_packet)
       // convert RslidarPacket to ScanType ...
 
     WriteScan(scan_packet);
-    // 调用LidarComponentBase父类提供的方法，用于封装和广播scan数据
+    // Call the method provided by the LidarComponentBase parent class to package and broadcast the scan data
 }
 
-// 适配者自定义的点云回调函数，返回sdk对应类型的点云数据
+// Adapter-defined point cloud callback function, returns point cloud data of the type corresponding to the sdk
 void RslidarConvertCompoment::pointCloudPutCallback(const RslidarRawMessage& raw_message) {
-  shared_ptr<ApolloMsg> pcd_message = AllocatePointCloud(); //调用父类提供方法，获取已分配好内存的空点云
+  shared_ptr<ApolloMsg> pcd_message = AllocatePointCloud(); // Call the parent-class method to get an empty point cloud whose memory has already been allocated
 
-  // 适配者将raw_message写入pcd_message
+  // The adapter writes raw_message into pcd_message
   for (int i = 0; i < raw_message.size(); ++i) {
     pcd_message.mutable_point(i).set_x(raw_message.point(i).x());
     pcd_message.mutable_point(i).set_y(raw_message.point(i).y());
     ...
   }
-  WritePointCloud(pcd_message); // 调用父类方法，向通道发送点云数据
+  WritePointCloud(pcd_message); // Call the parent-class method to send the point cloud data to the channel
 }
 ```
 
-### 运行调试
+### Run and Debug
 
 ```bash
-# 编译
+# Build
 bash apollo.sh build_opt_gpu drivers/lidar
 
-# 运行: 修改成自己编写的dag路径
+# Run: change to the path of the dag you wrote
 mainboard -d /apollo/modules/drivers/lidar/xxlidar/dag/xxlidar.dag
 
-# 启动cyber_monitor 观察自定义的scan channel是否正常输出，以及pointcloud channel是否有稳定10HZ输出
+# Start cyber_monitor to check whether the custom scan channel is output normally and whether the pointcloud channel has a stable 10 Hz output
 cyber_monitor
 
-# 启动 cyber_visualizer 可视化工具查看点云：点击Show PointCloud，选择对应channel
+# Start the cyber_visualizer visualization tool to view the point cloud: click Show PointCloud and select the corresponding channel
 cyber_visualizer
 ```
 
-观察点云输出和实际场景一致：以下是一个 16 线例子：
+Check that the point cloud output matches the actual scene. The following is a 16-beam example:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_0252d80.png)

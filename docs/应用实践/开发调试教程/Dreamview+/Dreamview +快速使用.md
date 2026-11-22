@@ -1,19 +1,19 @@
-Dreamview+ 是 Apollo 内置的一个 web 应用程序，为开发者提供各个自动驾驶模块的可视化输出界面，如规划路径、定位信息、底盘状态等。在自动驾驶车辆行进过程中，通过 Dreamview+ 可以对车辆硬件、各自动驾驶模块的状态进行实时监测，利用人机交互接口对车辆及各模块进行启停等控制操作，使用 PnC 监视器等调试工具定位问题，帮助开发者对自动驾驶过程有更加全面的掌控。本实验将使用 Dreamview+ 播放并分析自动驾驶离线数据包。
+Dreamview+ is a web application built into Apollo that provides developers with a visual output interface for each autonomous driving module, such as the planned path, localization information and chassis status. While the autonomous vehicle is running, Dreamview+ lets you monitor the vehicle hardware and the status of each autonomous driving module in real time, start and stop the vehicle and individual modules through the human-machine interface, and locate problems with debugging tools such as the PnC monitor, giving developers more comprehensive control over the autonomous driving process. In this experiment, you will use Dreamview+ to play and analyze an autonomous driving offline data package.
 
-## 体验地址
+## Experience Link
 
 https://apollo.baidu.com/community/course/1
 
-## 实验目的
+## Experiment Objectives
 
-- 掌握 Apollo 的启动流程及原理；
-- 掌握应用 Apollo 自动驾驶调试工具去分析并定位自动驾驶问题。
+- Master the startup process and principles of Apollo;
+- Master how to use Apollo's autonomous driving debugging tools to analyze and locate autonomous driving problems.
 
-## 实验步骤
+## Experiment Steps
 
-### 步骤一：启动 Dreamview+
+### Step 1: Start Dreamview+
 
-1. 在终端中，执行 Dreamview+ 启动指令，执行成功后，点击菜单栏 Dreamview+ 按钮，进入 Dreamview+ 界面。
+1. In the terminal, run the Dreamview+ startup command. After it succeeds, click the Dreamview+ button in the menu bar to enter the Dreamview+ interface.
    
    ```bash
    aem bootstrap start --plus
@@ -21,33 +21,33 @@ https://apollo.baidu.com/community/course/1
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_cb5f4fe.png)
    
-   当出现如下界面，表示 Dreamview+ 启动成功了。
+   The following screen indicates that Dreamview+ has started successfully.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_8455c10.png)
    
-   点击左下角 **个人中心** > **设置** > **全局设置**，可以选择界面语言类型。
+   Click **Personal Center** > **Settings** > **Global Settings** in the lower left corner to choose the interface language.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_ce0ce76.png)
 
-### 步骤二：播放自动驾驶离线数据包
+### Step 2: Play an Autonomous Driving Offline Data Package
 
-1. 点击左侧菜单栏，选择 PnC 模式，操作选择 Record。
+1. Click the left menu bar, select the PnC mode, and select Record as the operation.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a601a39.png)
 
-2. 在 环境资源 > 数据包 中选择 demo3.5（如果没有数据包，可以前往资源管理中心下载）。选择完毕后，点击播放按钮，就可以看到离线数据包 demo_3.5 已经被播放出来了。
+2. In Environment Resources > Data Packages, select demo3.5 (if there is no data package, you can go to the Resource Manager to download it). After selecting, click the play button and you will see that the offline data package demo_3.5 is being played.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_5e8a3a5.png)
 
-### 步骤三：运行 PNC Monitor 数据监视器
+### Step 3: Run the PNC Monitor
 
-界面右侧为 PNC Monitor 组件，PNC Monitor 展示了 Planning、Control 模块相关的数据曲线。
+The PNC Monitor component is on the right side of the interface. PNC Monitor displays the data curves related to the Planning and Control modules.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_72ffb35.png)
 
-### 步骤四：运行 cyber_monitor 实时通道信息监视器
+### Step 4: Run the cyber_monitor Real-time Channel Monitor
 
-打开新的终端模拟器，输入并执行 cyber_monitor。
+Open a new terminal emulator, then enter and run cyber_monitor.
 
 ```bash
 cyber_monitor
@@ -55,6 +55,6 @@ cyber_monitor
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_7920d63.png)
 
-键盘的左右键可以实现 Channel 的进入与退出，通过 esc 键，可以完全退出 cyber_monitor。
+Use the left and right arrow keys to enter and exit a Channel, and press the esc key to exit cyber_monitor completely.
 
-至此，实验结束。
+This concludes the experiment.

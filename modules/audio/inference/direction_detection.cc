@@ -141,7 +141,7 @@ double DirectionDetection::GccPhat(const torch::Tensor& sig,
             n = n_sig + n_refsig;
   torch::Tensor psig = at::constant_pad_nd(sig, {0, n_refsig}, 0);
   torch::Tensor prefsig = at::constant_pad_nd(refsig, {0, n_sig}, 0);
-#if TORCH_VERSION_MINOR <= 7
+#if TORCH_VERSION_MAJOR < 1 || (TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR <= 7)
   psig = at::rfft(psig, 1, false, true);
   prefsig = at::rfft(prefsig, 1, false, true);
 #else
@@ -155,7 +155,7 @@ double DirectionDetection::GccPhat(const torch::Tensor& sig,
 
   ConjugateTensor(&prefsig);
   torch::Tensor r = ComplexMultiply(psig, prefsig);
-#if TORCH_VERSION_MINOR <= 7
+#if TORCH_VERSION_MAJOR < 1 || (TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR <= 7)
   torch::Tensor cc =
       at::irfft(r / ComplexAbsolute(r), 1, false, true, {interp * n});
 #else

@@ -19,6 +19,7 @@
 #include <QtWidgets/QApplication>
 
 #include "modules/tools/visualizer/main_window.h"
+#include "cyber/service_discovery/topology_manager.h"
 
 int main(int argc, char* argv[]) {
   QApplication a(argc, argv);

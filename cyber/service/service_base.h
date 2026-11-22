@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 2018 The Apollo Authors. All Rights Reserved.
+ * Copyright 2026 The Apollo Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,28 +22,13 @@
 namespace apollo {
 namespace cyber {
 
-/**
- * @class ServiceBase
- * @brief Base class for Service
- *
- */
+/// Base class of every Service (backed by an rclcpp service).
 class ServiceBase {
  public:
-  /**
-   * @brief Construct a new Service Base object
-   *
-   * @param service_name name of this Service
-   */
   explicit ServiceBase(const std::string& service_name)
       : service_name_(service_name) {}
-
   virtual ~ServiceBase() {}
-
   virtual void destroy() = 0;
-
-  /**
-   * @brief Get the service name
-   */
   const std::string& service_name() const { return service_name_; }
 
  protected:

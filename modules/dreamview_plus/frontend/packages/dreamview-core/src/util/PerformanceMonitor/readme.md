@@ -1,9 +1,9 @@
-# 使用文档 - Web应用性能监控与调控器
+# User Guide - Web Application Performance Monitor and Controller
 
-## 1. 简介
-Web应用性能监控与调控器是Dreamview的一个重要组件，用于监控Dreamview的性能指标，以及提供一些调控功能。
+## 1. Introduction
+The Web Application Performance Monitor and Controller is an important component of Dreamview. It monitors Dreamview's performance metrics and provides some performance regulation features.
 
-## 2. 使用方式
+## 2. Usage
 ```typescript
 import LogicController from './LogicController';
 import PerformanceMonitor from './PerformanceMonitor';
@@ -24,17 +24,17 @@ class DataProcessingModule {
     }
 
     start() {
-        console.log("数据处理模块启动");
+        console.log("Data processing module started");
         this.processData();
     }
 
     private processData() {
         if (!this.isHighLoad) {
-            console.log("执行复杂数据处理");
-            // 复杂数据处理逻辑
+            console.log("Running complex data processing");
+            // Complex data processing logic
         } else {
-            console.log("执行简化数据处理");
-            // 简化数据处理逻辑
+            console.log("Running simplified data processing");
+            // Simplified data processing logic
         }
 
         setTimeout(() => this.processData(), this.isHighLoad ? 2000 : 1000);
@@ -42,7 +42,7 @@ class DataProcessingModule {
 
     adjustPerformance(highLoad: boolean) {
         this.isHighLoad = highLoad;
-        console.log(`数据处理模块已${highLoad ? '降低' : '增加'}负载`);
+        console.log(`Data processing module has ${highLoad ? 'decreased' : 'increased'} its load`);
     }
 }
 

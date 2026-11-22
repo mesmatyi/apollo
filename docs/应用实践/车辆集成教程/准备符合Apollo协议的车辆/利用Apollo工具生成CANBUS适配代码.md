@@ -1,87 +1,87 @@
-本文档将介绍如何使用 Apollo 的工具，生成适配 Apollo 的 CANBUS 代码。
+This document describes how to use Apollo's tools to generate CANBUS code adapted to Apollo.
 
-## 前提条件
+## Prerequisites
 
-您需要先阅读以下内容:
+You need to read the following first:
 
-- [概览](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/概览.md)
+- [Overview](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/概览.md)
 
-- [符合 Apollo 线控标准的车辆](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/符合Apollo线控标准的车辆.md)
+- [Vehicles Conforming to the Apollo Drive-by-Wire Standard](../应用实践/车辆集成教程/准备符合Apollo协议的车辆/符合Apollo线控标准的车辆.md)
 
-## 将 CANBUS 适配 Apollo
+## Adapting CANBUS to Apollo
 
-### 1. DBC 文件转换成 canbus 模板代码
+### 1. Convert the DBC File into canbus Template Code
 
-Canbus 适配代码可以使用 Apollo 的工具生成。在转换代码前，要保证 DBC 按照上述 DBC 文件要求完成，并通过 gedit 打开 DBC 文件，另存转码为 UTF-8 格式保存。
+The Canbus adaptation code can be generated with Apollo's tools. Before converting the code, make sure the DBC has been completed according to the DBC file requirements above, then open the DBC file with gedit and save it again, converting the encoding to UTF-8.
 
-1. 将 DBC 文件放置指定目录 `apollo/modules/tools/gen_vehicle_protocol` 内。
+1. Place the DBC file in the specified directory `apollo/modules/tools/gen_vehicle_protocol`.
 
-2. 修改 DBC 转换脚本的配置文件。
+2. Modify the configuration file of the DBC conversion script.
 
-   下面以 GE3 车型添加为例，在 `apollo/modules/tools/gen_vehicle_protocol` 目录下，复制默认存在的 `mkz_conf.yml` 文件并重命名为 `ge3_conf.yml`，修改该配置文件，如下图所示：
+   Taking the addition of the GE3 vehicle model as an example, in the `apollo/modules/tools/gen_vehicle_protocol` directory, copy the existing `mkz_conf.yml` file, rename it `ge3_conf.yml`, and modify this configuration file as shown in the figure below:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_7fbaf21.png)
 
-- `dbc_file`：填写对应你的 DBC 文件名称，DBC 文件名称一般以车型名称命名，并以 `.dbc` 结束。
+- `dbc_file`: Fill in the name of your DBC file. The DBC file is generally named after the vehicle model and ends with `.dbc`.
 
-- `protocol_conf`：与上述 DBC 文件名称命名相同，填写`ge3.yml`。
+- `protocol_conf`: Named the same as the DBC file above; fill in `ge3.yml`.
 
-- `car_type`：填入车型名称。
+- `car_type`: Fill in the vehicle model name.
 
-- `sender_list：[ ] `：发送列表，这里默认为空。
+- `sender_list: [ ] `: The sender list, empty by default here.
 
-- `sender`：此处修改为与 DBC 内定义的 Apollo 的名称一致，ge3 的 DBC 内定义 Apollo 名称为 SCU。
+- `sender`: Change this to match the name of Apollo defined in the DBC. In the ge3 DBC, the Apollo name is defined as SCU.
 
-3. 完成 `ge3_conf.yml` 配置文件设置，启动 docker，进入 Apollo 的容器后，在 `apollo/modules/tools/gen_vehicle_protocol` 目录下，找到 DBC 转化工具 `gen.py`，执行代码：
+3. After finishing the `ge3_conf.yml` configuration file, start docker and enter the Apollo container. In the `apollo/modules/tools/gen_vehicle_protocol` directory, find the DBC conversion tool `gen.py` and run:
 
    ```
    cd modules/tools/gen_vehicle_protocol
    python gen.py ge3_conf.ymal
    ```
 
-   执行完成上述脚本后，在终端内会显示生成 5 个控制协议，11 个反馈协议。
+   After the above script finishes, the terminal shows that 5 control protocols and 11 feedback protocols were generated.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_f1f6517.png)
 
-   这时在 `apollo/modules/tools/gen_vehicle_protocol` 目录下，会生成一个 `output` 文件夹，文件夹内有 2 个文件夹：`proto` 和 `vehicle` 文件夹。这两个文件内的代码内容就是要适配 canbus 的基本代码模板。把文件内的代码 **拷贝** 到 Apollo 的 canbus 层内，进行代码适配添加。
+   An `output` folder is now generated under the `apollo/modules/tools/gen_vehicle_protocol` directory, containing 2 folders: `proto` and `vehicle`. The code in these two folders is the basic code template to adapt canbus. **Copy** the code in them into Apollo's canbus layer to carry out the code adaptation.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_e0260ae.png)
 
-> 注意：把这个 output 文件夹内生成的代码模板拷贝至相应的 Apollo 目录后，要删除该文件夹，如果不删除该文件夹，后期编译 Apollo 时会报错。该文件夹有保护权限，请在 Apollo 的 docker 内执行删除代码。
+> Note: After copying the code templates generated in this output folder into the corresponding Apollo directories, delete the folder. If you do not delete it, Apollo will report errors when it is compiled later. The folder has protected permissions, so please run the delete command inside Apollo's docker.
 
 ```
 rm -rf output/
 ```
 
-### 2. 适配代码合入 Apollo 文件内
+### 2. Merge the Adaptation Code into Apollo
 
-下面以添加 ge3 车型为例，将该代码添加至 Apollo 内：
+Taking the addition of the ge3 vehicle model as an example, add the code to Apollo as follows:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_7f49ca5.png)
 
-1. 将 `apollo/modules/tools/gen_vehicle_protocol/output/proto` 文件夹内 `ge3.proto` 文件拷贝至 `apollo/modules/canbus/proto` 文件夹内，并在该文件夹内修改 `chassis_detail.proto`，在该文件头部添加头文件 `import "modules/canbus/proto/ge3.proto"`。
+1. Copy the `ge3.proto` file in the `apollo/modules/tools/gen_vehicle_protocol/output/proto` folder into the `apollo/modules/canbus/proto` folder, then modify `chassis_detail.proto` in that folder and add the header import `import "modules/canbus/proto/ge3.proto"` at the top of the file.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_7d03448.png)
 
-在 `message ChassisDetail{}` 结构体内的最后一行添加要增加的新车型变量定义：`Ge3 ge3 = 21`：
+In the `message ChassisDetail{}` structure, add the definition of the new vehicle model variable on the last line: `Ge3 ge3 = 21`:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_ce56d91.png)
 
-在 `pollo/modules/canbus/proto`目录的 `BUILD` 文件内添加上述新 `proto` 的依赖：`"ge3.proto"`：
+In the `BUILD` file in the `pollo/modules/canbus/proto` directory, add the dependency on the new `proto` above: `"ge3.proto"`:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_ccdf17d.png)
 
-2. 将 `apollo/modules/tools/gen_vehicle_protocol/output/vehicle/` 内的 ge3 文件夹拷贝至 `apollo/modules/canbus/vehicle/` 文件夹下。
+2. Copy the ge3 folder in `apollo/modules/tools/gen_vehicle_protocol/output/vehicle/` into the `apollo/modules/canbus/vehicle/` folder.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_20984df.png)
 
-### 3. 实现新的车辆控制逻辑
+### 3. Implement the New Vehicle Control Logic
 
-实现新的车辆控制逻辑，在 `apollo/modules/canbus/vehicle/ge3/ge3_controller.cc` 文件编写控制逻辑代码。
+To implement the new vehicle control logic, write the control logic code in the `apollo/modules/canbus/vehicle/ge3/ge3_controller.cc` file.
 
-控制代码主要包含将解析的底盘反馈报文的信息，通过 `chassis` 和 `chassis_detail` 广播出车辆底盘信息。
+The control code mainly consists of broadcasting the vehicle chassis information through `chassis` and `chassis_detail`, using the information parsed from the chassis feedback messages.
 
-`chassis` 主要包括获取底盘的车速、轮速、发动机转速、踏板反馈、转角反馈等信息， `chassis_detail` 是每一帧报文的实际信息，这一部分编写的代码如下所示：
+`chassis` mainly includes information obtained from the chassis such as vehicle speed, wheel speed, engine speed, pedal feedback and steering angle feedback, while `chassis_detail` is the actual information of each message frame. The code written for this part is as follows:
 
 ```
   // 3
@@ -318,15 +318,15 @@ rm -rf output/
   }
 ```
 
-设置自动驾驶模式，编辑相关使能逻辑，在 Apollo 中，车辆的驾驶模式主要包含：
+To set the autonomous driving mode and edit the related enable logic: in Apollo, the vehicle's driving modes mainly include:
 
-- 完全自动驾驶模式（`COMPLETE_AUTO_DRIVE`）：横向、纵向都使能，
+- Complete autonomous driving mode (`COMPLETE_AUTO_DRIVE`): both lateral and longitudinal are enabled,
 
-- 横向自动驾驶模式（`AUTO_STEER_ONLY`）：横向使能，纵向不使能，
+- Lateral autonomous driving mode (`AUTO_STEER_ONLY`): lateral is enabled, longitudinal is not,
 
-- 纵向自动驾驶模式（`AUTO_SPEED_ONLY`）：横向不使能，纵向使能。
+- Longitudinal autonomous driving mode (`AUTO_SPEED_ONLY`): lateral is not enabled, longitudinal is enabled.
 
-车辆使能控制信号控制逻辑如下所示：
+The control logic for the vehicle enable control signals is as follows:
 
 ```
 ErrorCode Ge3Controller::EnableAutoMode() {
@@ -420,9 +420,9 @@ ErrorCode Ge3Controller::EnableSpeedOnlyMode() {
 }
 ```
 
-> 说明：添加控制信号的相关功能，必须要添加的控制信号包括车辆的油门、刹车踏板控制，转向控制，和档位控制。
+> Note: To add control signal functionality, the control signals that must be added include the vehicle's throttle and brake pedal control, steering control, and gear control.
 
-其它控制信号包括车大灯控制、喇叭控制、转向灯控制、电子手刹控制。代码如下所示：
+Other control signals include headlight control, horn control, turn signal control and electronic parking brake control. The code is as follows:
 
 ```
 // NEUTRAL, REVERSE, DRIVE
@@ -587,39 +587,39 @@ void Ge3Controller::SetTurningSignal(const ControlCommand& command) {
 }
 ```
 
-添加 `CheckResponse` 逻辑，Apollo 程序内增加了对车辆底层是否在自动驾驶模式的监控，即车辆横向、驱动、制动模块的驾驶模式反馈是否处于自动驾驶状态。
+Add the `CheckResponse` logic. Apollo's program monitors whether the vehicle's underlying layers are in autonomous driving mode, that is, whether the driving mode feedback of the vehicle's lateral, drive and braking modules indicates the autonomous driving state.
 
-如果在一个 `CheckResponse` 周期内，车辆某个模块驾驶模块反馈处于接管或者手动驾驶模式，则 Apollo 会控制车辆使能为紧急停车模式（`Emergency`），即各模块均控制为手动模式，确保控制车辆时的安全。
+If, within one `CheckResponse` cycle, the driving mode feedback of any module of the vehicle indicates takeover or manual driving mode, Apollo will switch the vehicle to emergency stop mode (`Emergency`), that is, all modules are controlled to manual mode, to ensure safety when controlling the vehicle.
 
-不同的车辆 `CheckResponse` 周期可能不同，需要开发者根据情况通过设置 `retry_num` 设定 `check` 周期。
+The `CheckResponse` cycle may differ between vehicles, and developers need to set the `check` cycle through `retry_num` according to the situation.
 
-开发者可以不改原 check 代码方案，将 3 个驾驶模式反馈报文与 Apollo 内 `chassis_detail` 做映射：
+Developers do not have to change the original check code scheme; they can map the 3 driving mode feedback messages to `chassis_detail` in Apollo:
 
-`is_eps_online->转向模式反馈信号`
+`is_eps_online -> steering mode feedback signal`
 
-`is_vcu_online->驱动模式反馈信号`
+`is_vcu_online -> drive mode feedback signal`
 
-`is_esp_online->制动模式反馈信号`
+`is_esp_online -> braking mode feedback signal`
 
-在 `apollo/modules/canbus/vehicle/ge3/protocol/scu_eps_311.cc` 文件内，增加以下代码：
+In the file `apollo/modules/canbus/vehicle/ge3/protocol/scu_eps_311.cc`, add the following code:
 
 ```
 chassis->mutable_check_response()->set_is_eps_online(eps_drvmode(bytes, length) == 3);
 ```
 
-在 `apollo/modules/canbus/vehicle/ge3/protocol/scu_vcu_1_312.cc` 文件内，增加以下代码：
+In the file `apollo/modules/canbus/vehicle/ge3/protocol/scu_vcu_1_312.cc`, add the following code:
 
 ```
 chassis->mutable_check_response()->set_is_vcu_online(vcu_drvmode(bytes, length) == 3);
 ```
 
-在 `apollo/modules/canbus/vehicle/ge3/protocol/scu_bcs_1_306.cc` 文件内，增加以下代码：
+In the file `apollo/modules/canbus/vehicle/ge3/protocol/scu_bcs_1_306.cc`, add the following code:
 
 ```
 chassis->mutable_check_response()->set_is_esp_online(bcs_drvmode(bytes, length) == 3);
 ```
 
-`CheckResponse` 实现代码如下：
+The `CheckResponse` implementation code is as follows:
 
 ```
 bool Ge3Controller::CheckResponse(const int32_t flags, bool need_wait) {
@@ -669,35 +669,35 @@ bool Ge3Controller::CheckResponse(const int32_t flags, bool need_wait) {
 }
 ```
 
-### 4. 修改底盘车速反馈协议
+### 4. Modify the Chassis Vehicle Speed Feedback Protocol
 
-**重点：将车速反馈单位由 km/h 转化为 m/s **
+**Key point: convert the vehicle speed feedback unit from km/h to m/s**
 
-Apollo 系统内默认使用车速反馈量为 `m/s`，底盘车速信息对 Apollo 非常重要，在车辆标定、控制、规划等都需要采集该数据，所以在开发适配代码时，要重点检查车速反馈的单位。车速由`km/h`转化为 `m/s` 时，在反馈车速的信号除以 `3.6` 即可。
-找到 Ge3 车辆反馈车速的报文在文件 `apollo/modules/canbus/vehicle/ge3/protocol/scu_bcs_2_307.cc` 下，反馈车速消息为`Scubcs2307::bcs_vehspd{}`，如下图所示：
+By default, the Apollo system uses `m/s` for the vehicle speed feedback. The chassis vehicle speed information is very important to Apollo and is needed for vehicle calibration, control, planning and so on, so when developing the adaptation code, check the vehicle speed feedback unit with particular care. To convert vehicle speed from `km/h` to `m/s`, simply divide the vehicle speed feedback signal by `3.6`.
+The message that carries the Ge3 vehicle's speed feedback is in the file `apollo/modules/canbus/vehicle/ge3/protocol/scu_bcs_2_307.cc`, and the speed feedback message is `Scubcs2307::bcs_vehspd{}`, as shown in the figure below:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_9e7ea07.png)
 
-### 5. 注册新车辆
+### 5. Register the New Vehicle
 
-1. 在 `modules/canbus/vehicle/vehicle_factory.cc` 里注册新的车辆，在该文件内新建如下类：
+1. Register the new vehicle in `modules/canbus/vehicle/vehicle_factory.cc` by creating the following class in that file:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_2ecd09d.png)
 
-2. 添加头文件：
+2. Add the header file:
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_3a20644.png)
 
-3. 添加 BUILD 依赖库，在 `apollo/modules/canbus/vehicle/BUILD` 文件内添加 `ge3_vehicle_factory` 依赖库。
+3. Add the BUILD dependency: add the `ge3_vehicle_factory` dependency library in the `apollo/modules/canbus/vehicle/BUILD` file.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_45e5eb6.png)
 
-### 6. 更新配置文件
+### 6. Update the Configuration Files
 
-1. 在 `apollo/modules/common/configs/proto/vehicle_config.proto` 文件内添加 GE3 车辆分支。
+1. Add the GE3 vehicle branch in the `apollo/modules/common/configs/proto/vehicle_config.proto` file.
 
 ![add_ge3_proto.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/add_ge3_proto_7a42ba6.png)
 
-2. 在 `apollo/modules/canbus/conf/canbus_conf.pb.txt` 更新配置，改为 ge3 的 canbus 通信程序。
+2. In `apollo/modules/canbus/conf/canbus_conf.pb.txt`, update the configuration to the ge3 canbus communication program.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_6_0/image_1baf464.png)

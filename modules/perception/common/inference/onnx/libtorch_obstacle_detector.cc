@@ -16,6 +16,7 @@
 
 #include "modules/perception/common/inference/onnx/libtorch_obstacle_detector.h"
 
+#include "cyber/common/file.h"
 #include "cyber/common/log.h"
 #include "modules/perception/common/inference/inference.h"
 
@@ -68,7 +69,8 @@ bool ObstacleDetector::Init(
   // torch::NoGradGuard no_grad;
   // Init net
   torch::Device device(device_type_, device_id_);
-  net_ = torch::jit::load(model_file_, device);
+  net_ =
+      torch::jit::load(apollo::cyber::common::ResolvePath(model_file_), device);
   net_.eval();
 
   // run a fake inference at init time as first inference is relative slow

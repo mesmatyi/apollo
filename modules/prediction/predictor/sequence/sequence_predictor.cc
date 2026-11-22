@@ -16,6 +16,7 @@
 
 #include "modules/prediction/predictor/sequence/sequence_predictor.h"
 
+#include <iomanip>
 #include <limits>
 #include <memory>
 

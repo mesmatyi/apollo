@@ -24,6 +24,8 @@
 
 #include "glog/logging.h"
 
+#include "cyber/logger/glog_compat.h"
+
 namespace apollo {
 namespace cyber {
 namespace logger {
@@ -47,8 +49,8 @@ class LogFileObject : public google::base::Logger {
   ~LogFileObject();
 
   void Write(bool force_flush,  // Should we force a flush here?
-             time_t timestamp,  // Timestamp for this entry
-             const char* message, int message_len) override;
+             GlogTimestampArg timestamp,  // Timestamp for this entry
+             const char* message, GlogLength message_len) override;
 
   // Configuration options
   void SetBasename(const char* basename);

@@ -22,6 +22,7 @@
 
 #include "opencv2/opencv.hpp"
 
+#include "cyber/common/file.h"
 #include "cyber/common/log.h"
 #include "modules/common/math/math_utils.h"
 #include "modules/common/math/vec2d.h"
@@ -73,13 +74,16 @@ bool TrajectoryImitationLibtorchInference::LoadModel() {
     ADEBUG << "CUDA is available";
     device_ = torch::Device(torch::kCUDA);
     try {
-      model_ = torch::jit::load(config_.gpu_model_file(), device_);
+      model_ = torch::jit::load(
+          apollo::cyber::common::ResolvePath(config_.gpu_model_file()),
+          device_);
     } catch (const c10::Error& e) {
       AERROR << "Failed to load model on to device";
       return false;
     }
   } else {
-    model_ = torch::jit::load(config_.cpu_model_file(), device_);
+    model_ = torch::jit::load(
+        apollo::cyber::common::ResolvePath(config_.cpu_model_file()), device_);
   }
 
   torch::set_num_threads(1);

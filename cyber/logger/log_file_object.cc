@@ -201,8 +201,9 @@ bool LogFileObject::CreateLogfile(const string& time_pid_string) {
   return true;  // Everything worked
 }
 
-void LogFileObject::Write(bool force_flush, time_t timestamp,
-                          const char* message, int message_len) {
+void LogFileObject::Write(bool force_flush, GlogTimestampArg glog_timestamp,
+                          const char* message, GlogLength message_len) {
+  const time_t timestamp = GlogToTimeT(glog_timestamp);
   std::lock_guard<std::mutex> lock(lock_);
 
   // We don't log if the base_name_ is "" (which means "don't write")

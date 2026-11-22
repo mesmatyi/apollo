@@ -1,27 +1,27 @@
-### 问题描述:
+### Problem Description:
 
-camera的driver launch文件运行时报出segemation fault
+A segmentation fault occurs when running the camera driver launch file.
 
-### 问题原因:
+### Cause:
 
-相机分辨率和默认配置不匹配
+The camera resolution does not match the default configuration.
 
-### 解决方案:
+### Solution:
 
-修改配置文件/apollo/modules/drivers/camera/conf/camera_front_6mm.pb.txt和/apollo/modules/drivers/camera/conf/camera_front_12mm.pb.txt
+Modify the configuration files /apollo/modules/drivers/camera/conf/camera_front_6mm.pb.txt and /apollo/modules/drivers/camera/conf/camera_front_12mm.pb.txt
 
 ![](images/camera_conf.png)
 
-**注意：** 目前apollo支持部分相机分辨率，4k分辨率(3840×2160)暂不支持
+**Note:** Apollo currently supports only some camera resolutions; the 4K resolution (3840×2160) is not supported yet.
 
-常见支持相机分辨率如下
+Commonly supported camera resolutions are as follows
 
 - 640×480
 - 1280×720
 - 1920×1080
 - 2560×1920
 
-支持相机分辨率计算方式如下
+The supported camera resolution is calculated as follows
 
 ![](images/camera_max_size.png)
 

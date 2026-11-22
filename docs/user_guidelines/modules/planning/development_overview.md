@@ -1,0 +1,9 @@
+# Overview
+
+In Apollo 9.0, the planning module was refactored into plugins, providing multiple development modes according to developers' usage scenarios.
+
+When Apollo's existing functions and business logic fully suit your scenario, you do not need to develop code and can meet the functional requirements of your scenario simply by adjusting the planning module's configuration parameters. For example, you may only want to adjust the cruise speed for point-to-point driving, or want a lower speed when turning. The configuration parameters include the parameter files of planning tasks and the scenario parameter files, which will be explained in detail in [Development by Configuration Parameters](Apollo_alpha_doc/使用指南/核心模块/规划能力/开发模式/通过配置参数开发.md).
+
+When your scenario needs to freely orchestrate planning tasks and work together with other functional modules to complete a job, for example, in an unmanned delivery scenario where the next point-to-point lane-following task must be executed after the user has taken the parcel, or in a mining scenario where loading and unloading tasks are executed in a loop; or when you need to perform some temporary actions while the planning module is running, for example temporarily controlling the vehicle speed while driving, or temporarily pulling over, you can do so by publishing commands to the planning module, which will be explained in detail in [Development by Publishing Commands](Apollo_alpha_doc/使用指南/核心模块/规划能力/开发模式/通过发布命令开发.md).
+
+When Apollo's existing functions and business logic cannot meet the needs of your scenario, for example if the vehicle you need to control cannot be described by a front-wheel-steering vehicle model, you can meet your scenario requirements through secondary development of the planning module, which will be explained in detail in [Development by Adding Plugins](Apollo_alpha_doc/使用指南/核心模块/规划能力/开发模式/通过新增插件开发.md).

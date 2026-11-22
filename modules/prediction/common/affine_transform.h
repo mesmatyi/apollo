@@ -16,7 +16,16 @@
 
 #include <memory>
 #include <vector>
+
+// CUDA NPP performs the warp on the GPU. Without NPP (CPU-only builds, or when
+// the build defines APOLLO_PREDICTION_NO_NPP) OpenCV's warpAffine is used; it
+// implements the same nearest-neighbour forward affine warp.
+#if !defined(APOLLO_PREDICTION_NO_NPP) && __has_include(<nppi.h>)
+#define APOLLO_PREDICTION_USE_NPP 1
 #include <nppi.h>
+#else
+#define APOLLO_PREDICTION_USE_NPP 0
+#endif
 
 #include "opencv2/opencv.hpp"
 
@@ -68,7 +77,9 @@ class AffineTransform {
  private:
   std::shared_ptr<CCObjectPool<unsigned char*>> src_pool_;
   std::shared_ptr<CCObjectPool<unsigned char*>> out_pool_;
+#if APOLLO_PREDICTION_USE_NPP
   std::shared_ptr<CCObjectPool<NppStreamContext>> stream_pool_;
+#endif
   std::vector<void*> pointer_table_;
   cv::Size size_;
   int type_;

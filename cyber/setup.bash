@@ -1,47 +1,39 @@
 #! /usr/bin/env bash
+###############################################################################
+# Environment for Apollo Cyber on ROS 2.
+#
+#   source cyber/setup.bash
+#
+# Sources ROS 2 and the colcon install of this repository (if present), points
+# APOLLO_ROOT at this checkout and sets Cyber's logging defaults. Binaries such
+# as mainboard, cyber_channel, cyber_node, cyber_service, cyber_launch and the
+# record converters come from the install and are on PATH afterwards.
+###############################################################################
 TOP_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd -P)"
-source ${TOP_DIR}/scripts/apollo.bashrc
+: "${ROS_DISTRO:=jazzy}"
 
-export APOLLO_BAZEL_DIST_DIR="${APOLLO_CACHE_DIR}/distdir"
-export CYBER_PATH="${APOLLO_ROOT_DIR}/cyber"
+if [[ -z "${AMENT_PREFIX_PATH:-}" && -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]]; then
+  source "/opt/ros/${ROS_DISTRO}/setup.bash"
+fi
+_apollo_install="${APOLLO_INSTALL_BASE:-${TOP_DIR}/install}"
+if [[ -f "${_apollo_install}/setup.bash" ]]; then
+  source "${_apollo_install}/setup.bash"
+fi
+unset _apollo_install
 
-bazel_bin_path="${APOLLO_ROOT_DIR}/bazel-bin"
-mainboard_path="${bazel_bin_path}/cyber/mainboard"
-cyber_tool_path="${bazel_bin_path}/cyber/tools"
-performance_path="${cyber_tool_path}/cyber_performance"
-recorder_path="${cyber_tool_path}/cyber_recorder"
-launch_path="${cyber_tool_path}/cyber_launch"
-channel_path="${cyber_tool_path}/cyber_channel"
-node_path="${cyber_tool_path}/cyber_node"
-service_path="${cyber_tool_path}/cyber_service"
-monitor_path="${cyber_tool_path}/cyber_monitor"
-visualizer_path="${bazel_bin_path}/modules/tools/visualizer"
+export APOLLO_ROOT="${APOLLO_ROOT:-${TOP_DIR}}"
 
-# TODO(all): place all these in one place and pathprepend
-for entry in "${mainboard_path}" \
-    "${recorder_path}" "${monitor_path}"  \
-    "${channel_path}" "${node_path}" \
-    "${service_path}" "${performance_path}" \
-    "${launch_path}" \
-    "${visualizer_path}" ; do
-    pathprepend "${entry}"
-done
+# Cyber's CYBER_DOMAIN_ID maps onto the ROS 2 domain.
+if [[ -z "${ROS_DOMAIN_ID:-}" && -n "${CYBER_DOMAIN_ID:-}" ]]; then
+  export ROS_DOMAIN_ID="${CYBER_DOMAIN_ID}"
+fi
 
-pathprepend ${bazel_bin_path}/cyber/python/internal PYTHONPATH
-pathprepend "${PYTHON_INSTALL_PATH}/lib/python${PYTHON_VERSION}/site-packages" PYTHONPATH
-pathprepend "${PYTHON_INSTALL_PATH}/bin/" PATH
+export GLOG_log_dir="${GLOG_log_dir:-${APOLLO_ROOT}/data/log}"
+mkdir -p "${GLOG_log_dir}" 2>/dev/null || true
+export GLOG_alsologtostderr="${GLOG_alsologtostderr:-0}"
+export GLOG_colorlogtostderr="${GLOG_colorlogtostderr:-1}"
+export GLOG_minloglevel="${GLOG_minloglevel:-0}"
 
-export CYBER_DOMAIN_ID=80
-export CYBER_IP=127.0.0.1
-
-export GLOG_log_dir="${APOLLO_ROOT_DIR}/data/log"
-export GLOG_alsologtostderr=0
-export GLOG_colorlogtostderr=1
-export GLOG_minloglevel=0
-
-export sysmo_start=0
-
-# for DEBUG log
-#export GLOG_v=4
-
-source ${CYBER_PATH}/tools/cyber_tools_auto_complete.bash
+if [[ -f "${TOP_DIR}/cyber/tools/cyber_tools_auto_complete.bash" ]]; then
+  source "${TOP_DIR}/cyber/tools/cyber_tools_auto_complete.bash"
+fi

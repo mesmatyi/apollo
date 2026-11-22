@@ -1,0 +1,23 @@
+# Apollo (Cyber) services that get a native ROS 2 service type:
+#   <request protobuf type> <response protobuf type>
+# Services not listed here use apollo_msgs/srv/ProtoService.
+
+# External commands (modules/external_command).
+apollo.external_command.LaneFollowCommand apollo.external_command.CommandStatus
+apollo.external_command.ValetParkingCommand apollo.external_command.CommandStatus
+apollo.external_command.ActionCommand apollo.external_command.CommandStatus
+apollo.external_command.ChassisCommand apollo.external_command.CommandStatus
+apollo.external_command.FreeSpaceCommand apollo.external_command.CommandStatus
+apollo.external_command.PathFollowCommand apollo.external_command.CommandStatus
+apollo.external_command.PreciseParkingCommand apollo.external_command.CommandStatus
+apollo.external_command.SpeedCommand apollo.external_command.CommandStatus
+apollo.external_command.ZoneCoverCommand apollo.external_command.CommandStatus
+apollo.external_command.CommandStatusRequest apollo.external_command.CommandStatus
+
+# Cyber parameter service.
+apollo.cyber.proto.ParamName apollo.cyber.proto.Param
+apollo.cyber.proto.Param apollo.cyber.proto.BoolResult
+apollo.cyber.proto.NodeName apollo.cyber.proto.Params
+
+# Cyber examples.
+apollo.cyber.examples.proto.Driver apollo.cyber.examples.proto.Driver

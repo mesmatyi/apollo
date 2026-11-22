@@ -19,6 +19,8 @@
 #include "torch/script.h"
 #include "torch/torch.h"
 
+#include "cyber/common/file.h"
+
 DEFINE_string(
     model_file,
     "/apollo/modules/planning/planning_base/tools/planning_demo_model.pt",
@@ -36,7 +38,8 @@ int main(int argc, char** argv) {
   torch::set_num_threads(1);
   try {
     // Deserialize the ScriptModule from a file using torch::jit::load().
-    model = torch::jit::load(FLAGS_model_file, device);
+    model = torch::jit::load(
+        apollo::cyber::common::ResolvePath(FLAGS_model_file), device);
   } catch (const c10::Error& e) {
     std::cerr << "error loading the model\n";
     return -1;

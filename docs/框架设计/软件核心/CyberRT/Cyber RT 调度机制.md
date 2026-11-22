@@ -1,66 +1,66 @@
-## Cyber RT调度整体介绍
+## Overview of Cyber RT Scheduling
 
-随着人工智能技术的不断发展，自动驾驶汽车已经开始变为可能。自动驾驶汽车需要同时完成多项任务，包括定位、感知、规划、控制等。如何合理调度编排这些任务，让它们运行得稳定、高效，是我们今天介绍的主要内容。
+With the continuous development of artificial intelligence technology, autonomous vehicles have begun to become possible. An autonomous vehicle needs to complete multiple tasks at the same time, including localization, perception, planning, control, and so on. How to schedule and orchestrate these tasks reasonably so that they run stably and efficiently is the main topic we introduce today.
 
-### 操作系统调度策略
+### Operating System Scheduling Policies
 
-操作系统进行调度的目的是为了最大化利用系统资源（特别是CPU资源）。调度往往是对有限资源的妥协，本质是为了：效率最大化，兼顾公平。
+The purpose of operating system scheduling is to maximize the use of system resources (especially CPU resources). Scheduling is often a compromise over limited resources, and its essence is: maximize efficiency while taking fairness into account.
 
-#### 调度改变了什么？
+#### What Does Scheduling Change?
 
-先看以下的例子，有3个任务，当一个任务执行完成之后，再开始执行另一个任务，3个任务的执行时间分别为10s，6s和4s，我们应该如何编排任务呢？
+Consider the following example. There are 3 tasks, and when one task finishes, another begins. The execution times of the 3 tasks are 10s, 6s, and 4s. How should we arrange the tasks?
 
 ![cyber_scheduler](./images/cyber_scheduler_1.jpeg)
 
-通过上面的例子可以看出，策略1和策略2的CPU总执行时间不变，但是等待时间变少了。也就是说调度系统帮我们减少了任务的总等待时间。
-超市里经常遇到排队的场景，当只买了少量的东西，和买大量东西的人排一队的时候，可能就会遇到等待时间过长的问题。
+From the example above, you can see that the total CPU execution time of strategy 1 and strategy 2 is unchanged, but the waiting time is reduced. That is to say, the scheduling system helps us reduce the total waiting time of tasks.
+In supermarkets we often encounter queuing scenarios: when someone who buys only a few items queues in the same line as someone who buys a lot, the waiting time may be too long.
 
 ![cyber_scheduler](./images/cyber_scheduler_2.jpeg)
 
-#### 最短时间优先？
+#### Shortest Time First?
 
-回到上面的例子，最优的调度策略诞生了，它就是最短时间优先，每次最短时间的任务优先执行，这样可以保证任务总等待时间最短。
+Back to the example above, the optimal scheduling policy is born: shortest time first. The task with the shortest time is executed first each time, which ensures the shortest total waiting time of tasks.
 
 ![cyber_scheduler](./images/cyber_scheduler_3.jpeg)
 
-#### 如何保证公平？
+#### How to Ensure Fairness?
 
-可能马上就有人想到了，每次只创建小任务，这样可以保证自己的任务每次都可以插队，被优先执行。但问题来了，这会导致大任务总是得不到执行，一直处于饥饿状态。oh!!! 效率最大化会导致CPU利用的不公平，而我们要兼顾公平。
+Someone may immediately think of only creating small tasks each time, so that their tasks can always jump the queue and be executed first. But the problem is that this causes large tasks never to be executed, leaving them starved. Oh!!! Maximizing efficiency leads to unfair CPU utilization, and we must take fairness into account.
 
-#### 程序时间可以预知吗？
+#### Can Program Time Be Predicted?
 
-最短时间优先的策略很棒，但我们忘记了一个重要问题，在任务执行完之前，我们并不知道任务会执行多久！！！策略失效了！！！
+The shortest-time-first strategy is great, but we forgot an important problem: before a task finishes, we don't know how long it will run!!! The strategy fails!!!
 
 ![cyber_scheduler](./images/cyber_scheduler_4.jpeg)
 
-别灰心，有新的方法：时间片轮转。交替执行各个任务，每个任务分配一小段CPU时间，时间用尽则退出，让给其它任务使用。
+Don't be discouraged, there is a new method: round-robin time slicing. Execute the tasks alternately, allocating each task a small slice of CPU time; when the time is used up, it exits and yields to other tasks.
 
 ![cyber_scheduler](./images/cyber_scheduler_5.jpeg)
 
 Tips
 
-> 要支持时间片轮转，操作系统和硬件配合，实现任务抢占。
+> To support round-robin time slicing, the operating system and hardware cooperate to implement task preemption.
 
-### Cyber RT的改进
+### Improvements in Cyber RT
 
-#### 实时操作系统
+#### Real-Time Operating System
 
-- 实时操作系统，通过给linux打实时补丁，支持抢占。
-- 中断绑定，摄像头，激光雷达，串口等外设需要不停的处理中断，因此可以绑定中断处理程序在一个核上。
+- Real-time operating system: by applying real-time patches to linux, preemption is supported.
+- Interrupt binding: peripherals such as cameras, LiDARs, and serial ports need to handle interrupts continuously, so their interrupt handlers can be bound to one core.
 
 Tips
 
-> 实时操作系统不是万能的。很多人可能会问，假如我有一个实时系统，那么是否意味着任务总是可以按时完成，想法很美好，也符合实时操作系统的定义，但资源是有限的，例如你不可能同时吃饭还喝水。
-> 只凭借有限的资源，却能保证完成无限的事情，如果有这样的系统我想它的成就不亚于永动机。因此当程序处理不过来的时候，我们要检查资源是否足够，特别是忙碌的时候。
+> A real-time operating system is not a panacea. Many people may ask: if I have a real-time system, does that mean tasks can always be completed on time? The idea is beautiful and also fits the definition of a real-time operating system, but resources are limited; for example, you cannot eat and drink at the same time.
+> Relying on limited resources alone to guarantee the completion of unlimited things — if there were such a system, I think its achievement would be no less than a perpetual motion machine. Therefore, when a program cannot keep up, we need to check whether resources are sufficient, especially when busy.
 
-#### 资源限制&优先级
+#### Resource Limits & Priority
 
-Cgroup是 Linux 内核的一个特性，用于限制、记录和隔离一组进程的资源使用（CPU、内存、磁盘 I/O、网络等）。Cgroup 具有以下特性：
+Cgroup is a Linux kernel feature used to limit, record, and isolate the resource usage (CPU, memory, disk I/O, network, etc.) of a group of processes. Cgroup has the following characteristics:
 
-- 资源限制 —— 您可以配置 cgroup，从而限制进程可以对特定资源（例如内存或 CPU）的使用量。
-- 优先级 —— 当资源发生冲突时，您可以控制一个进程相比另一个 cgroup 中的进程可以使用的资源量（CPU、磁盘或网络）。
-- 记录 —— 在 cgroup 级别监控和报告资源限制。
-- 控制 —— 您可以使用单个命令更改 cgroup 中所有进程的状态（冻结、停止或重新启动）。
+- Resource limits — you can configure cgroups to limit how much of a particular resource (such as memory or CPU) a process can use.
+- Priority — when resource conflicts occur, you can control how many resources (CPU, disk, or network) a process can use compared with processes in another cgroup.
+- Accounting — monitor and report resource limits at the cgroup level.
+- Control — you can change the state of all processes in a cgroup (freeze, stop, or restart) with a single command.
 
 ```text
 pthread_setaffinity_np
@@ -72,52 +72,52 @@ pthread_setaffinity_np
         choreography_processor_policy: "SCHED_FIFO" # policy: SCHED_OTHER,SCHED_RR,SCHED_FIFO
 ```
 
-#### 协程
+#### Coroutines
 
-协程。用户态的线程，由用户控制切换。协程的定义可以参考go语言中的GMP 模型
+Coroutines are user-mode threads whose switching is controlled by the user. For the definition of coroutines, refer to the GMP model in the go language
 
-- M，Machine，表示系统级线程，goroutine 是跑在 M 上的。线程想运行任务就得获取 P，从 P 的本地队列获取 G，P 队列为空时，M 也会尝试从全局队列拿一批G放到P的本地队列，或从其他P的本地队列偷一半放到自己P的本地队列。M运行G，G执行之后，M会从P获取下一个G，不断重复下去。
-- P，processor，是 goroutine 执行所必须的上下文环境，可以理解为协程处理器，是用来执行 goroutine 的。processor 维护着可运行的 goroutine 队列，里面存储着所有需要它来执行的 goroutine。
-- G，goroutine，协程。
+- M, Machine, represents a system-level thread, and goroutines run on M. For a thread to run tasks it must acquire a P and fetch a G from P's local queue. When P's queue is empty, M also tries to take a batch of Gs from the global queue and put them into P's local queue, or steal half from another P's local queue and put them into its own P's local queue. M runs G, and after G finishes executing, M fetches the next G from P, repeating continuously.
+- P, processor, is the context environment required for goroutine execution. It can be understood as a coroutine processor, used to execute goroutines. The processor maintains a queue of runnable goroutines, which stores all the goroutines that need it to execute them.
+- G, goroutine, the coroutine.
 
 ![cyber_scheduler](./images/cyber_scheduler_6.jpeg)
 
-协程相对线程的优势
+Advantages of coroutines over threads
 
-- 系统消耗少。线程的切换用户态->中断->内核态，协程的切换只在用户态完成，减少了系统开销。
-- 轻量。协程占用资源比线程少，一个线程往往消耗几兆的内存。
+- Lower system overhead. A thread switch goes user mode -> interrupt -> kernel mode, while a coroutine switch is completed entirely in user mode, which reduces system overhead.
+- Lightweight. A coroutine occupies fewer resources than a thread; a thread often consumes several megabytes of memory.
 
 Tips
 
-> 只能自己yeild，最好不要使用sleep，或者io，不然就会主动休眠
+> Coroutines can only yield by themselves; it is best not to use sleep or io, otherwise they will go to sleep actively
 
-为什么引入协程？因为自动驾驶系统涉及到很多消息传输，因此会导致大量的IO消耗，那么如何减少任务切换带来的开销就显得尤为重要。
+Why introduce coroutines? Because an autonomous driving system involves a lot of message transmission, which leads to a large amount of IO consumption, so how to reduce the overhead caused by task switching is especially important.
 
-引入协程可以减少任务切换带来的开销，从而提高程序的效率。在自动驾驶系统中，大量的IO消耗会使得系统性能下降。通过使用协程，可以将系统的IO操作和非IO操作分别处理，减少任务切换的次数，从而提高系统的响应速度和效率。
+Introducing coroutines can reduce the overhead caused by task switching, thereby improving the efficiency of the program. In an autonomous driving system, a large amount of IO consumption degrades system performance. By using coroutines, the system's IO operations and non-IO operations can be handled separately, reducing the number of task switches and thus improving the system's response speed and efficiency.
 
-此外，使用协程还可以简化代码结构，提高代码的可读性和可维护性。在自动驾驶系统中，涉及到大量的数据的处理和传输，如果使用传统的多线程编程方式，将会使得代码结构复杂，难以维护。而使用协程可以将代码结构简化，使得代码更加清晰易懂，从而提高代码的可读性和可维护性。
+In addition, using coroutines can also simplify the code structure and improve the readability and maintainability of the code. In an autonomous driving system, a large amount of data is processed and transmitted; if the traditional multi-threaded programming approach is used, the code structure becomes complex and hard to maintain. Using coroutines simplifies the code structure and makes the code clearer and easier to understand, thereby improving its readability and maintainability.
 
-综上所述，引入协程可以减少任务切换带来的开销，提高系统的响应速度和效率，同时也可以简化代码结构，提高代码的可读性和可维护性。
+In summary, introducing coroutines can reduce the overhead caused by task switching, improve the system's response speed and efficiency, and also simplify the code structure and improve the code's readability and maintainability.
 
 ![cyber_scheduler](./images/cyber_scheduler_7.png)
 
-## Cyber RT调度策略
+## Cyber RT Scheduling Policies
 
-### 多优先级队列
+### Multi-Priority Queues
 
-对应到GMP模型，Cyber的每个任务都被视为一个协程，协程在线程上运行，并且可以设置协程的优先级。协程通过一个多优先级队列来管理，每次从优先级最高的协程开始执行。
+Corresponding to the GMP model, each task in Cyber is treated as a coroutine, coroutines run on threads, and the priority of a coroutine can be set. Coroutines are managed through a multi-priority queue, and execution always starts from the coroutine with the highest priority.
 
 ![cyber_scheduler](./images/cyber_scheduler_8.png)
 
-### 任务窃取
+### Task Stealing
 
-有意思的是有些Processor上的任务分配的比较少，有些Processor上的任务可能分配的比较多，这样会导致一些Processor闲置，而另一些则处于饱和状态。为了提高效率，空闲的Processor会从饱和的Processor上偷取一半的任务过来执行，从而提高CPU利用率。
+Interestingly, some Processors are assigned relatively few tasks, while others may be assigned relatively many, which leaves some Processors idle while others are saturated. To improve efficiency, an idle Processor steals half of the tasks from a saturated Processor to execute, thereby improving CPU utilization.
 
-### 二种任务类型
+### Two Task Types
 
-#### 组件
+#### Component
 
-组件是Apollo中的最小执行单元，每个组件对应某一项特定的任务，例如定位、控制。多个组件联合起来可以实现更加复杂的功能，例如感知。Apollo一共有2种类型的组件：消息触发型和定时触发型。
+A component is the smallest execution unit in Apollo, and each component corresponds to a specific task, such as localization or control. Multiple components combined can implement more complex functionality, such as perception. Apollo has 2 types of components in total: message-triggered and timer-triggered.
 
 ```cpp
 class CommonComponentSample : public Component<Driver> {
@@ -128,9 +128,9 @@ class CommonComponentSample : public Component<Driver> {
 CYBER_REGISTER_COMPONENT(CommonComponentSample)
 ```
 
-#### 自定义任务
+#### Custom Tasks
 
-如果在程序中想启动新的任务并发处理，可以使用cyber::Async接口，创建的任务会在协程池中由cyber统一调度管理。
+If you want to start a new task for concurrent processing in your program, you can use the cyber::Async interface. The created task is uniformly scheduled and managed by cyber in the coroutine pool.
 
 ```cpp
 class Foo {
@@ -146,4 +146,4 @@ class Foo {
 
 Tips
 
-> 手动创建的线程并没有设置cgroup，因此最好不要手动创建线程，如果有需要可以通过cyber配置来设置cgroup。
+> Manually created threads do not have a cgroup set, so it is best not to create threads manually. If necessary, cgroups can be set through cyber configuration.

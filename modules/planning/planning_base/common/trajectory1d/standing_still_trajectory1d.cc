@@ -18,6 +18,8 @@
  * @file
  **/
 
+#include <cstdint>
+
 #include "modules/planning/planning_base/common/trajectory1d/standing_still_trajectory1d.h"
 
 namespace apollo {

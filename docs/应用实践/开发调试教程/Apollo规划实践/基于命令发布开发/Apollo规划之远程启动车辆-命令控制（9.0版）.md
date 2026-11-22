@@ -1,61 +1,61 @@
-## 实验内容
+## Experiment Content
 
-通过 5G 远程驾驶平台监控和接管自动驾驶车辆是确保自动驾驶安全行驶的重要手段，本实验将基于 Dreamview+ 进行 Sim_Control 仿真，实现对自动驾驶车辆的远程控制，包括启动、停车和靠边停车等操作。
+Monitoring and taking over autonomous vehicles through a 5G remote driving platform is an important means of ensuring safe autonomous driving. This experiment performs Sim_Control simulation based on Dreamview+ to achieve remote control of an autonomous vehicle, including operations such as start, stop and pull over.
 
-## 实验目的
+## Experiment Objective
 
-学习新增和使用新命令行插件的流程，掌握开发命令行插件的步骤，使学员具有新建自定义插件能力。
+Learn the process of adding and using a new command-line plugin, master the steps for developing a command-line plugin, and give trainees the ability to create custom plugins.
 
-- 方法：通过使用Apollo 9.0的buildtool功能，新增一个命令控制的插件，实现通过终端控制车辆启动、停车和靠边停车的功能。
-- 结果：通过命令行控制，在Dreamview +的界面上，可以观察到车辆启动、停车和靠边停车的仿真效果。
+- Method: Using the buildtool feature of Apollo 9.0, add a command-controlled plugin that implements controlling the vehicle to start, stop and pull over through the terminal.
+- Result: Through command-line control, the simulation effects of the vehicle starting, stopping and pulling over can be observed in the Dreamview+ interface.
 
-## 实验步骤
+## Experiment Steps
 
-### 1. 新建远程控制车辆插件
+### 1. Create the Remote Vehicle Control Plugin
 
-1. 执行下面命令，新建插件文件夹`remote_control_command_demo`。
+1. Run the following command to create the plugin folder `remote_control_command_demo`.
 
    ```bash
    buildtool create --template component remote_control_command_demo
    ```
 
-   执行成功后，执行 ls 命令可以看到当前目录下生成了`remote_control_command_demo`文件夹，如下图所示：
+   After it succeeds, run the ls command and you can see that the `remote_control_command_demo` folder has been generated in the current directory, as shown below:
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c742c5c.png)
 
-   查看目录结构：
+   View the directory structure:
 
    ```bash
    tree remote_control_command_demo
    ```
 
-   目录结构：
+   Directory structure:
 
    ```bash
    remote_control_command_demo
     |-- BUILD
     |-- conf
-    |   |-- remote_control_command_demo.conf             -----------加载全局参数的文件
-    |   `-- remote_control_command_demo.pb.txt           -----------proto的配置文件
-    |-- cyberfile.xml                                    -----------编译的加载文件
+    |   |-- remote_control_command_demo.conf             -----------File that loads the global parameters
+    |   `-- remote_control_command_demo.pb.txt           -----------proto configuration file
+    |-- cyberfile.xml                                    -----------Build loading file
     |-- dag
-    |   `-- remote_control_command_demo.dag              -----------启动的dag文件
+    |   `-- remote_control_command_demo.dag              -----------dag file for startup
     |-- launch
-    |   `-- remote_control_command_demo.launch           -----------启动的launch文件
+    |   `-- remote_control_command_demo.launch           -----------launch file for startup
     |-- proto
-    |   |-- BUILD                                        -----------proto的编译文件
-    |   `-- remote_control_command_demo.proto            -----------proto的定义文件
-    |-- remote_control_command_demo.cc                   -----------功能实现文件
-    `-- remote_control_command_demo.h                    -----------功能定义文件
+    |   |-- BUILD                                        -----------proto build file
+    |   `-- remote_control_command_demo.proto            -----------proto definition file
+    |-- remote_control_command_demo.cc                   -----------Feature implementation file
+    `-- remote_control_command_demo.h                    -----------Feature definition file
    ```
 
-2. 点击红框所示位置，打开在线编辑器，对插件文件进行编辑。
+2. Click the position shown in the red box to open the online editor and edit the plugin files.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_73db513.png)
 
-3. 将下列文件中的代码拷贝至`remote_control_command_demo`对应的文件中：
+3. Copy the code in the following files into the corresponding files of `remote_control_command_demo`:
 
-   remote_control_command_demo.cc：
+   remote_control_command_demo.cc:
 
    ```bash
    #include "remote_control_command_demo/remote_control_command_demo.h"
@@ -194,7 +194,7 @@
         }
    ```
 
-   remote_control_command_demo.h：
+   remote_control_command_demo.h:
 
    ```bash
     #pragma once
@@ -260,7 +260,7 @@
     CYBER_REGISTER_COMPONENT(RemoteCotrolCommandDemo);
    ```
 
-   cyberfile.xml：
+   cyberfile.xml:
 
    ```bash
     <package format="2">
@@ -280,7 +280,7 @@
    </package>
    ```
 
-   BUILD：
+   BUILD:
 
    ```bash
    load("//tools:cpplint.bzl", "cpplint")
@@ -322,7 +322,7 @@
     apollo_package()
    ```
 
-   dag/remote_control_command_demo.dag：
+   dag/remote_control_command_demo.dag:
 
    ```bash
    module_config {
@@ -337,7 +337,7 @@
    }
    ```
 
-   launch/remote_control_command_demo.launch：
+   launch/remote_control_command_demo.launch:
 
    ```bash
    <cyber>
@@ -349,23 +349,23 @@
     </cyber>
    ```
 
-   conf/remote_control_command_demo.conf：
+   conf/remote_control_command_demo.conf:
 
    ```bash
    --flagfile=/apollo/modules/common/data/global_flagfile.txt
    ```
 
-4. 代码文件拷贝完毕后，点击左上角保存代码文件。
+4. After the code files have been copied, click the upper left corner to save the code files.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_558dca9.png)
 
-5. 点击上一个网页链接，返回操作终端。
+5. Click the previous web page link to return to the operation terminal.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_ee67a23.png)
 
-6. 执行下面指令，执行代码编译操作；
+6. Run the following commands to perform the code build;
 
-   编译远程控制车辆模块：
+   Build the remote vehicle control module:
 
    ```bash
     buildtool init
@@ -374,31 +374,31 @@
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_932118c.png)
 
-7. 如下图所示，正常情况会编译成功；如果编译失败，请检查代码的替换内容是否正确（检查完毕后保存后，重新执行5编译操作指令即可）。
+7. As shown below, the build normally succeeds. If the build fails, please check whether the replaced code content is correct (after checking and saving, simply run the build command in step 5 again).
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_4d9df4b.png)
 
-### 2. 启动远程控制车辆模块
+### 2. Start the Remote Vehicle Control Module
 
-1. 在终端中，执行下面命令启动远程控制车辆模块，执行成功后，如下图所示。
+1. In the terminal, run the following command to start the remote vehicle control module. After it succeeds, it is as shown below.
 
-   远程命令模块：
+   Remote command module:
 
    ```bash
    mainboard -d remote_control_command_demo/dag/remote_control_command_demo.dag
    ```
 
-2. 执行成功后，如下图所示，此进程会被单独的挂起：
+2. After it succeeds, as shown below, this process is suspended on its own:
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_cc8e694.png)
 
-### 3. 启动DreamView+
+### 3. Start DreamView+
 
-在新的终端中，执行`aem bootstrap start --plus`启动 DreamView+，执行成功后，点击菜单栏 Dreamview+ 按钮，进入 Dreamview+ 界面。
+In a new terminal, run `aem bootstrap start --plus` to start DreamView+. After it succeeds, click the Dreamview+ button in the menu bar to enter the Dreamview+ interface.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_8c9001f.png)
 
-启动 Dreamview+ 命令：
+Command to start Dreamview+:
 
 ```bash
 aem bootstrap start --plus
@@ -406,68 +406,68 @@ aem bootstrap start --plus
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_5de4f6c.png)
 
-当出现如下，即表示 Dreamview+ 启动成功了。
+When the following appears, Dreamview+ has started successfully.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_ebb7089.png)
 
-点击左下角 **个人中心** > **设置** > **全局设置** ，可以选择界面语言类型。
+Click **Personal Center** > **Settings** > **General Settings** at the lower left to select the interface language.
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a957a49.png)
 
-### 4. 启动车辆的运行环境
+### 4. Start the Vehicle's Runtime Environment
 
-1. 点击左侧菜单栏，选择 PnC 模式，操作选择 Sim_Control（首次进入异常，请点击刷新按钮）。
+1. Click the left menu bar, select the PnC mode, and select Sim_Control as the operation (if there is an error on first entry, please click the refresh button).
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_911ffee.png)
 
-2. 开启 Planning、Prediction 和 TaskManager 模块，此时 Dreamview+ 会启动这些模块。
+2. Enable the Planning, Prediction and TaskManager modules, and Dreamview+ then starts these modules.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a389f11.png)
 
-3. 点击 **路由编辑** 按钮，此时开始为车辆进行构建相应的 routing 信息；
+3. Click the **Routing Editing** button, and the corresponding routing information starts being built for the vehicle;
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_061d28f.png)
 
-4. 点击 **初始位置** 按钮，选择车辆运行的初始位姿（目前仅支持选择在地图场景内）；
+4. Click the **Start Position** button and select the initial pose of the vehicle (currently only positions within the map scene can be selected);
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_a6a5018.png)
 
-5. 点击 **轨迹点** 按钮，选择车辆运行的终点（可以选择多个），构建车辆运行的终点位置（目前仅支持选择在地图场景内），选择完毕后，点击 **保存编辑** 按钮，此时构建的运行场景信息被保存。
+5. Click the **Waypoint** button and select the end point of the vehicle's run (multiple can be selected) to build the vehicle's destination position (currently only positions within the map scene can be selected). After the selection is complete, click the **Save Editing** button, and the built scenario information is saved.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_e00dd23.png)
 
-6. 运行场景信息构建完毕后，点击左下角的运行按钮，车辆构建一条由初始位置到终点的轨迹线，车辆会正常的沿着轨迹线开始行驶。
+6. After the scenario information is built, click the run button at the lower left. The vehicle builds a trajectory line from the start position to the end point, and the vehicle starts driving normally along the trajectory line.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_2116e2e.png)
 
-7. 运行过程中如果需要暂停当前场景的运行，可以点击左下角的暂停按钮，此时车辆会暂停在当前位置，再次点击运行按钮车辆会继续沿着轨迹线行驶。
+7. If you need to pause the current scenario while it is running, you can click the pause button at the lower left. The vehicle then pauses at its current position, and clicking the run button again makes the vehicle continue driving along the trajectory line.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_2841cba.png)
 
-### 5. 发送远程控制指令
+### 5. Send Remote Control Commands
 
-1. 点击 Dreamview+ 左下角运行按钮，保证车辆沿着当前的轨迹线行驶，切换至远程控制终端，在终端输入 **STOP** 指令，车辆会由 **LANE_FOLLOW** 场景进入 **EMERGENCY_STOP** 场景（如 Dreamview+ 所示），车辆会在当前位置缓慢停止。
+1. Click the run button at the lower left of Dreamview+ to make sure the vehicle drives along the current trajectory line, switch to the remote control terminal, and enter the **STOP** command in the terminal. The vehicle goes from the **LANE_FOLLOW** scenario into the **EMERGENCY_STOP** scenario (as shown in Dreamview+), and the vehicle slowly stops at its current position.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_2f3a594.png)
 
-   切换至 Dreamview+ 界面，可以发现车辆已经执行急刹指令；
+   Switch to the Dreamview+ interface and you can see that the vehicle has executed the emergency braking command;
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_87e76c9.png)
 
-2. 继续在终端输入 START 指令，车辆会再次进入 **LANE_FOLLOW** 场景，车辆会继续沿着当前的的 routing 线行驶，如下图 Dreamview+ 界面所示；
+2. Continue by entering the START command in the terminal. The vehicle enters the **LANE_FOLLOW** scenario again and continues driving along the current routing line, as shown in the Dreamview+ interface below;
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_c873f7b.png)
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_777d320.png)
 
-3. 在终端输入 **pull_over** 指令，车辆会进入 **PULL_OVER** 场景，车辆会执行靠边停车指令；
+3. Enter the **pull_over** command in the terminal. The vehicle enters the **PULL_OVER** scenario and executes the pull-over command;
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_3797af1.png)
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_38e0af0.png)
 
-4. 继续在终端输入 **START** 指令，车辆会由 **PULL_OVER** 场景再次进入 **LANE_FOLLOW** 场景，车辆会继续沿着当前的的 routing 线行驶。
+4. Continue by entering the **START** command in the terminal. The vehicle goes from the **PULL_OVER** scenario into the **LANE_FOLLOW** scenario again and continues driving along the current routing line.
 
-5. 当我们向终端发送错误的指令时，例如： **aaaa** ，系统无法识别指令，会提醒我们是无效的指令，对当前车辆的运行场景无影响。
+5. When we send an incorrect command to the terminal, for example **aaaa**, the system cannot recognize the command and reminds us that it is an invalid command, with no impact on the vehicle's current running scenario.
 
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_0d0e863.png)

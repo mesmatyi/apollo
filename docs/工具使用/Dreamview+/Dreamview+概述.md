@@ -1,110 +1,110 @@
-## Dreamview+ 是什么？
+## What Is Dreamview+?
 
-Dreamview+ 是一个 web 应用程序，提供如下的功能：
+Dreamview+ is a web application that provides the following functions:
 
-- 可视化显示当前自动驾驶车辆模块的输出信息。例如：规划路径、车辆定位、车架信息等。
-- 为使用者提供人机交互接口以监测车辆硬件状态，对模块进行开关操作，启动自动驾驶车辆等。
-- 提供调试工具。例如：PnC 监视器可以高效的跟踪模块输出的问题。
-  不过，Dreamview+ 的大部分的功能，主要是为了在实际上车调试中使用的。
-  在快速入门中，只使用 Dreamview+ 的可视化功能将 record 数据包的数据可视化。
+- Visualizes the output of the current autonomous vehicle modules. For example: planned path, vehicle localization, chassis information, and so on.
+- Provides users with a human-machine interface to monitor vehicle hardware status, switch modules on and off, start the autonomous vehicle, and so on.
+- Provides debugging tools. For example: the PnC Monitor can efficiently track problems in module output.
+  However, most of the features of Dreamview+ are mainly intended for use during debugging on a real vehicle.
+  In the quick start, only the visualization feature of Dreamview+ is used to visualize the data in a record data package.
 
-## 整体布局
+## Overall Layout
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Doc_CN_9_0/image_1445a63.png)
 
-- 侧边栏：显示菜单按钮：**Mode Settings/模式设置** 、 **Add Panel/添加面板** 、 **Resource Manager/资源中心** 、 **Personnal Center/个人中心** 。
+- Sidebar: displays the menu buttons: **Mode Settings**, **Add Panel**, **Resource Manager**, and **Personal Center**.
 
-- 菜单窗口：显示各菜单按钮的详细信息。
+- Menu window: displays the details of each menu button.
   
-  - Mode Settings/模式设置：模式设置工具栏，详细介绍参见 [Mode Settings](<Apollo_alpha_doc/使用指南/可视化交互工具 Dreamview+/Mode Settings.md>)。
+  - Mode Settings: the mode settings toolbar. For details, see [Mode Settings](<Apollo_alpha_doc/使用指南/可视化交互工具 Dreamview+/Mode Settings.md>).
   
-  - Add Panel/添加面板：添加面板，包括控制台、模块延时、车辆可视化、相机视图、点云视图、车辆仪表盘视图等面板。关于面板详细介绍，参见 [Add Panel](<Apollo_alpha_doc/使用指南/可视化交互工具 Dreamview+/Add Panel.md>)。
+  - Add Panel: adds panels, including Console, Module Delay, Vehicle Visualization, Camera View, Point Cloud View, Vehicle Dashboard View, and others. For details about panels, see [Add Panel](<Apollo_alpha_doc/使用指南/可视化交互工具 Dreamview+/Add Panel.md>).
   
-  - Resource Manager/资源管理：Apollo 提供的车云一体的配置中心，提供车辆、模型、数据包、仿真场景等素材的下载功能。您可以点击需要的数据包、车辆、模型、仿真场景等元素进行下载。详细介绍参见 [Resource Manager](<Apollo_alpha_doc/使用指南/可视化交互工具 Dreamview+/Resource Manager.md>)。
+  - Resource Manager: the vehicle-cloud integrated configuration center provided by Apollo, offering downloads of assets such as vehicles, models, data packages and simulation scenarios. You can click the data packages, vehicles, models, simulation scenarios and other elements you need to download them. For details, see [Resource Manager](<Apollo_alpha_doc/使用指南/可视化交互工具 Dreamview+/Resource Manager.md>).
   
-  - Personal Center/个人中心：
+  - Personal Center:
     
-    - Settings/设置：
+    - Settings:
       
-      - General/通用设置：在通用设置中，可以设置语言为中文或英文。
-      - Privacy/隐私政策：可通过此处设置向我们提供反馈个性化内容和功能，用于提升您的体验。
-      - About/关于我们：Dreamview 相关版本及版权信息。
+      - General: in the general settings, you can set the language to Chinese or English.
+      - Privacy: here you can choose to provide us with feedback on personalized content and features, which is used to improve your experience.
+      - About: Dreamview version and copyright information.
     
-    - Cloud Profile/资源中心：登录云端 Studio。
+    - Cloud Profile: log in to the cloud Studio.
     
-    - Use Guide/新手指引：如果您是新用户，可以根据提示按照步骤操作。
+    - Use Guide: if you are a new user, you can follow the prompts step by step.
     
-    - Product Documentation/产品手册：关于产品简介及产品使用指南。
+    - Product Documentation: product introduction and user guides.
     
-    - Apollo Developer Community：Apollo 开发者社区。
+    - Apollo Developer Community: the Apollo developer community.
     
-    - Advice and Suggestion：意见与建议，如果您在使用中遇到任何问题，请您提交反馈，我们会根据您的建议进行优化改进。
+    - Advice and Suggestion: if you run into any problems during use, please submit feedback, and we will optimize and improve based on your suggestions.
 
-- 面板区：展示⾃动驾驶开发调试的可视化⾯板。不同模式下展示的⾯板类型不同，同时⽀持⽤户⾃定义添加⾯板类型。
+- Panel area: displays the visualization panels for autonomous driving development and debugging. Different panel types are displayed in different modes, and users can also add custom panel types.
 
-- 操作底栏：操作底栏是⾃动驾驶开发调试过程中，对数据的操作、处理区。
+- Bottom operation bar: the bottom operation bar is the area for operating on and processing data during autonomous driving development and debugging.
   
-  - 播放数据包：设置路由后开始仿真场景，
-  - Dump：下载某时刻的 channel 信息到本地，
-  - Clear：清空 Simulation world 的所有信息并重置动力学模型。
+  - Play data package: starts the simulation scenario after the route is set,
+  - Dump: downloads the channel information at a given moment to the local machine,
+  - Clear: clears all information in the Simulation world and resets the dynamics model.
 
-## 使用场景
+## Usage Scenarios
 
-### 默认模式
+### Default Mode
 
-适用于所有开始调试的场景。
+Applicable to all scenarios when you start debugging.
 
-### 感知开发调试
+### Perception Development and Debugging
 
-适用于进行感知模块开发的开发人员，提供感知开发调试相关的数据操作流程选项、可视化数据展示面板与调试信息面板。
+Applicable to developers working on the perception module. It provides data operation workflow options, visualization panels and debugging information panels related to perception development and debugging.
 
-### PnC开发调试
+### PnC Development and Debugging
 
-PnC 开发调试模式适用于进行规划与控制模块开发的开发人员，提供 PnC 开发调试相关的数据操作流程选项、可视化数据展示面板与调试信息面板。
+The PnC development and debugging mode is applicable to developers working on the planning and control modules. It provides data operation workflow options, visualization panels and debugging information panels related to PnC development and debugging.
 
-<!-- 实车路测模式
-实车路测模式适用于进行实车验证测试的开发人员，提供实车测试相关的数据操作流程选项、可视化数据展示面板与调试信息面板。车辆集成模式-->
+<!-- Real-vehicle road test mode
+The real-vehicle road test mode is applicable to developers performing real-vehicle verification tests. It provides data operation workflow options, visualization panels and debugging information panels related to real-vehicle testing. Vehicle integration mode-->
 
-## 名词解释
+## Glossary
 
-- Mode Settings：模式设置。
+- Mode Settings: mode settings.
 
-- Mode：模式。
+- Mode: mode.
 
-- Modules：模块。
+- Modules: modules.
 
-- Operations：操作。
+- Operations: operations.
 
-- Current Resources：当前正在使用的资源。
+- Current Resources: the resources currently in use.
 
-- Environment Resources：环境资源。
+- Environment Resources: environment resources.
 
-- Records：数据包。
+- Records: data packages.
 
-- Scenarios：场景。
+- Scenarios: scenarios.
 
-- ADS Resources：自动驾驶系统资源。
+- ADS Resources: autonomous driving system resources.
 
-- HDMap：高精地图：
+- HDMap: HD map.
 
-- Vehicle：车辆。
+- Vehicle: vehicle.
 
-- V2X：车路协同。
+- V2X: vehicle-road cooperation.
 
-- Panel：面板。
+- Panel: panel.
 
-- Console：控制台。
+- Console: console.
 
-- Module Delay：模块延时。
+- Module Delay: module latency.
 
-- Vehicle Visualization：车辆可视化。
+- Vehicle Visualization: vehicle visualization.
 
-- Camera View：相机视图。
+- Camera View: camera view.
 
-- Point Cloud：点云。
+- Point Cloud: point cloud.
 
-- Vehicle Dashboard：车辆仪表盘面板。
+- Vehicle Dashboard: vehicle dashboard panel.
 
-## 端口号更新说明
+## Port Number Update
 
-Dreamview 1.0 的端口号是 8899，Dreamview+ 的端口号是 8888。
+The port number of Dreamview 1.0 is 8899, and the port number of Dreamview+ is 8888.

@@ -25,6 +25,7 @@
 
 #include "modules/dreamview/proto/point_cloud.pb.h"
 
+#include "cyber/service_discovery/topology_manager.h"
 #include "cyber/common/file.h"
 #include "cyber/common/log.h"
 #include "cyber/time/clock.h"

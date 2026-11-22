@@ -16,11 +16,12 @@
 
 #include "modules/audio/inference/siren_detection.h"
 
+#include <omp.h>
+
 #include <utility>
 #include <vector>
 
-#include <omp.h>
-
+#include "cyber/common/file.h"
 #include "cyber/common/log.h"
 #include "modules/audio/common/audio_gflags.h"
 
@@ -88,7 +89,9 @@ void SirenDetection::LoadModel() {
     device_ = torch::Device(torch::kCUDA);
   }
   torch::set_num_threads(1);
-  torch_model_ = torch::jit::load(FLAGS_torch_siren_detection_model, device_);
+  torch_model_ = torch::jit::load(
+      apollo::cyber::common::ResolvePath(FLAGS_torch_siren_detection_model),
+      device_);
 }
 
 }  // namespace audio

@@ -1,141 +1,141 @@
-## 组合惯性导航接入要求
+## GNSS/INS Integration Requirements
 
-Apollo 自动驾驶开放平台主要为园区、教育、低速场景提供完整的解决方案。Apollo 目前虽然在 SLAM 支持上持续成长，但目前主要的场景仍然以高精地图与高精定位基础。目前 Apollo 已经支持华测、导远、博盛尚、星网宇达、Novatel 等品牌旗下的部分组合惯性导航设备。
+The Apollo autonomous driving open platform mainly provides complete solutions for campus, education and low-speed scenarios. Although Apollo's SLAM support continues to grow, its main scenarios are still based on HD maps and high-precision localization. Apollo currently supports some GNSS/INS devices from brands such as Huace, Daoyuan, Broadgnss (Bosheng Shang), Starneto and Novatel.
 
-目前应用于 L4 组自动驾驶的组合惯性导航成本依然较高，产品迭代较频繁，为了帮助厂商更快建立导航设备在在自动驾驶场景中的应用，本指导手册详细说明了 Apollo 组合惯性导航驱动开发、驱动测试、驱动代码贡献的方法。
+GNSS/INS units currently used for L4 autonomous driving are still costly and their products iterate frequently. To help manufacturers apply navigation devices to autonomous driving scenarios more quickly, this guide describes in detail how to develop, test and contribute Apollo GNSS/INS drivers.
 
-## 组合惯性导航接入流程
+## GNSS/INS Integration Process
 
-### 驱动开发与测试
+### Driver Development and Testing
 
-- 根据本文指引，以及参考代码，完成驱动开发；
-- 调度、运行代码，确认驱动输内容满足 Apollo 要求。
+- Following this document and the reference code, complete the driver development;
+- Schedule and run the code, and confirm that the driver output meets Apollo's requirements.
   
-  ### 成为贡献者
-- 连接真实设备，运行代码，确认输出信息正确；
-- 录制测试视频、驱动输出信息；
-- 提供测试过程数据、开发者信息到 Apollo 团队；
-- 提交代码到 Github，等待 Apollo 团队审核。
+  ### Becoming a Contributor
+- Connect a real device, run the code, and confirm that the output information is correct;
+- Record a test video and the driver output information;
+- Provide the test process data and developer information to the Apollo team;
+- Submit the code to Github and wait for the Apollo team to review it.
   
-  ### 贡献者宣传
-- 硬件设备进入 Apollo 生态支持清单；
-- 作为贡献者，信息在 Apollo 官网展示。
+  ### Contributor Promotion
+- The hardware device is added to the Apollo ecosystem support list;
+- As a contributor, your information is displayed on the Apollo official website.
   
-  ## 组合导航设备接入要求
-* 【建议】组合惯导能够以 100HZ 稳定输出imu相关信息；
-* 【建议】组合惯导支持 RTK 定位增强；
-* 【强制】组合惯导支持 PPS 授时输出；
-* 【强制】组合惯导需要双天线定向支持；
-* 【强制】如果依赖外部输入 RTK 差分信息，必须支持输出 $GPGGA 数据，并且 GPGGA 数据和位姿数据必须通过一个数据线输出。【技术】
+  ## GNSS/INS Device Integration Requirements
+* [Recommended] The GNSS/INS can stably output IMU-related information at 100 Hz;
+* [Recommended] The GNSS/INS supports RTK positioning enhancement;
+* [Mandatory] The GNSS/INS supports PPS time synchronization output;
+* [Mandatory] The GNSS/INS requires dual-antenna heading support;
+* [Mandatory] If it relies on external RTK differential information as input, it must support outputting $GPGGA data, and the GPGGA data and the pose data must be output through the same data line. [Technical]
 
-## 组合导航设备输出数据要求
+## GNSS/INS Device Output Data Requirements
 
-* 【强制】GPSWeek： 自 1980/1/6 至当前星期数(格林尼治时间)；
-* 【强制】GPSTime：本周日 0:00:00 至当前的秒数；
-* 【强制】Latitude：纬度（-90° 至 90°）；
-* 【强制】Longitude：经度（-180° 至 180°）；
-* 【强制】Altitude：高度，单位（米）；
-* 【强制】Heading（Yaw）： 航向角，0 至 359.99，北偏东顺时针为正（如果不是需自行转换）（IMU 原始值和校正值至少输出一个）；
-* 【强制】Pitch：俯仰角（-90 至 90)，车头上扬为正 （IMU 原始值和校正值至少输出一个）；
-* 【强制】Roll：横滚角（-180 至 180），车身右倾为正（IMU 原始值和校正值至少输出一个）；
-* 【强制】Gyro X/Y/Z：陀螺仪 X 、Y、Z 轴，单位 °/s；
-* 【强制】Acc X/Y/Z：加速度 X、Y、Z 轴 （IMU 原始值和校正值至少输出一个）；
-* 【强制】Ve、Vn、Vu：东向、北向、天向速度，单位 m/s；
-* 【强制】SolutionStatus: 系统状态，参考 [Solution Status](https://docs.novatel.com/OEM7/Content/Logs/BESTPOS.htm#SolutionStatus) 定义，至少能区分是否是组合导航；
-* 【强制】PositionType：卫星状态，参考 [Position or Velocity Type](https://docs.novatel.com/OEM7/Content/Logs/BESTPOS.htm#Position_VelocityType)， 至少包含不定向、RTK浮点解、稳定解；
-* 【建议】Latitude_std、Longitude_std、Altitude_std：纬度、经度、高度标准差；
-* 【建议】Heading_std、Pitch_std、Roll_std： 航向角、俯仰角、横滚角标准差；
-* 【建议】Ve_std、Vn_std、Vu_std: 东向、北向、天向速度标准差，单位：m/s；
-* 【建议】SatelliteNum：解算卫星数量；
-* 【建议】Age： 差分延迟。
+* [Mandatory] GPSWeek: the number of weeks from 1980/1/6 to the present (Greenwich time);
+* [Mandatory] GPSTime: the number of seconds from 0:00:00 on the Sunday of the current week to the present;
+* [Mandatory] Latitude: latitude (-90° to 90°);
+* [Mandatory] Longitude: longitude (-180° to 180°);
+* [Mandatory] Altitude: altitude, in meters;
+* [Mandatory] Heading (Yaw): heading angle, 0 to 359.99, positive clockwise from north (if not, convert it yourself) (output at least one of the raw IMU value and the corrected value);
+* [Mandatory] Pitch: pitch angle (-90 to 90), positive when the vehicle nose points up (output at least one of the raw IMU value and the corrected value);
+* [Mandatory] Roll: roll angle (-180 to 180), positive when the vehicle body leans right (output at least one of the raw IMU value and the corrected value);
+* [Mandatory] Gyro X/Y/Z: gyroscope X, Y and Z axes, in °/s;
+* [Mandatory] Acc X/Y/Z: acceleration along the X, Y and Z axes (output at least one of the raw IMU value and the corrected value);
+* [Mandatory] Ve, Vn, Vu: east, north and up velocities, in m/s;
+* [Mandatory] SolutionStatus: system status, defined by reference to [Solution Status](https://docs.novatel.com/OEM7/Content/Logs/BESTPOS.htm#SolutionStatus); it must at least distinguish whether it is integrated navigation;
+* [Mandatory] PositionType: satellite status, by reference to [Position or Velocity Type](https://docs.novatel.com/OEM7/Content/Logs/BESTPOS.htm#Position_VelocityType); it must at least include no heading, RTK float solution and stable solution;
+* [Recommended] Latitude_std, Longitude_std, Altitude_std: standard deviations of latitude, longitude and altitude;
+* [Recommended] Heading_std, Pitch_std, Roll_std: standard deviations of heading, pitch and roll angles;
+* [Recommended] Ve_std, Vn_std, Vu_std: standard deviations of east, north and up velocities, in m/s;
+* [Recommended] SatelliteNum: number of satellites used in the solution;
+* [Recommended] Age: differential delay.
 
-## 开发流程说明
+## Development Process
 
-### 准备工作
+### Preparation
 
-1. 学习 [Apollo 组件开发流程](https://apollo.baidu.com/community/Apollo-Homepage-Document?doc=BYFxAcGcC4HpYIbgPYBtXIHQCMEEsATAV0wGNkBbWA5UyRFdZWVBEAU0hFjwDsD2AD0ygKqIA)；
-2. 学习 github pull request 相关资料 [拉取请求文档](https://docs.github.com/zh/pull-requests)；
-3. 熟悉`modules/drivers/gnss`下的华测、导远的驱动程序。
+1. Learn the [Apollo component development process](https://apollo.baidu.com/community/Apollo-Homepage-Document?doc=BYFxAcGcC4HpYIbgPYBtXIHQCMEEsATAV0wGNkBbWA5UyRFdZWVBEAU0hFjwDsD2AD0ygKqIA);
+2. Learn about github pull requests: [Pull request documentation](https://docs.github.com/zh/pull-requests);
+3. Become familiar with the Huace and Daoyuan drivers under `modules/drivers/gnss`.
 
-### 开发工作
+### Development
 
-1. Fork Apollo代码库：进入 https://github.com/ApolloAuto ，点击左上角 Fork 按钮；
-2. 以 novatel、华测、导远、博盛尚驱动为模板，开发新的组合惯导驱动；
-3. 通过 cyber tools 查看驱动输出信息；
-4. 提交代码，通过评审，合入代码。
+1. Fork the Apollo repository: go to https://github.com/ApolloAuto and click the Fork button in the upper left corner;
+2. Using the novatel, Huace, Daoyuan and Broadgnss (Bosheng Shang) drivers as templates, develop the new GNSS/INS driver;
+3. View the driver output information with cyber tools;
+4. Submit the code, pass the review, and get the code merged.
    
-   ## 代码研发说明
+   ## Code Development Notes
    
-   ### 驱动开发输出目标
+   ### Driver Development Output Targets
 
-驱动代码要求的输出信息和频率要求如下：
+The output information and frequency required of the driver code are as follows:
 
-| Channel                           | 格式  | 说明        | 是否必须 | 频率要求              |
+| Channel                           | Format  | Description        | Required | Frequency Requirement              |
 | --------------------------------- | --- | --------- | ---- | ----------------- |
-| /apollo/sensor/gnss/best_pose     |     | RTK定位信息   | 是    | 不低于1HZ            |
-| /apollo/sensor/gnss/corrected_imu |     | 校正惯导信息    | 是    | 100HZ（上下浮动不超过30%） |
-| /apollo/sensor/gnss/odometry      |     | INS信息     | 是    | 100HZ（上下浮动不超过30%） |
-| /apollo/sensor/gnss/ins_stat      |     | 状态信息      | 是    | 不低于1HZ            |
-| /apollo/sensor/gnss/heading       |     | Heading信息 | 否    | 不低于1HZ            |
-| /apollo/sensor/gnss/imu           |     | 原始IMU信息   | 否    | 100HZ（上下浮动不超过30%） |
+| /apollo/sensor/gnss/best_pose     |     | RTK positioning information   | Yes    | Not less than 1 Hz            |
+| /apollo/sensor/gnss/corrected_imu |     | Corrected IMU information    | Yes    | 100 Hz (fluctuation within 30%) |
+| /apollo/sensor/gnss/odometry      |     | INS information     | Yes    | 100 Hz (fluctuation within 30%) |
+| /apollo/sensor/gnss/ins_stat      |     | Status information      | Yes    | Not less than 1 Hz            |
+| /apollo/sensor/gnss/heading       |     | Heading information | No    | Not less than 1 Hz            |
+| /apollo/sensor/gnss/imu           |     | Raw IMU information   | No    | 100 Hz (fluctuation within 30%) |
 
-### GNSS驱动开发说明
+### GNSS Driver Development Notes
 
-gnss 驱动目录统一放在 apollo 源码的`drivers/gnss`目录下，结构为：
+The gnss driver directory is placed uniformly under the `drivers/gnss` directory of the apollo source code, with the following structure:
 
 ```bash
-- conf：# gnss配置，所有厂家使用一份配置
-- dag： # dag文件，所有厂家使用一个DAG
-- launch:  # launch文件，所有厂家使用一个Launch文件
-- proto： # 存放conf格式定义，新增gnss需要改到这个proto配置
-- parse：  # 数据解析代码，新增gnss需要增加一个新的parser类型
-- stream:  # 数据流读入基础类，支持串口、tcp、udp、can协议，用户通常不需要修改
+- conf:  # gnss configuration; all vendors share one configuration
+- dag:  # dag file; all vendors share one DAG
+- launch:  # launch file; all vendors share one Launch file
+- proto:  # stores the conf format definition; adding a new gnss requires changes to this proto configuration
+- parse:  # data parsing code; adding a new gnss requires adding a new parser type
+- stream:  # base classes for data stream input, supporting serial, tcp, udp and can protocols; users usually do not need to modify it
 ```
 
-#### gnss 驱动代码框架说明
+#### gnss Driver Code Framework
 
-stream 目录是一个基础库，内置了 can、ntrip、serial、tcp、udp 各种协议支持，每个 stream 需要实现 Connect 和 read 方法，实际运行时会一直调用 read 方法获取数据，写到 parser/parser.h 里面定义的 Parser 类对象的 data_ 中。
+The stream directory is a base library with built-in support for the can, ntrip, serial, tcp and udp protocols. Each stream needs to implement the Connect and read methods. At runtime the read method is called continuously to obtain data, which is written into data_ of the Parser class object defined in parser/parser.h.
 
-parser 中负责各种厂商 gnss 数据解析，新惯导接入需要新增一个 parser 类型，必须继承 Parser 基类，需实现以下函数：
+The parser is responsible for parsing the gnss data of the various vendors. Integrating a new INS requires adding a new parser type, which must inherit from the Parser base class and implement the following functions:
 
-* CreateXX 函数: 创建一个自定义类型的 Parser，然后在 parser.h 中新增该类型的调用；
-* GetMessages 函数：这个是新 gnss 接入实现的关键函数，方法传入了一个 message 数组，对于兼容 novatel 协议可以直接解析返回，对于自定义的一条数据输出或者CAN协议输出，需要自己维护 GnssBestPose、Imu、Heading、Ins、InsStat 几个对象，把最新数据值更新到几个对象中，gnss 驱动库已经内置了一些惯导的支持，可以参考其实现。
+* CreateXX function: creates a custom-type Parser, and then adds a call for that type in parser.h;
+* GetMessages function: this is the key function for integrating a new gnss. The method takes a message array as input. For devices compatible with the novatel protocol, the data can be parsed and returned directly; for a custom single-record data output or CAN protocol output, you need to maintain the GnssBestPose, Imu, Heading, Ins and InsStat objects yourself and update the latest data values into them. The gnss driver library already has built-in support for some INS devices, whose implementations you can refer to.
 
-#### 代码开发说明
+#### Code Development Notes
 
-新的 gnss 驱动接入通常需求修改：
+Integrating a new gnss driver usually requires the following modifications:
 
-* 在 proto/config.proto 中 Stream.Format 中新增 gnss 类型；
+* Add the gnss type in Stream.Format in proto/config.proto;
 
-* 在 parser 路径下实现自己类型的数据解析库：根据您的数据协议参考已有代码实现 
+* Implement the data parsing library for your own type under the parser path: refer to the existing code according to your data protocol
   
-  * 如果是分类型数据二进制输出，参考 novatel_parser.cc 实现；
-  * 如果是一整条完整数据二进制输出，参考 broadgnss_parser/broadgnss_binary_parser.cc 实现；
-  * 如果是一整条文本数据输出，参考 huace_parser/huace_text_parser.cc 实现；
-  * 如果是 CAN 协议输出，参考 huace_parser/huace_can_parser.cc 实现；
+  * If the output is typed binary data, refer to the implementation of novatel_parser.cc;
+  * If the output is one complete binary record, refer to the implementation of broadgnss_parser/broadgnss_binary_parser.cc;
+  * If the output is one complete text record, refer to the implementation of huace_parser/huace_text_parser.cc;
+  * If the output is via the CAN protocol, refer to the implementation of huace_parser/huace_can_parser.cc;
 
-* 在 parser/parser.h 里面的增加您的 CreateParser 函数；
+* Add your CreateParser function in parser/parser.h;
 
-* 修改 conf/gnss_conf.pb.txt 配置，添加新增 gnss 类型的使用说明，注意需要以注释的形式添加，不要修改默认生效值；
+* Modify the conf/gnss_conf.pb.txt configuration and add usage notes for the new gnss type. Note that they must be added as comments; do not change the default effective values;
   
-  > 注意：尽量不要修改其他代码，尤其是 parser/data_parser.cc，如必须要修改，请联系 Apollo 团队，否则 PR 不会给予合入。
+  > Note: Try not to modify other code, especially parser/data_parser.cc. If you must modify it, contact the Apollo team, otherwise the PR will not be merged.
 
-### 运行调试
+### Run and Debug
 
 ```bash
-# 编译
+# Build
 bash apollo.sh build_opt_gpu drivers/gnss
 
-# 修改 modules/drivers/gnss/conf/gnss_conf.pb.txt 中data配置为自己的惯导配置
+# Change the data configuration in modules/drivers/gnss/conf/gnss_conf.pb.txt to your own INS configuration
 vim modules/drivers/gnss/conf/gnss_conf.pb.txt
 
-# 运行gnss驱动
+# Run the gnss driver
 mainboard -d /apollo/modules/drivers/gnss/dag/gnss.dag
 
-# 启动cyber_monitor 观察是否正常输出以及频率是否满足上述要求
+# Start cyber_monitor to check whether the output is normal and whether the frequency meets the above requirements
 cyber_monitor
 ```
 
-主要观察红框里面的 4 个 channel 频率是否符合要求，并查看里面的位置、时间等字段是否正确。如果您有 apollo 的地图，建议也启动 localization 模块查看车辆位置和地图中位置、朝向是否匹配，并通过加速、减速控制判断加减速度都是和预期一致。
+Mainly check whether the frequencies of the 4 channels in the red box meet the requirements, and check whether the position, time and other fields in them are correct. If you have an apollo map, it is also recommended to start the localization module to check whether the vehicle's position and heading match those in the map, and to verify through acceleration and deceleration control that the acceleration and deceleration are consistent with expectations.
 
 ![image \(1\).png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image%20%281%29_2cb50b4.png)

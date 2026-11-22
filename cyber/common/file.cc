@@ -32,6 +32,8 @@
 #include "google/protobuf/util/json_util.h"
 #include "nlohmann/json.hpp"
 
+#include "cyber/ros2/paths.h"
+
 namespace apollo {
 namespace cyber {
 namespace common {
@@ -86,8 +88,9 @@ bool SetStringToASCIIFile(const std::string &content,
   return true;
 }
 
-bool GetProtoFromASCIIFile(const std::string &file_name,
+bool GetProtoFromASCIIFile(const std::string &input_file_name,
                            google::protobuf::Message *message) {
+  const std::string file_name = ros2::ResolveApolloPath(input_file_name);
   using google::protobuf::TextFormat;
   using google::protobuf::io::FileInputStream;
   using google::protobuf::io::ZeroCopyInputStream;
@@ -115,8 +118,9 @@ bool SetProtoToBinaryFile(const google::protobuf::Message &message,
   return message.SerializeToOstream(&output);
 }
 
-bool GetProtoFromBinaryFile(const std::string &file_name,
+bool GetProtoFromBinaryFile(const std::string &input_file_name,
                             google::protobuf::Message *message) {
+  const std::string file_name = ros2::ResolveApolloPath(input_file_name);
   std::fstream input(file_name, std::ios::in | std::ios::binary);
   if (!input.good()) {
     AERROR << "Failed to open file " << file_name << " in binary mode.";
@@ -129,8 +133,9 @@ bool GetProtoFromBinaryFile(const std::string &file_name,
   return true;
 }
 
-bool GetProtoFromFile(const std::string &file_name,
+bool GetProtoFromFile(const std::string &input_file_name,
                       google::protobuf::Message *message) {
+  const std::string file_name = ros2::ResolveApolloPath(input_file_name);
   if (!PathExists(file_name)) {
     AERROR << "File [" << file_name << "] does not exist! ";
     return false;
@@ -146,8 +151,9 @@ bool GetProtoFromFile(const std::string &file_name,
          GetProtoFromBinaryFile(file_name, message);
 }
 
-bool GetProtoFromJsonFile(const std::string &file_name,
+bool GetProtoFromJsonFile(const std::string &input_file_name,
                           google::protobuf::Message *message) {
+  const std::string file_name = ros2::ResolveApolloPath(input_file_name);
   using google::protobuf::util::JsonParseOptions;
   using google::protobuf::util::JsonStringToMessage;
   std::ifstream ifs(file_name);
@@ -164,7 +170,8 @@ bool GetProtoFromJsonFile(const std::string &file_name,
   return (JsonStringToMessage(Json.dump(), message, options).ok());
 }
 
-bool GetContent(const std::string &file_name, std::string *content) {
+bool GetContent(const std::string &input_file_name, std::string *content) {
+  const std::string file_name = ros2::ResolveApolloPath(input_file_name);
   std::ifstream fin(file_name);
   if (!fin) {
     return false;
@@ -419,15 +426,19 @@ std::string GetFileName(const std::string &path, const bool remove_extension) {
   return path.substr(start, len);
 }
 
+std::string ResolvePath(const std::string &path) {
+  return ros2::ResolveApolloPath(path);
+}
+
 bool GetFilePathWithEnv(const std::string &path, const std::string &env_var,
                         std::string *file_path) {
   if (path.empty()) {
     return false;
   }
   if (PathIsAbsolute(path)) {
-    // an absolute path
-    *file_path = path;
-    return PathExists(path);
+    // an absolute path; "/apollo/..." may be relocated through APOLLO_ROOT
+    *file_path = ros2::ResolveApolloPath(path);
+    return PathExists(*file_path);
   }
 
   bool relative_path_exists = false;

@@ -1,0 +1,30 @@
+# Parameters of the Apollo <-> ROS 2 bridge nodes.
+apollo_to_ros:
+  ros__parameters:
+    # ROS 2 output topic = output_prefix + Apollo channel ("" = same name).
+    output_prefix: /ros
+    publish_localization_tf: true
+    pointcloud_channels:
+      - /apollo/sensor/lidar128/compensator/PointCloud2
+      - /apollo/sensor/velodyne64/compensator/PointCloud2
+      - /apollo/sensor/lidar16/compensator/PointCloud2
+    image_channels:
+      - /apollo/sensor/camera/front_6mm/image
+      - /apollo/sensor/camera/front_12mm/image
+    compressed_image_channels:
+      - /apollo/sensor/camera/front_6mm/image/compressed
+      - /apollo/sensor/camera/front_12mm/image/compressed
+    localization_channel: /apollo/localization/pose
+    tf_channel: /tf
+    tf_static_channel: /tf_static
+    imu_channel: /apollo/sensor/gnss/corrected_imu
+    gnss_best_pose_channel: /apollo/sensor/gnss/best_pose
+    planning_channel: /apollo/planning
+    perception_obstacles_channel: /apollo/perception/obstacles
+
+ros_to_apollo:
+  ros__parameters:
+    # "ros_topic=apollo_channel" pairs. Empty lists disable a direction.
+    pointcloud_inputs: [""]
+    image_inputs: [""]
+    compressed_image_inputs: [""]

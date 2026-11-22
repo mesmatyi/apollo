@@ -1,16 +1,15 @@
-### 问题描述:
+### Problem Description:
 
-源码环境，用户使用sudo bash docker/scripts/dev_into.sh进入容器后执行编译，报错cannot find bazel. Please install bazel first.
+In the source-code environment, the user entered the container with sudo bash docker/scripts/dev_into.sh and then compiled, which fails with: cannot find bazel. Please install bazel first.
 
 ![](images/cannot_find_bazel.png)
 
-### 问题原因:
+### Cause:
 
-进入容器使用了sudo,导致权限混乱
+sudo was used when entering the container, which caused a permissions mix-up.
 
-### 解决方案:
+### Solution:
 
-执行启动容器和进入容器命令都不要添加sudo
+Do not add sudo when running the commands that start the container and enter the container.
 
-**注:** 以当前用户执行启动容器和进入容器命令报错: dial unix /var/run/dcker.sock: connect: permission denied.需要将当前用户加入docker用户组或给docker.sock赋777权限
-
+**Note:** If running the start-container and enter-container commands as the current user fails with: dial unix /var/run/dcker.sock: connect: permission denied, you need to add the current user to the docker group or grant 777 permissions to docker.sock.

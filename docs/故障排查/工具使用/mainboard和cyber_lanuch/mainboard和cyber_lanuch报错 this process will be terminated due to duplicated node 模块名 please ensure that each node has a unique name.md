@@ -1,17 +1,17 @@
-### 问题描述:
+### Problem Description:
 
-使用mainboard或cyber_lanuch启动模块报错：this process will be terminated due to duplicated node[模块名], please ensure that each node has a unique name.
+Starting a module with mainboard or cyber_lanuch fails with: this process will be terminated due to duplicated node[module name], please ensure that each node has a unique name.
 
 ![](images/mainboard_error.png)
 
 ![](images/cyber_lanuch_error.png)
 
-### 问题原因:
+### Cause:
 
-模块已启动，再次启动失败
+The module has already been started, and starting it again fails.
 
-### 解决方案:
+### Solution:
 
-可通过ps查询当前启动了哪些模块，使用kill停止已启动的模块后再重新启动
+Use ps to check which modules are currently running, use kill to stop the running module, and then start it again.
 
 ![](images/ps_mainboard.png)

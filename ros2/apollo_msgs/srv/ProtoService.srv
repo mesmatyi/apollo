@@ -1,0 +1,10 @@
+# An Apollo (Cyber) service call carried over ROS 2.
+# Fully-qualified protobuf type name of the request.
+string type
+# Protobuf wire-format bytes of the request.
+uint8[] data
+---
+# Fully-qualified protobuf type name of the response.
+string type
+# Protobuf wire-format bytes of the response.
+uint8[] data

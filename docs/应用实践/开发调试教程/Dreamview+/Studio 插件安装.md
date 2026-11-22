@@ -1,25 +1,25 @@
-## 步骤一：登录 Apollo Studio 工作台
+## Step 1: Log In to the Apollo Studio Workbench
 
-登录 [Apollo Studio 工作台](https://apollo.baidu.com/workspace)。
+Log in to the [Apollo Studio workbench](https://apollo.baidu.com/workspace).
 
 ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_7617d82.png)
 
-## 步骤二：获取插件安装链接
+## Step 2: Obtain the Plugin Installation Link
 
-1. 在账户信息中，单击 **我的服务** 。
+1. In the account information, click **My Services**.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_9aef6c8.png)
 
-2. 选择 **仿真** 页签。
+2. Select the **Simulation** tab.
 
-3. 在 **插件安装** 中单击 **生成** ，选择 Apollo 最新版本，并单击 **确定** 。
+3. In **Plugin Installation**, click **Generate**, select the latest Apollo version, and click **OK**.
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_600e9d8.png)
 
-4. 单击 **一键复制** 。
+4. Click **Copy with One Click**.
    
-   之后在您的 docker 环境中运行该指令，插件同步（Dreamview+的登录）就完成了。
+   Then run this command in your docker environment to complete the plugin synchronization (login to Dreamview+).
    
    ![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_Beta_Doc/image_b89ca56.png)
    
-   进入 Dreamview+，刷新页面，左下角出现头像和资源中心按钮，即插件同步成功，可以开始资源下载了。
+   Enter Dreamview+ and refresh the page. If an avatar and the resource center button appear in the lower left corner, the plugin synchronization succeeded and you can start downloading resources.

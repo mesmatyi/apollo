@@ -1,0 +1,13 @@
+# Module Overview
+
+## Function Overview
+
+The Perception module plays a vital role in the autonomous driving system. The functions of its submodules are implemented through three types of sensors: lidar, radar, and camera. Each type of sensor performs object recognition and tracking tasks, and finally the sensor data is fused through fusion. Every sensor implements object recognition, while the camera also implements lane line recognition and traffic light detection. The task flow executed by each sensor is also roughly similar: preprocessing first, then recognition, and finally filtering and tracking the targets.
+
+In an autonomous driving system, the perception module is mainly responsible for recognizing obstacles around the vehicle, traffic signs, and so on, so the quality of the perception algorithms is directly related to the safety of autonomous driving, and how to iterate and develop perception algorithms faster becomes the key. In Apollo alpha, the perception module has been refactored into components and provides multiple development modes. When the existing functions fully meet your development needs, you do not need to develop code; you can meet the functional requirements of your scenario by modifying component configuration or model parameters. For component development, when your scenario needs to introduce new requirements and work together with other components to complete a task, for example adding a LiDAR background segmentation function, you only need to complete the corresponding development while satisfying the upstream and downstream message channel subscription and publishing. For plugin development, for example, in the LiDAR object detection obstacle filtering component we provide two filtering plugin methods; if they cannot meet your needs, you can develop a corresponding filtering plugin according to the plugin development documentation provided. Through plugin development, developers can focus more on the algorithm itself without paying too much attention to the framework implementation.
+
+## Running Flow
+
+The Apollo autonomous driving platform takes the HD map and the localization module as its core. The other modules are all built on these two modules. The perception module recognizes the environment around the autonomous vehicle; the collection, processing, and analysis of environment information and in-vehicle information, that is, environment perception, is the foundation and prerequisite for the autonomous driving of intelligent vehicles. The perception results are passed to the subsequent modules for use.
+
+![image.png](https://bce.bdstatic.com/doc/Apollo-Homepage-Document/Apollo_alpha_doc/image_e4d55bf.png)

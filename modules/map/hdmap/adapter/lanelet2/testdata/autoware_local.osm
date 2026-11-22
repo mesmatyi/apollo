@@ -1,0 +1,211 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' generator='make_test_maps.py'>
+  <MetaInfo format_version='1' map_version='7' />
+  <node id='1' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='0.0000' />
+    <tag k='local_y' v='3.0000' />
+  </node>
+  <node id='2' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='20.0000' />
+    <tag k='local_y' v='3.0000' />
+  </node>
+  <node id='3' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='0.0000' />
+    <tag k='local_y' v='0.0000' />
+  </node>
+  <node id='4' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='20.0000' />
+    <tag k='local_y' v='0.0000' />
+  </node>
+  <node id='5' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='40.0000' />
+    <tag k='local_y' v='3.0000' />
+  </node>
+  <node id='6' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='40.0000' />
+    <tag k='local_y' v='0.0000' />
+  </node>
+  <node id='7' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='60.0000' />
+    <tag k='local_y' v='3.0000' />
+  </node>
+  <node id='8' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='60.0000' />
+    <tag k='local_y' v='0.0000' />
+  </node>
+  <node id='9' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='20.0000' />
+    <tag k='local_y' v='-1.0000' />
+  </node>
+  <node id='10' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='40.0000' />
+    <tag k='local_y' v='-1.0000' />
+  </node>
+  <node id='11' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='40.0000' />
+    <tag k='local_y' v='4.0000' />
+  </node>
+  <node id='12' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='20.0000' />
+    <tag k='local_y' v='4.0000' />
+  </node>
+  <node id='13' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='18.0000' />
+    <tag k='local_y' v='0.0000' />
+  </node>
+  <node id='14' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='18.0000' />
+    <tag k='local_y' v='3.0000' />
+  </node>
+  <node id='15' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='0.0000' />
+    <tag k='local_y' v='13.0000' />
+  </node>
+  <node id='16' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='30.0000' />
+    <tag k='local_y' v='13.0000' />
+  </node>
+  <node id='17' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='0.0000' />
+    <tag k='local_y' v='10.0000' />
+  </node>
+  <node id='18' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='local_x' v='30.0000' />
+    <tag k='local_y' v='10.0000' />
+  </node>
+  <node id='19' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='0.0000' />
+    <tag k='local_y' v='-2.0000' />
+  </node>
+  <node id='20' visible='true' version='1' lat='0.00000000000' lon='0.00000000000'>
+    <tag k='ele' v='12.5' />
+    <tag k='local_x' v='20.0000' />
+    <tag k='local_y' v='-2.0000' />
+  </node>
+  <way id='1080' visible='true' version='1'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1081' visible='true' version='1'>
+    <nd ref='3' />
+    <nd ref='4' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1082' visible='true' version='1'>
+    <nd ref='2' />
+    <nd ref='5' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1083' visible='true' version='1'>
+    <nd ref='4' />
+    <nd ref='6' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1084' visible='true' version='1'>
+    <nd ref='5' />
+    <nd ref='7' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1085' visible='true' version='1'>
+    <nd ref='6' />
+    <nd ref='8' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1090' visible='true' version='1'>
+    <nd ref='9' />
+    <nd ref='10' />
+    <nd ref='11' />
+    <nd ref='12' />
+    <nd ref='9' />
+    <tag k='area' v='yes' />
+    <tag k='type' v='intersection_area' />
+  </way>
+  <way id='1091' visible='true' version='1'>
+    <nd ref='13' />
+    <nd ref='14' />
+    <tag k='type' v='stop_line' />
+  </way>
+  <way id='1092' visible='true' version='1'>
+    <nd ref='15' />
+    <nd ref='16' />
+    <tag k='type' v='road_border' />
+  </way>
+  <way id='1093' visible='true' version='1'>
+    <nd ref='17' />
+    <nd ref='18' />
+    <tag k='type' v='road_border' />
+  </way>
+  <way id='1094' visible='true' version='1'>
+    <nd ref='19' />
+    <nd ref='20' />
+    <tag k='type' v='road_border' />
+  </way>
+  <relation id='220' visible='true' version='1'>
+    <member type='way' ref='1091' role='refers' />
+    <tag k='subtype' v='road_marking' />
+    <tag k='type' v='regulatory_element' />
+  </relation>
+  <relation id='150' visible='true' version='1'>
+    <member type='way' ref='1080' role='left' />
+    <member type='way' ref='1081' role='right' />
+    <member type='relation' ref='220' role='regulatory_element' />
+    <tag k='location' v='urban' />
+    <tag k='one_way' v='yes' />
+    <tag k='participant:vehicle' v='yes' />
+    <tag k='speed_limit' v='30' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='151' visible='true' version='1'>
+    <member type='way' ref='1082' role='left' />
+    <member type='way' ref='1083' role='right' />
+    <tag k='intersection_area' v='1090' />
+    <tag k='location' v='urban' />
+    <tag k='one_way' v='yes' />
+    <tag k='speed_limit' v='20' />
+    <tag k='subtype' v='road' />
+    <tag k='turn_direction' v='left' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='152' visible='true' version='1'>
+    <member type='way' ref='1084' role='left' />
+    <member type='way' ref='1085' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='one_way' v='yes' />
+    <tag k='speed_limit' v='30' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='153' visible='true' version='1'>
+    <member type='way' ref='1092' role='left' />
+    <member type='way' ref='1093' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='one_way' v='no' />
+    <tag k='speed_limit' v='15' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='154' visible='true' version='1'>
+    <member type='way' ref='1081' role='left' />
+    <member type='way' ref='1094' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='subtype' v='road_shoulder' />
+    <tag k='type' v='lanelet' />
+  </relation>
+</osm>
