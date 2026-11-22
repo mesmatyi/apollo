@@ -22,6 +22,7 @@
 
   <!-- third-party libraries (rosdep keys) -->
   <depend>protobuf-dev</depend>
+  <build_depend>libprotoc-dev</build_depend>
   <build_depend>protobuf-compiler</build_depend>
   <exec_depend>python3-protobuf</exec_depend>
   <depend>libgoogle-glog-dev</depend>

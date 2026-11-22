@@ -32,7 +32,8 @@ jobs:
             ros-jazzy-visualization-msgs ros-jazzy-rosbag2 ros-jazzy-launch-ros \
             ros-jazzy-rmw-cyclonedds-cpp ros-jazzy-rosidl-runtime-py \
             ros-jazzy-rosgraph-msgs ros-jazzy-ros2cli-common-extensions \
-            libprotobuf-dev protobuf-compiler libgoogle-glog-dev libgflags-dev \
+            libprotobuf-dev libprotoc-dev protobuf-compiler \
+            libgoogle-glog-dev libgflags-dev \
             nlohmann-json3-dev libtinyxml2-dev uuid-dev libncurses-dev \
             libeigen3-dev libboost-all-dev libabsl-dev libyaml-cpp-dev \
             libopencv-dev libpcl-dev libproj-dev libfftw3-dev libsqlite3-dev \

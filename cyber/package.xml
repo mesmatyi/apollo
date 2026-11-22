@@ -26,6 +26,8 @@
   <depend>rosgraph_msgs</depend>
   <depend>rosidl_typesupport_introspection_cpp</depend>
   <depend>protobuf-dev</depend>
+  <!-- google/protobuf/compiler/parser.h (cyber/message/protobuf_factory.h) -->
+  <build_depend>libprotoc-dev</build_depend>
   <depend>libgoogle-glog-dev</depend>
   <depend>libgflags-dev</depend>
   <depend>tinyxml2</depend>

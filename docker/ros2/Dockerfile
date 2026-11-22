@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ros-${ROS_DISTRO}-launch-ros \
       ros-${ROS_DISTRO}-rmw-cyclonedds-cpp ros-${ROS_DISTRO}-rosidl-runtime-py \
       ros-${ROS_DISTRO}-rosgraph-msgs ros-${ROS_DISTRO}-ros2cli-common-extensions \
-      libprotobuf-dev protobuf-compiler \
+      libprotobuf-dev libprotoc-dev protobuf-compiler \
       libgoogle-glog-dev libgflags-dev libgtest-dev libgmock-dev \
       nlohmann-json3-dev libtinyxml2-dev uuid-dev libncurses-dev \
       libeigen3-dev libboost-all-dev libabsl-dev libyaml-cpp-dev \
