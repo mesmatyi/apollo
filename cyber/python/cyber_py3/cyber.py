@@ -20,10 +20,17 @@
 
 Transport contract (docs/ros2/architecture.md):
 
-* every channel is a ROS 2 topic named ``naming.channel_to_topic(channel)``
-  of type ``apollo_msgs/msg/ProtoMessage`` (``type`` = protobuf full name,
-  ``data`` = protobuf wire bytes, plus writer ``seq``/``stamp_ns``);
-* every service is a ROS 2 service of type ``apollo_msgs/srv/ProtoService``;
+* every channel is a ROS 2 topic named ``naming.channel_to_topic(channel)``.
+  Its type is the native ROS 2 type generated from the protobuf message
+  (``apollo.planning.ADCTrajectory`` -> ``apollo_msgs/msg/PlanningADCTrajectory``,
+  see ``native_types``), so plain ROS 2 nodes and tools read and write it.
+  Protobuf types without a generated interface, and channels opted out with
+  ``APOLLO_ROS_PROTO_CHANNELS``, use ``apollo_msgs/msg/ProtoMessage``
+  (``type`` = protobuf full name, ``data`` = protobuf wire bytes);
+* every service is a ROS 2 service of the native ``apollo_msgs/srv/...``
+  type of its request/response pair, else ``apollo_msgs/srv/ProtoService``;
+* a raw reader (no protobuf type given) follows whatever type the writers of
+  the channel use and always hands protobuf wire bytes to its callback;
 * writers are reliable / volatile / keep-last ``qos_depth``; readers are
   keep-last ``qos_depth`` (Cyber pending_queue_size, default 1) and adapt
   reliability/durability to the publishers already on the graph;
@@ -82,6 +89,7 @@ from apollo_msgs.srv import ProtoService
 
 from . import _cyber_protos
 from . import cyber_timer
+from . import native_types
 from . import proto_registry
 from .naming import channel_to_topic
 from .naming import to_node_name
@@ -91,6 +99,8 @@ PROTO_SERVICE_TYPE = 'apollo_msgs/srv/ProtoService'
 RAWDATATYPE = 'RawData'
 # cyber::Client::SendRequest() default timeout
 DEFAULT_REQUEST_TIMEOUT_S = 5.0
+# Pause after a service was first discovered, before the first request.
+SERVICE_DISCOVERY_SETTLE_S = 0.2
 
 # cyber/state.h
 STATE_UNINITIALIZED = 0
@@ -125,6 +135,52 @@ def _from_array(data):
         return data.tobytes()
     except AttributeError:
         return bytes(data)
+
+
+class Sample(object):
+    """What a reader receives from a natively typed channel, shaped like
+    apollo_msgs/msg/ProtoMessage: ``type`` is the protobuf type name,
+    ``data`` the protobuf wire bytes; ``message`` is the protobuf message
+    object itself."""
+
+    __slots__ = ('type', 'message', 'seq', 'stamp_ns', '_data')
+
+    def __init__(self, type_name, message, seq=0, stamp_ns=0):
+        self.type = type_name
+        self.message = message
+        self.seq = seq
+        self.stamp_ns = stamp_ns
+        self._data = None
+
+    @property
+    def data(self):
+        if self._data is None:
+            self._data = self.message.SerializePartialToString()
+        return self._data
+
+
+def _descriptor_of_type(data_type):
+    """Protobuf descriptor of a message class or type name (None for a raw
+    reader/writer without a known type)."""
+    if data_type is None:
+        return None
+    if isinstance(data_type, str):
+        if not data_type or data_type == RAWDATATYPE:
+            return None
+        return native_types.registry().find_descriptor(data_type)
+    return getattr(data_type, 'DESCRIPTOR', None)
+
+
+def _native_converter(channel, data_type):
+    """Converter for the native ROS 2 type of a channel, None when the
+    channel uses the protobuf wire format."""
+    if native_types.registry().use_proto_wire(_to_str(channel)):
+        return None
+    if isinstance(data_type, str):
+        if not data_type or data_type == RAWDATATYPE:
+            return None
+        return native_types.get_converter_by_name(data_type)
+    return native_types.get_converter(_descriptor_of_type(data_type))
 
 
 class _SpunNode(object):
@@ -436,11 +492,13 @@ class Writer(object):
     Class for cyber writer wrapper.
     """
 
-    def __init__(self, name, writer, data_type):
+    def __init__(self, name, writer, data_type, converter=None):
         self.name = name
         self.writer = writer
         self.data_type = data_type
         self.topic = channel_to_topic(name)
+        # Set when the channel has a native ROS 2 type.
+        self._converter = converter
         self._seq = 0
         self._lock = threading.Lock()
 
@@ -454,14 +512,17 @@ class Writer(object):
         """
         writer message string
         """
-        msg = ProtoMessage()
-        msg.type = self.data_type
-        msg.data = _to_array(_payload(data))
-        with self._lock:
-            self._seq += 1
-            msg.seq = self._seq
-        msg.stamp_ns = time.time_ns()
         try:
+            if self._converter is not None:
+                msg = self._converter.to_ros(self._converter.as_message(data))
+            else:
+                msg = ProtoMessage()
+                msg.type = self.data_type
+                msg.data = _to_array(_payload(data))
+                with self._lock:
+                    self._seq += 1
+                    msg.seq = self._seq
+                msg.stamp_ns = time.time_ns()
             self.writer.publish(msg)
         except Exception as e:  # pylint: disable=broad-except
             sys.stderr.write('cyber: write to %s failed: %s\n' % (self.name, e))
@@ -496,6 +557,124 @@ class Reader(object):
             return 0
 
 
+class _Subscription(object):
+    """The ROS 2 subscription of a reader.
+
+    A typed reader knows the ROS 2 type of its channel. A raw reader does
+    not: it follows the writers found on the ROS 2 graph, so its subscription
+    is created once a writer is known (checked a few times per second)."""
+
+    _RETRY_S = 0.2
+
+    def __init__(self, ros_node, name, push, qos_depth, converter, raw):
+        self._node = ros_node
+        self._name = name
+        self._topic = channel_to_topic(name)
+        self._push = push
+        self._qos_depth = qos_depth
+        self._converter = converter
+        self._raw = raw
+        self._lock = threading.RLock()
+        self._subscription = None
+        self._timer = None
+        self._closed = False
+        self._seq = 0
+        if not self._try_subscribe():
+            self._timer = ros_node.create_timer(self._RETRY_S, self._retry)
+
+    def _retry(self):
+        if self._try_subscribe():
+            with self._lock:
+                timer, self._timer = self._timer, None
+            if timer is not None:
+                try:
+                    timer.cancel()
+                    self._node.destroy_timer(timer)
+                except Exception:  # pylint: disable=broad-except
+                    pass
+
+    def _resolve(self):
+        """(known, converter): the wire format of the channel."""
+        if not self._raw:
+            return True, self._converter
+        reg = native_types.registry()
+        has_proto_wire = False
+        types = dict(self._node.get_topic_names_and_types()).get(
+            self._topic, [])
+        for ros_type in types:
+            if ros_type == PROTO_MESSAGE_TYPE:
+                has_proto_wire = True
+                continue
+            info = reg.find_by_ros_type(ros_type)
+            if info is None or reg.use_proto_wire(self._name):
+                continue
+            converter = native_types.get_converter_by_name(info.proto_name)
+            if converter is not None:
+                return True, converter
+        if has_proto_wire:
+            return True, None
+        local_type = _channel_types.get(self._topic)
+        if local_type:
+            return True, _native_converter(self._name, local_type)
+        return False, None
+
+    def _try_subscribe(self):
+        with self._lock:
+            if self._closed or self._subscription is not None:
+                return True
+            known, converter = self._resolve()
+            if not known:
+                return False
+            qos = _qos_for_reader(self._node, self._topic, self._qos_depth)
+            if converter is None:
+                self._subscription = self._node.create_subscription(
+                    ProtoMessage, self._topic, self._on_proto_message, qos)
+            else:
+                self._converter = converter
+                _channel_types[self._topic] = converter.descriptor.full_name
+                self._subscription = self._node.create_subscription(
+                    converter.ros_class, self._topic, self._on_native_message,
+                    qos)
+            return True
+
+    def _on_proto_message(self, ros_msg):
+        _channel_types[self._topic] = ros_msg.type
+        self._push(ros_msg)
+
+    def _on_native_message(self, ros_msg):
+        converter = self._converter
+        try:
+            message = converter.from_ros(ros_msg)
+        except Exception as e:  # pylint: disable=broad-except
+            sys.stderr.write('cyber: cannot convert %s on %s: %s\n' %
+                             (converter.ros_type, self._name, e))
+            return
+        self._seq += 1
+        self._push(Sample(converter.descriptor.full_name, message, self._seq,
+                          time.time_ns()))
+
+    def get_publisher_count(self):
+        with self._lock:
+            subscription = self._subscription
+        if subscription is None:
+            return 0
+        return self._node.count_publishers(self._topic)
+
+    def close(self):
+        with self._lock:
+            self._closed = True
+            timer, self._timer = self._timer, None
+            subscription, self._subscription = self._subscription, None
+        for destroy, entity in ((self._node.destroy_timer, timer),
+                                (self._node.destroy_subscription,
+                                 subscription)):
+            if entity is not None:
+                try:
+                    destroy(entity)
+                except Exception:  # pylint: disable=broad-except
+                    pass
+
+
 class Client(object):
 
     """
@@ -503,12 +682,14 @@ class Client(object):
     """
 
     def __init__(self, client, data_type, name='', request_type='',
-                 owner=None):
+                 owner=None, converters=None):
         self.client = client
         self.data_type = data_type
         self.name = name
         self.request_type = request_type
         self._owner = owner
+        # (request converter, response converter) of a native service type.
+        self._converters = converters
 
     def destroy(self):
         """Destroys the underlying ROS 2 client."""
@@ -527,12 +708,21 @@ class Client(object):
 
     def wait_for_service(self, timeout=None):
         """Waits until the service is available; False on timeout."""
+        if self.service_is_ready():
+            return True
         deadline = None if timeout is None else time.monotonic() + timeout
         while not self.service_is_ready():
             if is_shutdown() or (deadline is not None and
                                  time.monotonic() >= deadline):
                 return False
             time.sleep(0.01)
+        # The middleware reports a service as available as soon as this side
+        # has matched the server; the server may need a moment more to match
+        # this client, and a request sent before that is lost (Fast DDS).
+        settle = SERVICE_DISCOVERY_SETTLE_S
+        if deadline is not None:
+            settle = min(settle, max(0.0, deadline - time.monotonic()))
+        time.sleep(settle)
         return True
 
     ##
@@ -549,10 +739,20 @@ class Client(object):
         if not ok():
             return None
         deadline = time.monotonic() + timeout
-        request = ProtoService.Request()
-        request.type = self.request_type or getattr(
-            getattr(data, 'DESCRIPTOR', None), 'full_name', '')
-        request.data = _to_array(_payload(data))
+        if self._converters is not None:
+            try:
+                request = self._converters[0].to_ros(
+                    self._converters[0].as_message(data),
+                    self.client.srv_type.Request())
+            except Exception as e:  # pylint: disable=broad-except
+                sys.stderr.write('cyber: bad request for %s: %s\n' %
+                                 (self.name, e))
+                return None
+        else:
+            request = ProtoService.Request()
+            request.type = self.request_type or getattr(
+                getattr(data, 'DESCRIPTOR', None), 'full_name', '')
+            request.data = _to_array(_payload(data))
         if not self.wait_for_service(timeout):
             return None
         done = threading.Event()
@@ -570,7 +770,18 @@ class Client(object):
                 pass
             return None
         response = future.result()
-        if response is None or len(response.data) == 0:
+        if response is None:
+            return None
+        if self._converters is not None:
+            message = self._converters[1].from_ros(response)
+            if self.data_type is None or isinstance(self.data_type, str):
+                return message.SerializePartialToString()
+            if isinstance(message, self.data_type):
+                return message
+            result = self.data_type()
+            result.ParseFromString(message.SerializePartialToString())
+            return result
+        if len(response.data) == 0:
             return None
         if self.data_type is None or isinstance(self.data_type, str):
             return _from_array(response.data)
@@ -596,6 +807,17 @@ def _type_name(data_type):
     if isinstance(data_type, str):
         return data_type
     return data_type.DESCRIPTOR.full_name
+
+
+def _native_service(name, request_data_type, response_data_type):
+    """(service class, request converter, response converter) of the native
+    ROS 2 service type of a request/response pair, None when the service
+    uses apollo_msgs/srv/ProtoService."""
+    if native_types.registry().use_proto_wire(_to_str(name)):
+        return None
+    return native_types.get_service_converters(
+        _descriptor_of_type(request_data_type),
+        _descriptor_of_type(response_data_type))
 
 
 class Node(object):
@@ -630,6 +852,10 @@ class Node(object):
         if spun is None:
             return
         self._spun = None
+        for reader in getattr(self, 'list_reader', []):
+            close = getattr(reader.reader, 'close', None)
+            if close is not None:
+                close()
         self.node = None
         for c in getattr(self, 'list_client', []):
             c.destroy()
@@ -665,28 +891,32 @@ class Node(object):
         if not isinstance(data_type, str):
             self.register_message(data_type.DESCRIPTOR.file)
         datatype = _type_name(data_type)
+        topic = channel_to_topic(name)
+        converter = _native_converter(name, data_type)
         publisher = self.node.create_publisher(
-            ProtoMessage, channel_to_topic(name), _writer_qos(qos_depth))
-        writer = Writer(name, publisher, datatype)
+            ProtoMessage if converter is None else converter.ros_class,
+            topic, _writer_qos(qos_depth))
+        if datatype and datatype != RAWDATATYPE:
+            _channel_types[topic] = datatype
+        writer = Writer(name, publisher, datatype, converter)
         with self.mutex:
             self.list_writer.append(writer)
             self.pubs[name] = writer
         return writer
 
-    def _subscribe(self, name, handler, qos_depth):
-        """Subscribes `name`; `handler(ProtoMessage)` runs on a dedicated
-        reader thread with at most `qos_depth` pending samples."""
-        topic = channel_to_topic(name)
+    def _subscribe(self, name, handler, qos_depth, data_type=None):
+        """Subscribes `name`; `handler(sample)` runs on a dedicated reader
+        thread with at most `qos_depth` pending samples. A sample is an
+        apollo_msgs/msg/ProtoMessage or, on a natively typed channel, a
+        Sample; both have `type` (protobuf type name) and `data` (wire
+        bytes). Without `data_type` the reader is raw: it follows the type
+        the writers of the channel use."""
         queue = _CallbackQueue(name, qos_depth, handler)
-
-        def on_message(ros_msg):
-            _channel_types[topic] = ros_msg.type
-            queue.push(ros_msg)
-
+        raw = _descriptor_of_type(data_type) is None
         try:
-            subscription = self.node.create_subscription(
-                ProtoMessage, topic, on_message,
-                _qos_for_reader(self.node, topic, qos_depth))
+            subscription = _Subscription(
+                self.node, name, queue.push, qos_depth,
+                None if raw else _native_converter(name, data_type), raw)
         except Exception:
             queue.close()
             raise
@@ -724,13 +954,15 @@ class Node(object):
             self.register_message(data_type.DESCRIPTOR.file)
 
         def on_message(ros_msg):
-            payload = _from_array(ros_msg.data)
+            message = getattr(ros_msg, 'message', None)
             if msg_class is None:
-                data = payload
+                data = _from_array(ros_msg.data)
+            elif message is not None and isinstance(message, msg_class):
+                data = message        # converted from the native ROS 2 type
             else:
                 data = msg_class()
                 try:
-                    data.ParseFromString(payload)
+                    data.ParseFromString(_from_array(ros_msg.data))
                 except Exception:  # pylint: disable=broad-except
                     sys.stderr.write('cyber: cannot parse %s as %s on %s\n' %
                                      (ros_msg.type,
@@ -742,7 +974,9 @@ class Node(object):
                 _guarded_call(callback, data, args)
 
         try:
-            subscription = self._subscribe(name, on_message, qos_depth)
+            subscription = self._subscribe(
+                name, on_message, qos_depth,
+                msg_class if msg_class is not None else None)
         except Exception:
             with self.mutex:
                 self.subs.pop(name, None)
@@ -761,8 +995,9 @@ class Node(object):
                                   qos_depth)
 
     def create_ros_reader(self, name, callback, qos_depth=10):
-        """Reader whose callback receives the apollo_msgs/msg/ProtoMessage
-        itself (protobuf type name, seq, stamp_ns and data). Used by tools."""
+        """Raw reader whose callback receives the sample envelope: an
+        apollo_msgs/msg/ProtoMessage or, on a natively typed channel, a
+        Sample (protobuf type name, seq, stamp_ns and data). Used by tools."""
         subscription = self._subscribe(
             name, lambda ros_msg: _guarded_call(callback, ros_msg), qos_depth)
         reader = Reader(name, subscription, PROTO_MESSAGE_TYPE)
@@ -785,9 +1020,13 @@ class Node(object):
         # Clients live on the helper node (own executor thread), so that a
         # request sent from any callback can always receive its response.
         aux = _rt.aux_node()
-        client = aux.create_client(ProtoService, channel_to_topic(name))
+        native = _native_service(name, request_data_type, response_data_type)
+        client = aux.create_client(
+            ProtoService if native is None else native[0],
+            channel_to_topic(name))
         c = Client(client, response_data_type, name,
-                   _type_name(request_data_type), aux)
+                   _type_name(request_data_type), aux,
+                   None if native is None else native[1:])
         with self.mutex:
             self.list_client.append(c)
         return c
@@ -814,10 +1053,21 @@ class Node(object):
             if not isinstance(data_type, str):
                 self.register_message(data_type.DESCRIPTOR.file)
         res_type_name = _type_name(res_data_type)
+        native = _native_service(name, req_data_type, res_data_type)
 
         def handle(request):
-            """Runs the user callback; returns the response wire bytes."""
-            if isinstance(req_data_type, str):
+            """Runs the user callback; returns the response (wire bytes, or
+            the message object for a native service type)."""
+            if native is not None:
+                message = native[1].from_ros(request)
+                if isinstance(req_data_type, str):
+                    req = message.SerializePartialToString()
+                elif isinstance(message, req_data_type):
+                    req = message
+                else:
+                    req = req_data_type()
+                    req.ParseFromString(message.SerializePartialToString())
+            elif isinstance(req_data_type, str):
                 req = _from_array(request.data)
             else:
                 req = req_data_type()
@@ -831,7 +1081,9 @@ class Node(object):
                 result = _guarded_call(callback, req)
             else:
                 result = _guarded_call(callback, req, args)
-            return None if result is None else _payload(result)
+            if result is None:
+                return None
+            return result if native is not None else _payload(result)
 
         async def on_request(request, response):
             # The callback may block (e.g. call another service of this
@@ -848,6 +1100,14 @@ class Node(object):
             threading.Thread(target=work, name='cyber_service:' + name,
                              daemon=True).start()
             data = await future
+            if native is not None:
+                if data is not None:
+                    try:
+                        native[2].to_ros(native[2].as_message(data), response)
+                    except Exception as e:  # pylint: disable=broad-except
+                        sys.stderr.write('cyber: bad response of service '
+                                         '%s: %s\n' % (name, e))
+                return response
             response.type = res_type_name
             if data is not None:
                 response.data = _to_array(data)
@@ -855,7 +1115,8 @@ class Node(object):
 
         try:
             service = self.node.create_service(
-                ProtoService, channel_to_topic(name), on_request,
+                ProtoService if native is None else native[0],
+                channel_to_topic(name), on_request,
                 callback_group=MutuallyExclusiveCallbackGroup())
         except Exception:
             with self.mutex:
@@ -984,10 +1245,32 @@ def _graph_servers():
         except Exception:  # pylint: disable=broad-except
             continue
         for service, types in entries:
-            if PROTO_SERVICE_TYPE in types:
+            if _is_apollo_service(types):
                 result.append(
                     (service, _full_node_name(name, namespace), name))
     return result
+
+
+def _is_apollo_channel(ros_types):
+    """True when a topic with these ROS 2 types is an Apollo channel: a
+    native Apollo type or apollo_msgs/msg/ProtoMessage."""
+    reg = native_types.registry()
+    return any(reg.is_apollo_topic_type(t) for t in ros_types)
+
+
+def _is_apollo_service(ros_types):
+    reg = native_types.registry()
+    return any(reg.is_apollo_service_type(t) for t in ros_types)
+
+
+def channel_message_type(topic, ros_types=None):
+    """Protobuf type name of a channel ('' when unknown): from the native
+    ROS 2 type on the graph, else what this process learnt from samples."""
+    if ros_types is None:
+        ros_types = dict(graph_node().get_topic_names_and_types()).get(
+            topic, [])
+    return (native_types.registry().proto_type_of(ros_types) or
+            _channel_types.get(topic, ''))
 
 
 def _local_node_names():
@@ -1021,7 +1304,8 @@ def endpoint_role_attributes(topic, info):
     attr = _cyber_protos.RoleAttributes()
     attr.channel_name = topic
     attr.node_name = _full_node_name(info.node_name, info.node_namespace)
-    attr.message_type = _channel_types.get(topic, '')
+    attr.message_type = channel_message_type(
+        topic, [getattr(info, 'topic_type', '')])
     attr.id = _gid_hash(info.endpoint_gid)
     _qos_to_cyber(info.qos_profile, attr.qos_profile)
     if info.node_name in _local_node_names():
@@ -1031,27 +1315,23 @@ def endpoint_role_attributes(topic, info):
 
 
 def sample_message(channel_name, timeout=1.0):
-    """Waits up to `timeout` s for one sample of a channel and returns the
-    apollo_msgs/msg/ProtoMessage, or None."""
+    """Waits up to `timeout` s for one sample of a channel and returns its
+    envelope (an apollo_msgs/msg/ProtoMessage, or a Sample on a natively
+    typed channel: both have `type` and `data`), or None."""
     node = graph_node()
-    topic = channel_to_topic(_to_str(channel_name))
     received = []
     event = threading.Event()
 
-    def on_message(ros_msg):
-        _channel_types[topic] = ros_msg.type
-        received.append(ros_msg)
+    def on_sample(sample):
+        received.append(sample)
         event.set()
 
-    subscription = node.create_subscription(
-        ProtoMessage, topic, on_message, _qos_for_reader(node, topic, 1))
+    subscription = _Subscription(node, _to_str(channel_name), on_sample, 1,
+                                 None, True)
     try:
         event.wait(max(0.0, timeout))
     finally:
-        try:
-            node.destroy_subscription(subscription)
-        except Exception:  # pylint: disable=broad-except
-            pass
+        subscription.close()
     return received[0] if received else None
 
 
@@ -1074,10 +1354,11 @@ class ChannelUtils(object):
     ##
     # @brief Get the protobuf message type of a channel.
     #
-    # Every topic has the ROS 2 type apollo_msgs/msg/ProtoMessage, so the
-    # protobuf type is learnt from a sample: a cached one when this process
-    # already received the channel, otherwise by waiting up to
-    # max(sleep_s, 0.5) seconds for a message.
+    # A natively typed channel names its protobuf type through its ROS 2
+    # type. On the protobuf wire format (apollo_msgs/msg/ProtoMessage) the
+    # type is learnt from a sample: a cached one when this process already
+    # received the channel, otherwise by waiting up to max(sleep_s, 0.5)
+    # seconds for a message.
     #
     # @param channel_name channel name.
     # @param sleep_s wait time.
@@ -1085,7 +1366,7 @@ class ChannelUtils(object):
     # @return the message type of this channel (bytes, b'' if unknown).
     def get_msgtype(channel_name, sleep_s=2):
         topic = channel_to_topic(_to_str(channel_name))
-        msg_type = _channel_types.get(topic)
+        msg_type = _found(lambda: channel_message_type(topic), sleep_s)
         if not msg_type:
             msg = sample_message(topic, max(float(sleep_s), 0.5))
             msg_type = msg.type if msg is not None else ''
@@ -1101,7 +1382,7 @@ class ChannelUtils(object):
     def get_channels(sleep_s=2):
         return _settled(lambda: sorted(
             name for name, types in graph_node().get_topic_names_and_types()
-            if PROTO_MESSAGE_TYPE in types), sleep_s)
+            if _is_apollo_channel(types)), sleep_s)
 
     @staticmethod
     ##
@@ -1192,7 +1473,7 @@ class NodeUtils(object):
             entries = query(found[1], found[2])
         except Exception:  # pylint: disable=broad-except
             return []
-        return [name for name, types in entries if PROTO_MESSAGE_TYPE in types]
+        return [name for name, types in entries if _is_apollo_channel(types)]
 
     @staticmethod
     ##
@@ -1227,7 +1508,7 @@ class NodeUtils(object):
                 found[1], found[2])
         except Exception:  # pylint: disable=broad-except
             return []
-        return [name for name, types in entries if PROTO_SERVICE_TYPE in types]
+        return [name for name, types in entries if _is_apollo_service(types)]
 
 
 class ServiceUtils(object):

@@ -234,9 +234,15 @@ bool Recorder::WritePendingChannel(const std::string& channel_name) {
   if (message_type.empty()) {
     return false;
   }
+  // The descriptor of a type compiled into this process, else the one
+  // installed with the native ROS 2 interfaces (every Apollo channel type).
   std::string proto_desc;
-  message::ProtobufFactory::Instance()->GetDescriptorString(message_type,
-                                                            &proto_desc);
+  TopologyManager::Instance()->channel_manager()->GetProtoDesc(channel_name,
+                                                              &proto_desc);
+  if (proto_desc.empty()) {
+    message::ProtobufFactory::Instance()->GetDescriptorString(message_type,
+                                                              &proto_desc);
+  }
   if (proto_desc.empty()) {
     AWARN << "no protobuf descriptor for " << message_type << " (channel "
           << channel_name << "); the record stores the type name only.";

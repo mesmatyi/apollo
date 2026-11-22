@@ -16,16 +16,23 @@
 # ****************************************************************************
 """Convert Cyber .record files into a rosbag2 bag.
 
-Every channel becomes the topic naming.channel_to_topic(channel) of type
-apollo_msgs/msg/ProtoMessage (type = protobuf full name, seq = per-channel
-message index, stamp_ns = record time, data = the protobuf bytes); the bag
+Every channel becomes the topic naming.channel_to_topic(channel). Its type is
+the native ROS 2 type of the channel's protobuf message (for example
+apollo.planning.ADCTrajectory -> apollo_msgs/msg/PlanningADCTrajectory), the
+same type a live Apollo system publishes, so `ros2 bag play`, rviz, PlotJuggler
+and Foxglove work on the bag directly. A channel whose protobuf type has no
+generated ROS 2 type -- and every channel with `--wire proto` -- is written
+as apollo_msgs/msg/ProtoMessage (type = protobuf full name, seq = per-channel
+message index, stamp_ns = record time, data = the protobuf bytes). The bag
 timestamp of each message is its record time. Several records (e.g. the
 segments of one recording) are merged into one bag, in the order given.
 
 The original channel name, protobuf type and proto descriptor of every
 channel are kept in the bag's custom metadata (keys apollo.channel.<topic>,
 apollo.type.<topic>, apollo.proto_desc.<topic> = base64(zlib(desc))), so that
-rosbag2_to_record.py restores the record losslessly.
+rosbag2_to_record.py restores the record. Native types carry the content of
+the messages (unknown protobuf fields are not kept); `--wire proto` copies
+the protobuf bytes unchanged.
 
 Examples:
   record_to_rosbag2.py demo.record -o demo_bag
@@ -46,6 +53,7 @@ from rclpy.serialization import serialize_message
 
 from apollo_msgs.msg import ProtoMessage
 
+from cyber.python.cyber_py3 import native_types
 from cyber.python.cyber_py3 import record
 from cyber.python.cyber_py3.naming import channel_to_topic
 
@@ -87,9 +95,18 @@ def _wanted(channel, topic, include, exclude):
     return not any(n in exclude for n in names)
 
 
+def _converter_for(channel, msg_type, wire):
+    """Converter to the native ROS 2 type of a channel, None when it is
+    written as apollo_msgs/msg/ProtoMessage."""
+    if wire == 'proto' or not msg_type or \
+            native_types.registry().use_proto_wire(channel):
+        return None
+    return native_types.get_converter_by_name(msg_type, quiet=True)
+
+
 def convert(records, output, storage_id=None, begin=0, end=UINT64_MAX,
             include=(), exclude=(), keep_proto_desc=True,
-            max_bagfile_size=0, verbose=True):
+            max_bagfile_size=0, verbose=True, wire='native'):
     """Converts `records` into the bag directory `output`.
 
     Returns {topic: message count}.
@@ -130,12 +147,18 @@ def convert(records, output, storage_id=None, begin=0, end=UINT64_MAX,
         input_serialization_format='cdr', output_serialization_format='cdr')
     writer = rosbag2_py.SequentialWriter()
     writer.open(storage_options, converter_options)
+    converters = {}   # topic -> Converter | None (ProtoMessage)
     for topic_id, topic in enumerate(sorted(channels)):
+        channel, msg_type, _ = channels[topic]
+        converters[topic] = _converter_for(channel, msg_type, wire)
         writer.create_topic(rosbag2_py.TopicMetadata(
-            topic_id, topic, PROTO_MESSAGE_TYPE, 'cdr'))
+            topic_id, topic,
+            converters[topic].ros_type if converters[topic] is not None
+            else PROTO_MESSAGE_TYPE, 'cdr'))
 
     counts = dict.fromkeys(channels, 0)
     skipped = set()
+    unreadable = {}
     msg = ProtoMessage()
     for path, reader in readers:
         if verbose:
@@ -151,8 +174,22 @@ def convert(records, output, storage_id=None, begin=0, end=UINT64_MAX,
                 # a message whose channel has no channel section
                 counts[topic] = 0
                 channels[topic] = (channel, data_type, b'')
+                converters[topic] = _converter_for(channel, data_type, wire)
                 writer.create_topic(rosbag2_py.TopicMetadata(
-                    len(channels), topic, PROTO_MESSAGE_TYPE, 'cdr'))
+                    len(channels), topic,
+                    converters[topic].ros_type
+                    if converters[topic] is not None
+                    else PROTO_MESSAGE_TYPE, 'cdr'))
+            converter = converters[topic]
+            if converter is not None:
+                try:
+                    ros_msg = converter.to_ros(converter.parse(data))
+                except Exception:  # pylint: disable=broad-except
+                    unreadable[topic] = unreadable.get(topic, 0) + 1
+                    continue
+                writer.write(topic, serialize_message(ros_msg), timestamp)
+                counts[topic] += 1
+                continue
             msg.type = data_type or channels[topic][1]
             msg.seq = counts[topic]
             msg.stamp_ns = timestamp
@@ -162,17 +199,22 @@ def convert(records, output, storage_id=None, begin=0, end=UINT64_MAX,
             counts[topic] += 1
         reader.close()
     del writer  # closes the bag
+    for topic, count in sorted(unreadable.items()):
+        sys.stderr.write('warning: %d message(s) on %s could not be parsed '
+                         'as %s and were skipped\n' %
+                         (count, topic, channels[topic][1]))
     if verbose:
         total = sum(counts.values())
-        print('wrote %d messages on %d topics to %s' %
-              (total, len(counts), output))
+        native = sum(1 for c in converters.values() if c is not None)
+        print('wrote %d messages on %d topics (%d with a native ROS 2 type) '
+              'to %s' % (total, len(counts), native, output))
     return counts
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description='Convert Cyber .record files into a rosbag2 bag of '
-                    'apollo_msgs/msg/ProtoMessage topics.',
+                    'natively typed ROS 2 topics.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__.split('Examples:', 1)[1].join(['Examples:', '']))
     parser.add_argument('records', nargs='+', help='input .record file(s)')
@@ -194,6 +236,12 @@ def main(argv=None):
                         help='do not convert this channel (repeatable)')
     parser.add_argument('--max-bagfile-size', type=int, default=0,
                         help='split the bag at this size in bytes')
+    parser.add_argument('--wire', choices=('native', 'proto'),
+                        default='native',
+                        help='native: generated ROS 2 message types '
+                             '(default); proto: every channel as '
+                             'apollo_msgs/msg/ProtoMessage, protobuf bytes '
+                             'unchanged')
     parser.add_argument('--no-proto-desc', action='store_true',
                         help='do not store proto descriptors in the bag '
                              'metadata')
@@ -202,7 +250,7 @@ def main(argv=None):
         parser.error('output %s already exists' % args.output)
     convert(args.records, args.output, args.storage, args.begin, args.end,
             args.channel, args.exclude, not args.no_proto_desc,
-            args.max_bagfile_size)
+            args.max_bagfile_size, wire=args.wire)
 
 
 if __name__ == '__main__':

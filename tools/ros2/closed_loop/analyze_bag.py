@@ -18,9 +18,12 @@
 
   analyze_bag.py <bag_dir> [--goal X Y] [--map_dir DIR --lane ID] [--json OUT]
 
-Apollo topics carry apollo_msgs/msg/ProtoMessage; their protobuf payloads are
-decoded to compute message rates, the driven path, the lateral deviation from
-the reference lane, planning/control health and the distance to the goal.
+Apollo topics are native ROS 2 types generated from the Apollo protobuf
+messages (apollo_msgs/msg/PlanningADCTrajectory, ...) or, for bags recorded
+with the protobuf wire format, apollo_msgs/msg/ProtoMessage. Either way the
+messages are turned back into protobuf to compute message rates, the driven
+path, the lateral deviation from the reference lane, planning/control health
+and the distance to the goal.
 """
 
 import argparse
@@ -33,6 +36,7 @@ import rosbag2_py
 from rclpy.serialization import deserialize_message
 
 from apollo_msgs.msg import ProtoMessage
+from cyber.python.cyber_py3 import native_types
 from modules.common_msgs.chassis_msgs import chassis_pb2
 from modules.common_msgs.control_msgs import control_cmd_pb2
 from modules.common_msgs.localization_msgs import localization_pb2
@@ -78,9 +82,22 @@ def analyze(bag_dir, goal=None, lane_points=None, front_edge_to_center=None):
                 rosbag2_py.ConverterOptions('', ''))
     topic_types = {t.name: t.type for t in reader.get_all_topics_and_types()}
 
+    # Topics with a native Apollo type: the protobuf type follows from the
+    # ROS 2 type; only the ones analyzed below are converted.
+    registry = native_types.registry()
+    native = {}
+    proto_types = {}
+    for topic, ros_type in topic_types.items():
+        info = registry.find_by_ros_type(ros_type)
+        if info is None:
+            continue
+        proto_types[topic] = info.proto_name
+        if info.proto_name in DECODERS:
+            native[topic] = native_types.get_converter(
+                DECODERS[info.proto_name].DESCRIPTOR)
+
     counts = {}
     first_t, last_t = {}, {}
-    proto_types = {}
     poses = []
     speeds = []
     planning = {'messages': 0, 'with_trajectory': 0, 'estop': 0,
@@ -94,18 +111,30 @@ def analyze(bag_dir, goal=None, lane_points=None, front_edge_to_center=None):
         counts[topic] = counts.get(topic, 0) + 1
         first_t.setdefault(topic, t_ns)
         last_t[topic] = t_ns
-        if topic_types.get(topic) != 'apollo_msgs/msg/ProtoMessage':
-            continue
-        wire = deserialize_message(data, ProtoMessage)
-        proto_types[topic] = wire.type
-        cls = DECODERS.get(wire.type)
-        if cls is None:
-            continue
-        msg = cls()
-        try:
-            msg.ParseFromString(bytes(wire.data))
-        except Exception:  # pylint: disable=broad-except
-            decode_errors += 1
+        if topic in native:
+            converter = native[topic]
+            if converter is None:
+                decode_errors += 1
+                continue
+            try:
+                msg = converter.from_ros(
+                    deserialize_message(data, converter.ros_class))
+            except Exception:  # pylint: disable=broad-except
+                decode_errors += 1
+                continue
+        elif topic_types.get(topic) == 'apollo_msgs/msg/ProtoMessage':
+            wire = deserialize_message(data, ProtoMessage)
+            proto_types[topic] = wire.type
+            cls = DECODERS.get(wire.type)
+            if cls is None:
+                continue
+            msg = cls()
+            try:
+                msg.ParseFromString(bytes(wire.data))
+            except Exception:  # pylint: disable=broad-except
+                decode_errors += 1
+                continue
+        else:
             continue
         if topic == '/apollo/localization/pose':
             p = msg.pose.position

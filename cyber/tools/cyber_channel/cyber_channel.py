@@ -16,10 +16,13 @@
 # ****************************************************************************
 """cyber_channel: inspect Apollo channels on ROS 2.
 
-Every Apollo channel is a ROS 2 topic of type apollo_msgs/msg/ProtoMessage;
-payloads are decoded with the protobuf type carried in each sample. Channel
-names may be given in Cyber form (e.g. /apollo/sensor/lidar-16/PointCloud2);
-they are mapped with cyber.python.cyber_py3.naming.channel_to_topic().
+An Apollo channel is a ROS 2 topic whose type is the native ROS 2 type of its
+protobuf message (e.g. apollo_msgs/msg/PlanningADCTrajectory) or, for types
+without one, apollo_msgs/msg/ProtoMessage. Either way the tool shows protobuf
+type names and prints messages in protobuf text format, as cyber_channel
+always did; `ros2 topic` works on the same topics. Channel names may be given
+in Cyber form (e.g. /apollo/sensor/lidar-16/PointCloud2); they are mapped
+with cyber.python.cyber_py3.naming.channel_to_topic().
 """
 
 import math
@@ -345,7 +348,9 @@ class CyberChannelecho(object):
         """
         if self.done.is_set():
             return
-        data = ros_msg.data.tobytes()
+        data = ros_msg.data
+        if not isinstance(data, bytes):
+            data = data.tobytes()
         text = proto_registry.to_debug_string(ros_msg.type, data)
         if text or not data:
             print(text)

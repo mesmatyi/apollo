@@ -25,6 +25,7 @@
 #include <mutex>
 #include <set>
 #include <shared_mutex>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 
@@ -1180,15 +1181,33 @@ class ClientImpl : public ClientEndpoint,
   }
 
   bool WaitForService(std::chrono::nanoseconds timeout) override {
+    if (client_base_->service_is_ready()) {
+      return true;
+    }
+    const auto start = std::chrono::steady_clock::now();
+    bool ready = false;
     if (timeout.count() < 0) {
-      while (rclcpp::ok()) {
-        if (client_base_->wait_for_service(std::chrono::milliseconds(200))) {
-          return true;
-        }
+      while (rclcpp::ok() && !ready) {
+        ready = client_base_->wait_for_service(std::chrono::milliseconds(200));
       }
+    } else {
+      ready = client_base_->wait_for_service(timeout);
+    }
+    if (!ready) {
       return false;
     }
-    return client_base_->wait_for_service(timeout);
+    // The middleware reports a service as available as soon as this side has
+    // matched the server; the server may need a moment more to match this
+    // client, and a request sent before that is lost (Fast DDS). Settle
+    // briefly after a service was first discovered.
+    std::chrono::nanoseconds settle = std::chrono::milliseconds(200);
+    if (timeout.count() >= 0) {
+      const auto left = timeout - (std::chrono::steady_clock::now() - start);
+      settle = std::max<std::chrono::nanoseconds>(
+          std::chrono::nanoseconds(0), std::min(settle, left));
+    }
+    std::this_thread::sleep_for(settle);
+    return true;
   }
 
  private:
