@@ -8,6 +8,12 @@ package(
 apollo_cc_library(
     name = "apollo_map",
     srcs = [
+        "hdmap/adapter/lanelet2/lanelet2_converter.cc",
+        "hdmap/adapter/lanelet2/lanelet2_geometry.cc",
+        "hdmap/adapter/lanelet2/lanelet2_options.cc",
+        "hdmap/adapter/lanelet2/lanelet2_projector.cc",
+        "hdmap/adapter/lanelet2/osm_parser.cc",
+        "hdmap/adapter/lanelet2_adapter.cc",
         "hdmap/adapter/opendrive_adapter.cc",
         "hdmap/adapter/proto_organizer.cc",
         "hdmap/adapter/xml_parser/coordinate_convert_tool.cc",
@@ -30,6 +36,12 @@ apollo_cc_library(
         "relative_map/relative_map.cc",
     ],
     hdrs = [
+        "hdmap/adapter/lanelet2/lanelet2_converter.h",
+        "hdmap/adapter/lanelet2/lanelet2_geometry.h",
+        "hdmap/adapter/lanelet2/lanelet2_options.h",
+        "hdmap/adapter/lanelet2/lanelet2_projector.h",
+        "hdmap/adapter/lanelet2/osm_parser.h",
+        "hdmap/adapter/lanelet2_adapter.h",
         "hdmap/adapter/opendrive_adapter.h",
         "hdmap/adapter/proto_organizer.h",
         "hdmap/adapter/xml_parser/common_define.h",
@@ -202,6 +214,25 @@ apollo_cc_test(
     ],
 )
 
+apollo_cc_test(
+    name = "lanelet2_adapter_test",
+    size = "small",
+    srcs = [
+        "hdmap/adapter/lanelet2/lanelet2_geometry_test.cc",
+        "hdmap/adapter/lanelet2/osm_parser_test.cc",
+        "hdmap/adapter/lanelet2_adapter_test.cc",
+    ],
+    data = [
+        ":lanelet2_testdata",
+    ],
+    deps = [
+        ":apollo_map",
+        "//cyber",
+        "@com_github_gflags_gflags//:gflags",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 filegroup(
     name = "relative_map_conf",
     srcs = glob([
@@ -222,6 +253,14 @@ filegroup(
     name = "hd_testdata",
     srcs = glob([
         "hdmap/test-data/*",
+    ]),
+)
+
+# Written by tools/ros2/lanelet2/make_test_maps.py.
+filegroup(
+    name = "lanelet2_testdata",
+    srcs = glob([
+        "hdmap/adapter/lanelet2/testdata/*",
     ]),
 )
 

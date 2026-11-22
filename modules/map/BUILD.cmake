@@ -6,6 +6,12 @@ apollo_target(cc_library apollo_map
   TARGET map__apollo_map
   ALIASES libapollo_map.so
   SRCS
+    hdmap/adapter/lanelet2/lanelet2_converter.cc
+    hdmap/adapter/lanelet2/lanelet2_geometry.cc
+    hdmap/adapter/lanelet2/lanelet2_options.cc
+    hdmap/adapter/lanelet2/lanelet2_projector.cc
+    hdmap/adapter/lanelet2/osm_parser.cc
+    hdmap/adapter/lanelet2_adapter.cc
     hdmap/adapter/opendrive_adapter.cc
     hdmap/adapter/proto_organizer.cc
     hdmap/adapter/xml_parser/coordinate_convert_tool.cc
@@ -27,6 +33,12 @@ apollo_target(cc_library apollo_map
     relative_map/navigation_lane.cc
     relative_map/relative_map.cc
   HDRS
+    hdmap/adapter/lanelet2/lanelet2_converter.h
+    hdmap/adapter/lanelet2/lanelet2_geometry.h
+    hdmap/adapter/lanelet2/lanelet2_options.h
+    hdmap/adapter/lanelet2/lanelet2_projector.h
+    hdmap/adapter/lanelet2/osm_parser.h
+    hdmap/adapter/lanelet2_adapter.h
     hdmap/adapter/opendrive_adapter.h
     hdmap/adapter/proto_organizer.h
     hdmap/adapter/xml_parser/common_define.h
@@ -134,6 +146,19 @@ apollo_target(cc_test hdmap_util_test
     @com_google_googletest//:gtest_main
 )
 
+apollo_target(cc_test lanelet2_adapter_test
+  TARGET map__lanelet2_adapter_test
+  SRCS
+    hdmap/adapter/lanelet2/lanelet2_geometry_test.cc
+    hdmap/adapter/lanelet2/osm_parser_test.cc
+    hdmap/adapter/lanelet2_adapter_test.cc
+  DEPS
+    //modules/map:apollo_map
+    //cyber:cyber
+    @com_github_gflags_gflags//:gflags
+    @com_google_googletest//:gtest_main
+)
+
 apollo_target(filegroup relative_map_conf
   TARGET map__relative_map_conf
   SRCS
@@ -157,6 +182,16 @@ apollo_target(filegroup rel_testdata
 apollo_target(filegroup hd_testdata
   TARGET map__hd_testdata
   SRCS hdmap/test-data/base_map.bin
+)
+
+apollo_target(filegroup lanelet2_testdata
+  TARGET map__lanelet2_testdata
+  SRCS
+    hdmap/adapter/lanelet2/testdata/autoware_local.osm
+    hdmap/adapter/lanelet2/testdata/curve.osm
+    hdmap/adapter/lanelet2/testdata/intersection.osm
+    hdmap/adapter/lanelet2/testdata/malformed.osm
+    hdmap/adapter/lanelet2/testdata/two_lane_road.osm
 )
 
 apollo_target(filegroup pnc_testdata

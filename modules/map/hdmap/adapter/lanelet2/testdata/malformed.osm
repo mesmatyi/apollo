@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' generator='make_test_maps.py'>
+  <node id='1' visible='true' version='1' lat='49.00002698537' lon='8.39999967585' />
+  <node id='2' visible='true' version='1' lat='49.00002840692' lon='8.40027309974' />
+  <node id='3' visible='true' version='1' lat='49.00000000000' lon='8.40000000000' />
+  <node id='4' visible='true' version='1' lat='49.00000142155' lon='8.40027342374' />
+  <node id='5' visible='true' version='1' lat='49.00005397074' lon='8.39999935169' />
+  <node id='6' visible='true' version='1' lat='48.99997301463' lon='8.40000032415' />
+  <node id='7' visible='true' version='1' lat='48.99997443618' lon='8.40027374775' />
+  <node id='8' visible='true' version='1' lat='48.99994602926' lon='8.40000064831' />
+  <node id='9' visible='true' version='1' lat='48.99994745081' lon='8.40027407175' />
+  <way id='1100' visible='true' version='1'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1101' visible='true' version='1'>
+    <nd ref='3' />
+    <nd ref='4' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1102' visible='true' version='1'>
+    <nd ref='5' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <way id='1103' visible='true' version='1'>
+    <nd ref='6' />
+    <nd ref='7' />
+    <tag k='type' v='laser_fence' />
+  </way>
+  <way id='1104' visible='true' version='1'>
+    <nd ref='8' />
+    <nd ref='9' />
+    <tag k='subtype' v='solid' />
+    <tag k='type' v='line_thin' />
+  </way>
+  <relation id='160' visible='true' version='1'>
+    <member type='way' ref='1100' role='left' />
+    <member type='way' ref='1101' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='161' visible='true' version='1'>
+    <member type='way' ref='1100' role='left' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='162' visible='true' version='1'>
+    <member type='way' ref='1102' role='left' />
+    <member type='way' ref='1100' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='163' visible='true' version='1'>
+    <member type='way' ref='1100' role='left' />
+    <member type='way' ref='4711' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='164' visible='true' version='1'>
+    <member type='way' ref='1101' role='left' />
+    <member type='way' ref='1103' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='subtype' v='road' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='165' visible='true' version='1'>
+    <member type='way' ref='1103' role='left' />
+    <member type='way' ref='1104' role='right' />
+    <tag k='location' v='urban' />
+    <tag k='subtype' v='hovercraft_lane' />
+    <tag k='type' v='lanelet' />
+  </relation>
+  <relation id='166' visible='true' version='1'>
+    <member type='way' ref='1100' role='outer' />
+    <tag k='type' v='route' />
+  </relation>
+  <relation id='230' visible='true' version='1'>
+    <member type='way' ref='1101' role='ref_line' />
+    <tag k='subtype' v='traffic_light' />
+    <tag k='type' v='regulatory_element' />
+  </relation>
+  <relation id='231' visible='true' version='1'>
+    <tag k='subtype' v='teleporter' />
+    <tag k='type' v='regulatory_element' />
+  </relation>
+  <way id='1105' visible='true' version='1'><nd ref='1' /><nd ref='999999' /><tag k='type' v='line_thin' /></way>
+  <relation id='167' action='delete' visible='true' version='1'><member type='way' ref='1100' role='left' /><member type='way' ref='1101' role='right' /><tag k='type' v='lanelet' /></relation>
+</osm>

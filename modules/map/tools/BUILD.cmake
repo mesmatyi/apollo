@@ -66,6 +66,16 @@ apollo_target(cc_binary bin_map_generator
     @com_github_gflags_gflags//:gflags
 )
 
+apollo_target(cc_binary lanelet2_map_converter
+  TARGET map_tools__lanelet2_map_converter
+  SRCS lanelet2_map_converter.cc
+  DEPS
+    //cyber:cyber
+    //modules/map:apollo_map
+    //modules/common_msgs/map_msgs:map_cc_proto
+    @com_github_gflags_gflags//:gflags
+)
+
 apollo_target(cc_binary quaternion_euler
   TARGET map_tools__quaternion_euler
   SRCS quaternion_euler.cc

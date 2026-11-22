@@ -74,6 +74,17 @@ apollo_cc_binary(
 )
 
 apollo_cc_binary(
+    name = "lanelet2_map_converter",
+    srcs = ["lanelet2_map_converter.cc"],
+    deps = [
+        "//cyber",
+        "//modules/map:apollo_map",
+        "//modules/common_msgs/map_msgs:map_cc_proto",
+        "@com_github_gflags_gflags//:gflags",
+    ],
+)
+
+apollo_cc_binary(
     name = "quaternion_euler",
     srcs = ["quaternion_euler.cc"],
     deps = [

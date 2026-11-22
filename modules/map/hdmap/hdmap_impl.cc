@@ -26,6 +26,7 @@ limitations under the License.
 
 #include "cyber/common/file.h"
 #include "modules/common/util/util.h"
+#include "modules/map/hdmap/adapter/lanelet2_adapter.h"
 #include "modules/map/hdmap/adapter/opendrive_adapter.h"
 
 namespace apollo {
@@ -55,6 +56,11 @@ int HDMapImpl::LoadMapFromFile(const std::string& map_filename) {
   // function, but test will fail if I do so. if so.
   if (absl::EndsWith(map_filename, ".xml")) {
     if (!adapter::OpendriveAdapter::LoadData(map_filename, &map_)) {
+      return -1;
+    }
+  } else if (absl::EndsWith(map_filename, ".osm")) {
+    // A Lanelet2 map, see docs/ros2/lanelet2.md.
+    if (!adapter::Lanelet2Adapter::LoadData(map_filename, &map_)) {
       return -1;
     }
   } else if (!cyber::common::GetProtoFromFile(map_filename, &map_)) {
