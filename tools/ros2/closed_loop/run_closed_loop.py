@@ -173,14 +173,32 @@ def run_once(args, index, goal, lane_points):
         time.sleep(2.0)
 
         # 2. send the driving command
-        send = subprocess.run(
-            [sys.executable, os.path.join(HERE, 'send_lane_follow.py'),
-             str(goal[0]), str(goal[1]), '--heading', str(goal[2]),
-             '--speed', str(args.target_speed), '--id', str(index + 1)],
-            env=env, capture_output=True, text=True, timeout=120)
+        if args.command_with == 'ros2cli':
+            # The stock ROS 2 command line, which knows nothing about Apollo
+            # but the generated service type. CommandStatus.status: 1 =
+            # RUNNING, 2 = FINISHED (the route was accepted).
+            request = ('{header: {module_name: closed_loop_test}, '
+                       'command_id: %d, end_pose: {x: %r, y: %r, '
+                       'heading: %r}, target_speed: %r}' % (
+                           index + 1, goal[0], goal[1], goal[2],
+                           args.target_speed))
+            send = subprocess.run(
+                ['ros2', 'service', 'call',
+                 '/apollo/external_command/lane_follow',
+                 'apollo_msgs/srv/ExternalCommandLaneFollowCommand', request],
+                env=env, capture_output=True, text=True, timeout=120)
+            accepted = send.returncode == 0 and re.search(
+                r'\bstatus=[12]\b', send.stdout) is not None
+        else:
+            send = subprocess.run(
+                [sys.executable, os.path.join(HERE, 'send_lane_follow.py'),
+                 str(goal[0]), str(goal[1]), '--heading', str(goal[2]),
+                 '--speed', str(args.target_speed), '--id', str(index + 1)],
+                env=env, capture_output=True, text=True, timeout=120)
+            accepted = send.returncode == 0
         with open(os.path.join(run_dir, 'command.log'), 'w') as f:
             f.write(send.stdout + send.stderr)
-        if send.returncode != 0:
+        if not accepted:
             raise RuntimeError('lane follow command was not accepted')
         t_cmd = time.monotonic()
 
@@ -317,6 +335,11 @@ def main():
                         help='max driving time per run (s)')
     parser.add_argument('--startup_timeout', type=float, default=120.0)
     parser.add_argument('--domain_id_base', type=int, default=60)
+    parser.add_argument('--command_with', default='cyber',
+                        choices=['cyber', 'ros2cli'],
+                        help='send the lane follow command with the Cyber '
+                             'Python client (send_lane_follow.py) or with '
+                             '`ros2 service call` and the native service type')
     args = parser.parse_args()
 
     args.apollo_root = os.path.abspath(args.apollo_root)
