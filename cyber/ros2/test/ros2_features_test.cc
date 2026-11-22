@@ -36,6 +36,8 @@
 #include "rosgraph_msgs/msg/clock.hpp"
 
 #include "cyber/cyber.h"
+#include "cyber/parameter/parameter_client.h"
+#include "cyber/parameter/parameter_server.h"
 #include "cyber/ros2/parameters.h"
 #include "cyber/ros2/transport.h"
 #include "cyber/time/clock.h"
@@ -90,9 +92,9 @@ class Peer {
 };
 
 /// What `ros2 param` does, against the node called `target`.
-class ParameterClient {
+class RosParameterClient {
  public:
-  ParameterClient(const Peer& peer, const std::string& target)
+  RosParameterClient(const Peer& peer, const std::string& target)
       : client_(std::make_shared<rclcpp::AsyncParametersClient>(peer.node(),
                                                                 target)) {}
 
@@ -167,7 +169,7 @@ TEST(Ros2FeaturesTest, SplitRosArguments) {
 /// Every gflag is a parameter of the process node: list, describe, get, set.
 TEST(Ros2FeaturesTest, FlagsAreParametersOfTheProcessNode) {
   Peer peer("flag_parameter_peer");
-  ParameterClient client(peer, ProcessNodeName());
+  RosParameterClient client(peer, ProcessNodeName());
   ASSERT_TRUE(client.Ready());
 
   const auto names = client.List("gflags");
@@ -255,7 +257,7 @@ TEST(Ros2FeaturesTest, FlagsFromNodeParameters) {
   EXPECT_EQ("from_launch", FLAGS_cyber_ros2_test_name);
 
   // The node shows the flags it was given, and setting one changes the flag.
-  ParameterClient client(peer, "/flag_override_node");
+  RosParameterClient client(peer, "/flag_override_node");
   ASSERT_TRUE(client.Ready());
   rclcpp::Parameter value;
   ASSERT_TRUE(client.Get("gflags.cyber_ros2_test_count", &value));
@@ -278,7 +280,7 @@ TEST(Ros2FeaturesTest, CyberNodesHaveParameterServices) {
   auto node = CreateNode("ordinary_ros_node");
   ASSERT_NE(node, nullptr);
   Peer peer("ordinary_peer");
-  ParameterClient client(peer, "/ordinary_ros_node");
+  RosParameterClient client(peer, "/ordinary_ros_node");
   ASSERT_TRUE(client.Ready());
   rclcpp::Parameter value;
   ASSERT_TRUE(client.Get("use_sim_time", &value));
@@ -291,6 +293,81 @@ TEST(Ros2FeaturesTest, CyberNodesHaveParameterServices) {
   }
 }
 
+/// The parameters of a Cyber ParameterServer are ROS 2 parameters of its
+/// node, in both directions, next to Cyber's own parameter protocol.
+TEST(Ros2FeaturesTest, CyberParametersAreRosParameters) {
+  auto node = CreateNode("cyber_param_node");
+  ASSERT_NE(node, nullptr);
+  ParameterServer server(node);
+  server.SetParameter(Parameter("max_speed", 12.5));
+  server.SetParameter(Parameter("lanes", static_cast<int64_t>(3)));
+  server.SetParameter(Parameter("map_name", std::string("demo")));
+  server.SetParameter(Parameter("enabled", true));
+
+  Peer peer("cyber_param_peer");
+  RosParameterClient client(peer, "/cyber_param_node");
+  ASSERT_TRUE(client.Ready());
+
+  // Cyber -> ROS 2.
+  rclcpp::Parameter value;
+  ASSERT_TRUE(client.Get("max_speed", &value));
+  EXPECT_DOUBLE_EQ(12.5, value.as_double());
+  ASSERT_TRUE(client.Get("lanes", &value));
+  EXPECT_EQ(3, value.as_int());
+  ASSERT_TRUE(client.Get("map_name", &value));
+  EXPECT_EQ("demo", value.as_string());
+  ASSERT_TRUE(client.Get("enabled", &value));
+  EXPECT_TRUE(value.as_bool());
+
+  // ROS 2 -> Cyber (`ros2 param set`).
+  EXPECT_TRUE(client.Set(rclcpp::Parameter("max_speed", 20.0)).successful);
+  Parameter parameter;
+  ASSERT_TRUE(server.GetParameter("max_speed", &parameter));
+  EXPECT_DOUBLE_EQ(20.0, parameter.AsDouble());
+
+  // Cyber's own protocol still works, in its sub-namespace of the node, with
+  // native service types.
+  const auto services = peer.node()->get_service_names_and_types();
+  const auto it = services.find("/cyber_param_node/cyber_parameters/get_parameter");
+  ASSERT_NE(it, services.end());
+  EXPECT_EQ((std::vector<std::string>{"apollo_msgs/srv/CyberProtoParamName"}),
+            it->second);
+  auto client_node = CreateNode("cyber_param_client_node");
+  apollo::cyber::ParameterClient cyber_client(client_node, "cyber_param_node");
+  Parameter lanes;
+  ASSERT_TRUE(cyber_client.GetParameter("lanes", &lanes));
+  EXPECT_EQ(3, lanes.AsInt64());
+  ASSERT_TRUE(cyber_client.SetParameter(Parameter("lanes", static_cast<int64_t>(4))));
+  ASSERT_TRUE(client.Get("lanes", &value));
+  EXPECT_EQ(4, value.as_int());
+  std::vector<Parameter> all;
+  ASSERT_TRUE(cyber_client.ListParameters(&all));
+  EXPECT_EQ(4u, all.size());
+}
+
+/// A Cyber parameter given to the node at start (launch file, -p) takes the
+/// place of the first value the program sets.
+TEST(Ros2FeaturesTest, CyberParameterFromNodeParameters) {
+  rclcpp::NodeOptions options;
+  options.automatically_declare_parameters_from_overrides(true);
+  options.parameter_overrides({{"max_speed", 33.0}});
+  auto ros_node = std::make_shared<rclcpp::Node>("cyber_param_override", options);
+  auto node = std::make_shared<Node>(ros_node);
+  ParameterServer server(node);
+  server.SetParameter(Parameter("max_speed", 12.5));
+  server.SetParameter(Parameter("min_speed", 1.5));
+  Parameter parameter;
+  ASSERT_TRUE(server.GetParameter("max_speed", &parameter));
+  EXPECT_DOUBLE_EQ(33.0, parameter.AsDouble());
+  ASSERT_TRUE(server.GetParameter("min_speed", &parameter));
+  EXPECT_DOUBLE_EQ(1.5, parameter.AsDouble());
+  // Later the program's word counts again.
+  server.SetParameter(Parameter("max_speed", 15.0));
+  ASSERT_TRUE(server.GetParameter("max_speed", &parameter));
+  EXPECT_DOUBLE_EQ(15.0, parameter.AsDouble());
+  EXPECT_DOUBLE_EQ(15.0, ros_node->get_parameter("max_speed").as_double());
+}
+
 /// use_sim_time on an Apollo node makes Cyber's Clock follow /clock.
 TEST(Ros2FeaturesTest, SimTimeFollowsClock) {
   auto node = CreateNode("sim_time_node");
@@ -298,7 +375,7 @@ TEST(Ros2FeaturesTest, SimTimeFollowsClock) {
   Peer peer("clock_peer");
   auto clock_publisher = peer.node()->create_publisher<rosgraph_msgs::msg::Clock>(
       "/clock", rclcpp::ClockQoS());
-  ParameterClient client(peer, "/sim_time_node");
+  RosParameterClient client(peer, "/sim_time_node");
   ASSERT_TRUE(client.Ready());
 
   EXPECT_FALSE(ros2::SimTimeEnabled());

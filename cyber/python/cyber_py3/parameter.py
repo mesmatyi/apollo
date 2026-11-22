@@ -22,16 +22,25 @@ This keeps Cyber's own protocol (cyber/parameter/parameter_server.cc), now
 carried by ROS 2 services with native types (apollo_msgs/srv/CyberProtoParamName
 and the like, generated from the protobuf request/response messages):
 
-  <server node name>/get_parameter    ParamName -> Param
-  <server node name>/set_parameter    Param     -> BoolResult
-  <server node name>/list_parameters  NodeName  -> Params
+  <server node name>/cyber_parameters/get_parameter    ParamName -> Param
+  <server node name>/cyber_parameters/set_parameter    Param     -> BoolResult
+  <server node name>/cyber_parameters/list_parameters  NodeName  -> Params
 
 (service names mapped with naming.channel_to_topic()), so Python and C++
-parameter servers/clients built on the Cyber API interoperate. Supported
-value types: bool, int, float and str (PROTOBUF parameters are not supported
-from Python, as before).
+parameter servers/clients built on the Cyber API interoperate. The services
+sit in a sub-namespace of the node, next to the standard ROS 2 parameter
+services (<node>/list_parameters, ...) every node has.
+
+The parameters of a ParameterServer are also ordinary ROS 2 parameters of its
+node: `ros2 param list|get|set <node>` reads and changes them, and a
+parameter given to the node at start (launch file, `--ros-args -p`) takes
+the place of the first value the program sets.
+
+Supported value types: bool, int, float and str (PROTOBUF parameters are not
+supported from Python, as before).
 """
 
+import sys
 import threading
 
 from . import _cyber_protos as _pb
@@ -47,8 +56,42 @@ _DOUBLE = _pb.ParamType['DOUBLE']
 _STRING = _pb.ParamType['STRING']
 
 
+PARAMETER_SERVICE_NAMESPACE = 'cyber_parameters'
+
+
 def _service_name(node_name, service):
-    return node_name + '/' + service
+    return node_name + '/' + PARAMETER_SERVICE_NAMESPACE + '/' + service
+
+
+def _ros_value(param):
+    """Value of a Cyber Param as a ROS 2 parameter value (None when the type
+    has no ROS 2 counterpart)."""
+    if param.type == _BOOL:
+        return bool(param.bool_value)
+    if param.type == _INT:
+        return int(param.int_value)
+    if param.type == _DOUBLE:
+        return float(param.double_value)
+    if param.type == _STRING:
+        return param.string_value
+    return None
+
+
+def _set_from_ros(param, value):
+    """Puts a ROS 2 parameter value into a Cyber Param. Returns success."""
+    if isinstance(value, bool):
+        param.type, param.type_name, param.bool_value = _BOOL, 'BOOL', value
+    elif isinstance(value, int):
+        param.type, param.type_name, param.int_value = _INT, 'INT', value
+    elif isinstance(value, float):
+        param.type, param.type_name, param.double_value = \
+            _DOUBLE, 'DOUBLE', value
+    elif isinstance(value, str):
+        param.type, param.type_name, param.string_value = \
+            _STRING, 'STRING', value
+    else:
+        return False
+    return True
 
 
 class Parameter(object):
@@ -231,6 +274,14 @@ class ParameterServer(object):
         self.node = node
         self._lock = threading.Lock()
         self._params = {}
+        self._mirroring = threading.local()
+        self._ros_node = None
+        get_ros_node = getattr(node, 'get_ros_node', None)
+        if get_ros_node is not None:
+            self._ros_node = get_ros_node()
+        if self._ros_node is not None:
+            # `ros2 param set` on a parameter of this server changes it here.
+            self._ros_node.add_on_set_parameters_callback(self._on_ros_set)
         name = node.name
         node.create_service(
             _service_name(name, GET_PARAMETER_SERVICE_NAME),
@@ -252,13 +303,62 @@ class ParameterServer(object):
         return response
 
     def _on_set(self, request):
-        with self._lock:
-            stored = _pb.Param()
-            stored.CopyFrom(request)
-            self._params[request.name] = stored
+        self._store(request)
         response = _pb.BoolResult()
         response.value = True
         return response
+
+    def _store(self, param):
+        """Stores a parameter and shows it as a ROS 2 parameter of the node."""
+        stored = _pb.Param()
+        stored.CopyFrom(param)
+        with self._lock:
+            first_time = param.name not in self._params
+        value = _ros_value(param)
+        ros_node = self._ros_node
+        if ros_node is not None and param.name and value is not None:
+            from rcl_interfaces.msg import ParameterDescriptor
+            import rclpy.parameter
+            self._mirroring.active = True
+            try:
+                if not ros_node.has_parameter(param.name):
+                    ros_node.declare_parameter(
+                        param.name, value, ParameterDescriptor(
+                            description='Cyber parameter (ParameterServer)',
+                            dynamic_typing=True))
+                else:
+                    given = ros_node.get_parameter(param.name).value
+                    # Given to the node at start (launch file, -p): that
+                    # value takes the place of the first one the program sets.
+                    if not (first_time and given is not None and
+                            given != value and
+                            _set_from_ros(stored, given)):
+                        ros_node.set_parameters([rclpy.parameter.Parameter(
+                            param.name, value=value)])
+            except Exception as e:  # pylint: disable=broad-except
+                sys.stderr.write('cyber: parameter %s is not shown as a '
+                                 'ROS 2 parameter: %s\n' % (param.name, e))
+            finally:
+                self._mirroring.active = False
+        with self._lock:
+            self._params[stored.name] = stored
+
+    def _on_ros_set(self, parameters):
+        from rcl_interfaces.msg import SetParametersResult
+        result = SetParametersResult(successful=True)
+        if getattr(self._mirroring, 'active', False):
+            return result
+        with self._lock:
+            for parameter in parameters:
+                stored = self._params.get(parameter.name)
+                if stored is None:
+                    continue
+                if not _set_from_ros(stored, parameter.value):
+                    return SetParametersResult(
+                        successful=False,
+                        reason="unsupported type for Cyber parameter '%s'" %
+                        parameter.name)
+        return result
 
     def _on_list(self, request):
         response = _pb.Params()
@@ -271,10 +371,7 @@ class ParameterServer(object):
         """
         set parameter, param is Parameter.
         """
-        with self._lock:
-            stored = _pb.Param()
-            stored.CopyFrom(param.param)
-            self._params[param.name()] = stored
+        self._store(param.param)
 
     def get_parameter(self, param_name):
         """

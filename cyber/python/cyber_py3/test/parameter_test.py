@@ -67,7 +67,25 @@ def test_params(cyber_env, unique):
     assert srv.get_parameter("author_name").as_string() == "WanderingEarth"
     services = cyber.ServiceUtils.get_services(0)
     for suffix in ('get_parameter', 'set_parameter', 'list_parameters'):
-        assert '/%s/%s' % (server_name, suffix) in services
+        assert '/%s/cyber_parameters/%s' % (server_name, suffix) in services
+
+    # The parameters are ROS 2 parameters of the server's node as well ...
+    ros_node = test_node.get_ros_node()
+    assert ros_node.get_parameter('author_name').value == 'WanderingEarth'
+    assert ros_node.get_parameter('author_age').value == 5000
+    assert ros_node.get_parameter('author_score').value == 888.88
+    assert ros_node.get_parameter('server_side').value == 'yes'
+    # ... and `ros2 param set` reaches the Cyber side.
+    import rclpy.parameter
+    results = ros_node.set_parameters(
+        [rclpy.parameter.Parameter('author_age', value=5001)])
+    assert results[0].successful
+    assert srv.get_parameter('author_age').as_int64() == 5001
+    assert clt.get_parameter('author_age').as_int64() == 5001
+    # The standard ROS 2 parameter services of the node are untouched.
+    ros_services = dict(ros_node.get_service_names_and_types())
+    assert ros_services['/%s/list_parameters' % server_name] == \
+        ['rcl_interfaces/srv/ListParameters']
 
 
 def test_client_without_server(cyber_env, unique):

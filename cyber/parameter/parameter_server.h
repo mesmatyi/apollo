@@ -39,6 +39,13 @@ class Node;
  * Routing, sensor internal/external references are set by Parameter Service
  * ParameterServer can set a parameter, and then you can get/list
  * paramter(s) by start a ParameterClient to send responding request
+ *
+ * On ROS 2 the parameters of a ParameterServer are also ordinary ROS 2
+ * parameters of its node: `ros2 param list|get|set <node>` reads and changes
+ * them, and a parameter given to the node at start (launch file,
+ * `--ros-args -p`) takes the place of the first value the program sets.
+ * Bool, int, double and string parameters map directly; a protobuf
+ * parameter appears as a byte array.
  * @warning You should only have one ParameterServer works
  */
 class ParameterServer {
@@ -54,6 +61,7 @@ class ParameterServer {
    * @param node shared_ptr of the node handler
    */
   explicit ParameterServer(const std::shared_ptr<Node>& node);
+  ~ParameterServer();
 
   /**
    * @brief Set the Parameter object
@@ -85,8 +93,14 @@ class ParameterServer {
   std::shared_ptr<Service<Param, BoolResult>> set_parameter_service_;
   std::shared_ptr<Service<NodeName, Params>> list_parameters_service_;
 
+  /// Stores a parameter and shows it as a ROS 2 parameter of the node.
+  void Store(const Param& param);
+
   std::mutex param_map_mutex_;
   std::unordered_map<std::string, Param> param_map_;
+
+  struct RosBridge;
+  std::shared_ptr<RosBridge> ros_bridge_;
 };
 
 }  // namespace cyber
