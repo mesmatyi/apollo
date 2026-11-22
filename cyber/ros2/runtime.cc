@@ -20,9 +20,12 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
 
 #include "cyber/common/log.h"
 #include "cyber/ros2/naming.h"
+#include "cyber/ros2/parameters.h"
 #include "cyber/ros2/transport.h"
 
 namespace apollo {
@@ -30,6 +33,30 @@ namespace cyber {
 namespace ros2 {
 
 namespace {
+
+/// The command line of this process. Apollo binaries call cyber::Init() with
+/// their name only, so the ROS 2 arguments are read from here.
+std::vector<std::string> ProcessCommandLine() {
+  std::vector<std::string> args;
+  std::ifstream in("/proc/self/cmdline", std::ios::binary);
+  std::string arg;
+  while (std::getline(in, arg, '\0')) {
+    args.push_back(arg);
+  }
+  return args;
+}
+
+/// True for a rule that renames the node: "__node:=x" or "__name:=x".
+bool IsNodeNameRemap(const std::string& rule, std::string* name) {
+  for (const char* prefix : {"__node:=", "__name:="}) {
+    const size_t n = std::strlen(prefix);
+    if (rule.compare(0, n, prefix) == 0) {
+      *name = rule.substr(n);
+      return true;
+    }
+  }
+  return false;
+}
 
 size_t ThreadsFromEnv() {
   const char* env = std::getenv("APOLLO_EXECUTOR_THREADS");
@@ -61,19 +88,14 @@ bool Runtime::Init(int argc, const char* const* argv) {
   if (initialized_.load()) {
     return true;
   }
+  ParseProcessArguments(argc, argv);
   if (!rclcpp::ok()) {
-    // Only forward ROS arguments when the caller passed --ros-args
-    // explicitly; Apollo binaries have their own gflags.
+    // Only the ROS 2 arguments go to rclcpp; Apollo binaries parse the rest
+    // of their command line themselves (gflags, getopt).
     std::vector<const char*> args;
     args.push_back(argc > 0 && argv != nullptr ? argv[0] : "apollo");
-    bool ros_args = false;
-    for (int i = 1; i < argc && argv != nullptr; ++i) {
-      if (std::string(argv[i]) == "--ros-args") {
-        ros_args = true;
-      }
-      if (ros_args) {
-        args.push_back(argv[i]);
-      }
+    for (const auto& arg : ros_arguments_) {
+      args.push_back(arg.c_str());
     }
     rclcpp::InitOptions options;
     options.shutdown_on_signal = true;
@@ -84,6 +106,37 @@ bool Runtime::Init(int argc, const char* const* argv) {
   StartExecutor();
   initialized_.store(true);
   return true;
+}
+
+void Runtime::ParseProcessArguments(int argc, const char* const* argv) {
+  if (arguments_parsed_) {
+    return;
+  }
+  arguments_parsed_ = true;
+  SplitRosArguments(argc, argv, nullptr, &ros_arguments_);
+  if (ros_arguments_.empty()) {
+    const auto command_line = ProcessCommandLine();
+    std::vector<const char*> pointers;
+    for (const auto& arg : command_line) {
+      pointers.push_back(arg.c_str());
+    }
+    SplitRosArguments(static_cast<int>(pointers.size()), pointers.data(),
+                      nullptr, &ros_arguments_);
+  }
+  for (size_t i = 0; i < ros_arguments_.size(); ++i) {
+    const std::string& arg = ros_arguments_[i];
+    std::string name;
+    if ((arg == "-r" || arg == "--remap") && i + 1 < ros_arguments_.size() &&
+        IsNodeNameRemap(ros_arguments_[i + 1], &name)) {
+      process_node_name_ = name;
+      ++i;
+      continue;
+    }
+    node_arguments_.push_back(arg);
+  }
+  if (node_arguments_.size() == 1) {
+    node_arguments_.clear();   // nothing but "--ros-args"
+  }
 }
 
 bool Runtime::Ok() const { return rclcpp::ok(); }
@@ -125,6 +178,7 @@ void Runtime::Shutdown() {
     }
     aux = std::move(aux_node_);
   }
+  DetachProcessNode();
   aux.reset();
   StopExecutor();
   executor_.reset();
@@ -165,20 +219,43 @@ std::shared_ptr<NodeHandle> Runtime::AuxNode() {
       return aux_node_;
     }
   }
-  auto aux = NodeHandle::Create("apollo_cyber_" + std::to_string(getpid()), "");
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (!aux_node_) {
-    aux_node_ = aux;
+  const std::string name = process_node_name_.empty()
+                               ? "apollo_cyber_" + std::to_string(getpid())
+                               : process_node_name_;
+  auto aux = NodeHandle::CreateProcessNode(name);
+  bool created = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!aux_node_) {
+      aux_node_ = aux;
+      created = true;
+    }
+    aux = aux_node_;
   }
-  return aux_node_;
+  if (created) {
+    AttachProcessNode(aux->ros_node());
+  }
+  return aux;
 }
 
 rclcpp::NodeOptions Runtime::DefaultNodeOptions() const {
   rclcpp::NodeOptions options;
-  // Cyber nodes are created programmatically; do not let global ROS
-  // arguments (e.g. __node:= remaps) rename every node of the process.
+  // The global arguments would give every node of the process the same name
+  // (`-r __node:=x`, which launch_ros adds for each executable); pass the
+  // other rules -- topic remaps, namespace, parameters, parameter files --
+  // as node arguments instead.
   options.use_global_arguments(false);
-  options.start_parameter_services(false);
+  options.arguments(node_arguments_);
+  // Parameters given on the command line or in a launch file are visible
+  // (`ros2 param list`) without the node having to declare each of them.
+  options.automatically_declare_parameters_from_overrides(true);
+  return options;
+}
+
+rclcpp::NodeOptions Runtime::ProcessNodeOptions() const {
+  rclcpp::NodeOptions options = DefaultNodeOptions();
+  // The process node declares one parameter per gflag (thousands): keep that
+  // burst off /parameter_events, which every node of the graph listens to.
   options.start_parameter_event_publisher(false);
   return options;
 }

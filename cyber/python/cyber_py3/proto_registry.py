@@ -17,10 +17,8 @@
 # ****************************************************************************
 """Protobuf type registry: fully-qualified type name -> message class.
 
-Every Apollo channel is carried as ``apollo_msgs/msg/ProtoMessage`` whose
-``type`` field names the protobuf type, so introspection tools (cyber_channel
-echo, record converters, ...) need to turn a type name into a class. Lookup
-order:
+Introspection tools (cyber_channel echo, record converters, ...) need to turn
+the protobuf type name of a channel into a class. Lookup order:
 
 1. classes registered explicitly (``register_message_class``/``register_file``,
    also done implicitly by ``Node.create_reader``/``create_writer``);
@@ -31,7 +29,9 @@ order:
    module defining the requested type is imported, so unrelated modules with
    conflicting symbols are never loaded;
 4. descriptors registered at runtime from a Cyber ``proto_desc`` blob (e.g. the
-   per-channel descriptor stored in a .record file), built into a private pool.
+   per-channel descriptor stored in a .record file), built into a private pool;
+5. the descriptor set installed with the native ROS 2 interfaces
+   (``native_types``), which covers every Apollo channel type.
 """
 
 import ast
@@ -229,6 +229,14 @@ def get_message_class(type_name, proto_desc=None):
         if cls is None and proto_desc:
             register_proto_desc(proto_desc)
             cls = _from_pool(_dynamic_pool, type_name)
+        if cls is None:
+            # The descriptor set installed with the native ROS 2 interfaces
+            # knows every Apollo channel type, imported or not.
+            try:
+                from . import native_types
+                cls = native_types.registry().message_class(type_name)
+            except Exception:  # pylint: disable=broad-except
+                cls = None
         if cls is not None:
             _classes[type_name] = cls
         return cls

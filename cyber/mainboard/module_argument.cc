@@ -19,9 +19,7 @@
 #include <getopt.h>
 #include <libgen.h>
 
-#if __has_include("gperftools/profiler.h")
-#include "gperftools/profiler.h"
-#endif
+#include "cyber/common/gperftools.h"
 
 using apollo::cyber::common::GlobalData;
 
@@ -147,8 +145,9 @@ void ModuleArgument::GetOptions(const int argc, char* const argv[]) {
           disable_plugin_autoload_ = true;
         break;
       case 'c':
-#ifndef BASE_PROFILER_H_
-        AWARN << "gperftools not installed, ignore perf parameters";
+#if !APOLLO_HAS_GPERFTOOLS
+        AWARN << "built without gperftools (-DCYBER_ENABLE_GPERFTOOLS=ON), "
+                 "ignore perf parameters";
 #endif
         enable_cpuprofile_ = true;
         break;
@@ -156,8 +155,9 @@ void ModuleArgument::GetOptions(const int argc, char* const argv[]) {
         profile_filename_ = std::string(optarg);
         break;
       case 'H':
-#ifndef BASE_PROFILER_H_
-        AWARN << "gperftools not installed, ignore perf parameters";
+#if !APOLLO_HAS_GPERFTOOLS
+        AWARN << "built without gperftools (-DCYBER_ENABLE_GPERFTOOLS=ON), "
+                 "ignore perf parameters";
 #endif
         enable_heapprofile_ = true;
         break;

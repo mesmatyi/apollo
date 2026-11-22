@@ -19,7 +19,8 @@
 """Cyber parameter server/client in pure Python.
 
 This keeps Cyber's own protocol (cyber/parameter/parameter_server.cc), now
-carried by ROS 2 services of type apollo_msgs/srv/ProtoService:
+carried by ROS 2 services with native types (apollo_msgs/srv/CyberProtoParamName
+and the like, generated from the protobuf request/response messages):
 
   <server node name>/get_parameter    ParamName -> Param
   <server node name>/set_parameter    Param     -> BoolResult

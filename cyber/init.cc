@@ -39,6 +39,7 @@
 #include "cyber/common/global_data.h"
 #include "cyber/logger/async_logger.h"
 #include "cyber/node/node.h"
+#include "cyber/ros2/parameters.h"
 #include "cyber/ros2/runtime.h"
 #include "cyber/ros2/paths.h"
 #include "cyber/task/task_manager.h"
@@ -159,6 +160,9 @@ bool Init(const char* binary_name, const std::string& dag_info) {
           }
         };
     clock_node->CreateReader<apollo::cyber::proto::Clock>(kClockChannel, cb);
+    // The same mode with ROS 2 means: follow /clock (rosgraph_msgs/Clock),
+    // as a node with use_sim_time does.
+    ros2::SetSimTime(true);
   }
   return true;
 }

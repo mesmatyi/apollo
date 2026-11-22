@@ -132,6 +132,15 @@ bool ModuleController::ResolveModuleLibrary(const std::string& library,
       return true;
     }
   }
+  // A dag written for the source tree names the library by its build path
+  // (cyber/examples/.../libfoo.so); an install tree keeps libraries directly
+  // in its lib directories. Look the file name up there.
+  const size_t slash = library.find_last_of('/');
+  if (slash != std::string::npos &&
+      common::GetFilePathWithEnv(library.substr(slash + 1), "APOLLO_LIB_PATH",
+                                 load_path)) {
+    return true;
+  }
   return false;
 }
 

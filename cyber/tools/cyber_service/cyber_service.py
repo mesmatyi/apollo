@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ****************************************************************************
-"""cyber_service: inspect Apollo services (apollo_msgs/srv/ProtoService)."""
+"""cyber_service: inspect Apollo services (native apollo_msgs/srv/... types
+generated from the request/response protobuf messages, or
+apollo_msgs/srv/ProtoService)."""
 
 import os
 import sys

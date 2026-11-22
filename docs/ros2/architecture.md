@@ -25,7 +25,7 @@ API is now implemented on `rclcpp`.
 
 | path                      | colcon package       | contents                                              |
 |---------------------------|----------------------|-------------------------------------------------------|
-| `ros2/apollo_msgs`        | `apollo_msgs`        | `ProtoMessage.msg`, `ProtoService.srv`                |
+| `ros2/apollo_msgs`        | `apollo_msgs`        | ROS 2 interfaces generated from the Apollo protos     |
 | `cyber`                   | `cyber`              | Cyber API on rclcpp, cyber protos, mainboard, tools   |
 | `modules`                 | `apollo`             | all Apollo modules (one ament_cmake superbuild)       |
 | `ros2/apollo_ros2_bridge` | `apollo_ros2_bridge` | republishes Apollo topics as standard ROS 2 messages  |
@@ -34,15 +34,19 @@ API is now implemented on `rclcpp`.
 
 ## Transport contract
 
-* **Message type on the wire:** every Apollo channel is a ROS 2 topic of type
-  `apollo_msgs/msg/ProtoMessage`:
-  * `type`: the fully-qualified protobuf name, e.g. `apollo.control.ControlCommand`
-  * `data`: the protobuf wire bytes
-
-  This round-trips every Apollo message without loss: oneof, map, recursive
-  types and proto2 field presence all survive.
-* **Services:** `apollo_msgs/srv/ProtoService`, which pairs a request
-  `(type, data)` with a response `(type, data)`.
+* **Message type on the wire:** every Apollo channel is a typed ROS 2 topic.
+  Its type is generated from the channel's protobuf message, e.g.
+  `apollo.control.ControlCommand` is `apollo_msgs/msg/ControlControlCommand`
+  (801 message types). The Cyber runtime converts between the protobuf
+  message a module uses and the ROS 2 message when a message leaves or
+  enters a process; oneof, map, recursive types and proto2 field presence all
+  survive the round trip. See [native_types.md](native_types.md).
+* **Services:** the native `apollo_msgs/srv/...` type of the request and
+  response pair (14 service types).
+* **Fallback:** a protobuf type without a generated interface, and channels
+  opted out with `APOLLO_ROS_PROTO_CHANNELS`, travel as
+  `apollo_msgs/msg/ProtoMessage` (`type` = protobuf name, `data` = protobuf
+  wire bytes) and `apollo_msgs/srv/ProtoService`.
 * **Channel → topic name:** `cyber::ros2::ChannelToTopic()` in C++ and
   `cyber.python.cyber_py3.naming.channel_to_topic()` in Python. Both apply the
   same rules:
@@ -63,10 +67,19 @@ API is now implemented on `rclcpp`.
   depth is its `pending_queue_size` (Cyber default: 1). An explicit Cyber
   `QosProfile` maps field by field onto `rclcpp::QoS`.
 * **Intra-process:** a Writer hands the same `shared_ptr<const M>` to every
-  in-process Reader of the channel, with no serialization. Delivery goes
-  through an `rclcpp::Waitable`, so callbacks run on the executor that spins
-  the reader's node. ROS 2 subscriptions use `ignore_local_publications`, so
-  a message is never delivered twice.
+  in-process Reader of the channel, with no serialization and no conversion.
+  Delivery goes through an `rclcpp::Waitable`, so callbacks run on the
+  executor that spins the reader's node. A reader's ROS 2 subscription drops
+  what Cyber writers of its own process publish (it recognizes their
+  publisher ids), so a message is never delivered twice, while messages from
+  plain ROS 2 publishers in the same process are delivered. Latched
+  (transient local) channels are replayed to readers that join later.
+  Readers and writers are matched by their resolved ROS 2 name, so namespace
+  and remapping rules apply inside a process as well.
+* **Nodes:** every node made through the Cyber API is an ordinary ROS 2 node
+  with parameter services; gflags are parameters, `use_sim_time` switches
+  Cyber's clock to `/clock`, glog warnings and errors go to `/rosout`. See
+  [ros2_nodes.md](ros2_nodes.md).
 * **Callback concurrency:** each Reader, Service and TimerComponent gets its
   own mutually exclusive callback group. Callbacks of one reader run
   serially, and different readers run in parallel. This matches Cyber's

@@ -32,6 +32,7 @@
 #include "cyber/common/file.h"
 #include "cyber/node/node.h"
 #include "cyber/ros2/component_registry.h"
+#include "cyber/ros2/parameters.h"
 
 namespace rclcpp {
 class Node;
@@ -121,6 +122,9 @@ class ComponentBase : public std::enable_shared_from_this<ComponentBase> {
         AINFO << "use flag file: " << flag_file_path;
       }
       google::SetCommandLineOption("flagfile", flag_file_path.c_str());
+      // gflags given as ROS 2 parameters (gflags.<name>) keep precedence
+      // over the flag file.
+      ros2::ApplyFlagOverrides();
     }
   }
 

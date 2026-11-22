@@ -3,12 +3,20 @@
 This branch runs Apollo on **ROS 2 Jazzy** (Ubuntu 24.04) instead of Cyber RT:
 
 * **Middleware:** Apollo channels are ROS 2 topics and Apollo services are
-  ROS 2 services, carried over DDS.
-* **Components:** every Apollo component is a ROS 2 composable node.
+  ROS 2 services, carried over DDS (Fast DDS and Cyclone DDS are tested).
+* **Interfaces:** every channel and service has a native ROS 2 type generated
+  from its protobuf definition, so any ROS 2 node or tool can read and write
+  Apollo data ([native_types.md](native_types.md)).
+* **Components:** every Apollo component is a ROS 2 composable node, with
+  parameters, remapping, simulation time and `/rosout`
+  ([ros2_nodes.md](ros2_nodes.md)).
 * **Build system:** colcon/ament replaces Bazel.
 * **Launch:** dag and cyber_launch files have ROS 2 launch equivalents.
-* **Tooling:** `ros2 topic`, `ros2 bag`, RViz and rqt work on Apollo
-  traffic, either directly or through `apollo_ros2_bridge`.
+* **Tooling:** `ros2 topic`, `ros2 service`, `ros2 param`, `ros2 bag`, RViz
+  and rqt work on Apollo directly; `apollo_ros2_bridge` adds standard
+  message types.
+* **Maps:** Lanelet2 (`.osm`) maps load next to Apollo's own formats
+  ([lanelet2.md](lanelet2.md)).
 
 The algorithm code did not have to change. Modules still program against the
 Cyber C++/Python API (`cyber::Component`, `Node::CreateReader`, `AINFO`, ...),
@@ -46,7 +54,7 @@ The workspace contains four colcon packages:
 
 | package              | path                      | what it is                                          |
 |----------------------|---------------------------|-----------------------------------------------------|
-| `apollo_msgs`        | `ros2/apollo_msgs`        | `ProtoMessage.msg` / `ProtoService.srv` (wire types) |
+| `apollo_msgs`        | `ros2/apollo_msgs`        | ROS 2 messages and services generated from the Apollo protos |
 | `cyber`              | `cyber`                   | Cyber API on rclcpp/rclpy, `mainboard`, tools       |
 | `apollo`             | `modules`                 | every Apollo module (one ament_cmake superbuild)    |
 | `apollo_ros2_bridge` | `ros2/apollo_ros2_bridge` | Apollo ⇄ standard ROS 2 message bridge              |
@@ -124,15 +132,24 @@ and the latest results in [closed_loop_results.md](closed_loop_results.md).
 | `cyber_channel echo <ch>`   | `cyber_channel echo <ch>` (rclpy port, decodes protobuf)            |
 | `cyber_node list`           | `cyber_node list` or `ros2 node list`                               |
 | `cyber_service list`        | `cyber_service list` or `ros2 service list`                         |
-| `cyber_recorder record`     | `ros2 bag record -a` (Apollo topics are `apollo_msgs/ProtoMessage`) |
+| `cyber_recorder record`     | `ros2 bag record -a` (typed topics, readable by any ROS 2 tool)     |
 | `cyber_recorder play`       | `ros2 bag play`                                                     |
 | `.record` files             | `record_to_rosbag2.py` / `rosbag2_to_record.py` converters          |
 | `cyber_launch`              | `ros2 launch` (wrapper kept)                                        |
 | Dreamview `/tf` view, RViz  | `ros2 launch apollo_ros2_bridge bridge.launch.py`, then RViz        |
 
-`ros2 topic echo` prints the raw `ProtoMessage` (type name and bytes). Use
-`cyber_channel echo` to see decoded protobuf, or the bridge for standard
-message types.
+Apollo topics and services are natively typed
+([native_types.md](native_types.md)): `ros2 topic echo /apollo/planning`,
+`ros2 topic pub`, `ros2 service call`, `ros2 interface show`, rqt, PlotJuggler
+and Foxglove work on them directly, and a plain rclcpp or rclpy node can
+publish to and subscribe from Apollo with the `apollo_msgs` types.
+`cyber_channel echo` prints the same messages in protobuf text format. The
+bridge adds standard message types (`sensor_msgs`, `nav_msgs`, `/tf`).
+
+Apollo processes are ordinary ROS 2 nodes ([ros2_nodes.md](ros2_nodes.md)):
+they take `--ros-args` (remapping, namespace, parameters, parameter files),
+expose their gflags as parameters (`ros2 param set <node> gflags.<flag>`),
+follow `/clock` with `use_sim_time`, and log warnings and errors to `/rosout`.
 
 ### The bridge
 
@@ -158,7 +175,15 @@ Apollo's components (`container:=<name>`) and it reads them zero-copy. See
   class loader all keep their signatures.
 * **Mix in native ROS 2.** `node_->RosNode()` returns the underlying
   `rclcpp::Node`, so a component can create rclcpp publishers, parameters or
-  tf2 listeners next to Cyber readers.
+  tf2 listeners next to Cyber readers. Plain ROS 2 nodes can be composed into
+  the same container and talk to Apollo components with the `apollo_msgs`
+  types.
+* **New channel types.** A channel whose protobuf message is defined outside
+  `modules/common_msgs` gets its native ROS 2 type by adding the `.proto` to
+  `ros2/apollo_msgs/proto_files.txt`; until then it travels as
+  `apollo_msgs/msg/ProtoMessage`.
+* **Flags.** gflags can be set as ROS 2 parameters (`gflags.<name>`) in
+  launch files and changed with `ros2 param set`.
 * **Channel names** map to ROS 2 names: invalid characters become `_`, and
   `/tf`, `/tf_static` and `/clock` move to `/apollo/...`. See
   architecture.md.

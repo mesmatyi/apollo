@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -206,7 +207,10 @@ TEST(TransportTest, TopologySeesWriters) {
   EXPECT_TRUE(WaitFor([&]() { return channel_manager->HasWriter("/test/topology"); }));
   std::vector<std::string> channels;
   channel_manager->GetChannelNames(&channels);
-  EXPECT_NE(std::find(channels.begin(), channels.end(), "/test/topology"),
+  // The graph lists the channel under its ROS 2 name: the same name unless
+  // the process was started with a remapping rule for it.
+  EXPECT_NE(std::find(channels.begin(), channels.end(),
+                      ros2::ResolveChannel("/test/topology")),
             channels.end());
   std::string type;
   channel_manager->GetMsgType("/test/topology", &type);
@@ -221,6 +225,8 @@ TEST(TransportTest, TopologySeesWriters) {
 }  // namespace apollo
 
 int main(int argc, char** argv) {
+  // Channels that keep the protobuf wire format (see native_types_test.cc).
+  setenv("APOLLO_ROS_PROTO_CHANNELS", "^/test/protowire/", 1);
   ::testing::InitGoogleTest(&argc, argv);
   ::testing::AddGlobalTestEnvironment(new apollo::cyber::CyberEnv());
   int ret = RUN_ALL_TESTS();

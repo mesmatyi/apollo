@@ -18,10 +18,15 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 # Defines PYTHON_INSTALL_DIR and registers the PYTHONPATH environment hook.
 _ament_cmake_python_register_environment_hook()
+find_package(ament_index_cpp REQUIRED)
 find_package(apollo_msgs REQUIRED)
 find_package(class_loader REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rcl_interfaces REQUIRED)
+find_package(rcpputils REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
+find_package(rosidl_typesupport_introspection_cpp REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Threads REQUIRED)
 find_package(tinyxml2 CONFIG QUIET)
@@ -149,7 +154,10 @@ set(CYBER_SRCS
   record/record_writer.cc
   ros2/component_registry.cc
   ros2/naming.cc
+  ros2/native_types.cc
+  ros2/parameters.cc
   ros2/paths.cc
+  ros2/rosout.cc
   ros2/runtime.cc
   ros2/transport.cc
   service_discovery/topology_manager.cc
@@ -188,6 +196,11 @@ target_link_libraries(cyber PUBLIC
   ${CMAKE_DL_LIBS}
   rt)
 target_link_libraries(cyber PRIVATE
+  ament_index_cpp::ament_index_cpp
+  rcpputils::rcpputils
+  rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
+  ${rosgraph_msgs_TARGETS}
+  ${rcl_interfaces_TARGETS}
   nlohmann_json::nlohmann_json
   tinyxml2::tinyxml2
   uuid)
@@ -208,6 +221,20 @@ target_link_libraries(mainboard cyber)
 # ROS 2 (rosbag2 conversion: tools/cyber_recorder/*_rosbag2*.py).
 add_executable(cyber_recorder tools/cyber_recorder/main.cc)
 target_link_libraries(cyber_recorder cyber)
+
+# The profiler flags of mainboard and cyber_recorder use gperftools. Linking
+# it swaps the allocator of the process for tcmalloc, so it is opt-in.
+option(CYBER_ENABLE_GPERFTOOLS
+  "Link mainboard and cyber_recorder with gperftools" OFF)
+foreach(tool mainboard cyber_recorder)
+  if(CYBER_ENABLE_GPERFTOOLS)
+    find_library(CYBER_TCMALLOC_PROFILER_LIB tcmalloc_and_profiler REQUIRED)
+    target_link_libraries(${tool} ${CYBER_TCMALLOC_PROFILER_LIB})
+    target_compile_definitions(${tool} PRIVATE APOLLO_HAS_GPERFTOOLS=1)
+  else()
+    target_compile_definitions(${tool} PRIVATE APOLLO_HAS_GPERFTOOLS=0)
+  endif()
+endforeach()
 
 if(CYBER_BUILD_EXAMPLES)
   set(EXAMPLE_GEN ${CMAKE_CURRENT_BINARY_DIR}/gen)
@@ -343,13 +370,41 @@ if(BUILD_TESTING)
          ${CMAKE_CURRENT_SOURCE_DIR}/ros2/test/test_msgs.proto
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ros2/test/test_msgs.proto
     VERBATIM)
+  # The native-type tests use the examples protos (which have generated
+  # ROS 2 interfaces); the test compiles its own copy.
+  file(MAKE_DIRECTORY ${CYBER_GEN_DIR}/test_protos)
+  add_custom_command(
+    OUTPUT ${CYBER_GEN_DIR}/test_protos/cyber/examples/proto/examples.pb.cc
+           ${CYBER_GEN_DIR}/test_protos/cyber/examples/proto/examples.pb.h
+    COMMAND protobuf::protoc
+    ARGS -I${APOLLO_SOURCE_ROOT} --cpp_out=${CYBER_GEN_DIR}/test_protos
+         ${CMAKE_CURRENT_SOURCE_DIR}/examples/proto/examples.proto
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/examples/proto/examples.proto
+    VERBATIM)
   ament_add_gtest(cyber_ros2_test
     ros2/test/naming_test.cc
     ros2/test/transport_test.cc
     ros2/test/component_test.cc
+    ros2/test/native_types_test.cc
+    ros2/test/ros2_features_test.cc
     ${CYBER_GEN_DIR}/cyber/ros2/test/test_msgs.pb.cc
-    TIMEOUT 120)
+    ${CYBER_GEN_DIR}/test_protos/cyber/examples/proto/examples.pb.cc
+    TIMEOUT 300)
+  target_include_directories(cyber_ros2_test PRIVATE
+    ${CYBER_GEN_DIR}/test_protos)
   target_link_libraries(cyber_ros2_test cyber)
+
+  # The executables as the stock `ros2` command line tools see them: typed
+  # topics and services, ROS arguments, gflags as parameters.
+  find_program(CYBER_ROS2_CLI ros2)
+  if(CYBER_ROS2_CLI AND CYBER_BUILD_EXAMPLES)
+    add_test(NAME cyber_cli_interop
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/ros2/test/cli_interop_test.sh
+              $<TARGET_FILE_DIR:mainboard>
+              ${CMAKE_CURRENT_SOURCE_DIR}/examples/common_component_example/common.dag
+              $<TARGET_FILE_DIR:common_component_example>)
+    set_tests_properties(cyber_cli_interop PROPERTIES TIMEOUT 900)
+  endif()
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
