@@ -26,6 +26,7 @@
 #include "cyber/init.h"
 #include "cyber/mainboard/module_argument.h"
 #include "cyber/mainboard/module_controller.h"
+#include "cyber/ros2/parameters.h"
 #include "cyber/state.h"
 
 using apollo::cyber::mainboard::ModuleArgument;
@@ -33,22 +34,13 @@ using apollo::cyber::mainboard::ModuleController;
 
 int main(int argc, char** argv) {
   // Drop ROS 2 arguments (`--ros-args ... [--]`), which launch_ros appends to
-  // every Node action, before parsing mainboard's own options.
+  // every Node action, before parsing mainboard's own options. The runtime
+  // picks them up from the command line of the process.
+  std::vector<std::string> program_args;
+  apollo::cyber::ros2::SplitRosArguments(argc, argv, &program_args, nullptr);
   std::vector<char*> args;
-  bool in_ros_args = false;
-  for (int i = 0; i < argc; ++i) {
-    const std::string arg(argv[i]);
-    if (arg == "--ros-args") {
-      in_ros_args = true;
-      continue;
-    }
-    if (in_ros_args) {
-      if (arg == "--") {
-        in_ros_args = false;
-      }
-      continue;
-    }
-    args.push_back(argv[i]);
+  for (auto& arg : program_args) {
+    args.push_back(arg.data());
   }
   args.push_back(nullptr);
   argc = static_cast<int>(args.size()) - 1;

@@ -153,6 +153,8 @@ class NodeHandle {
                                             const std::string& name_space);
   /// Wraps a node spun by somebody else (e.g. a component container).
   static std::shared_ptr<NodeHandle> Wrap(std::shared_ptr<rclcpp::Node> node);
+  /// Creates the process node (see Runtime::AuxNode()).
+  static std::shared_ptr<NodeHandle> CreateProcessNode(const std::string& name);
 
   ~NodeHandle();
 

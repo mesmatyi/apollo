@@ -23,6 +23,7 @@
 #include <csignal>
 
 #include "cyber/common/gperftools.h"
+#include "cyber/ros2/parameters.h"
 #include "cyber/common/file.h"
 #include "cyber/common/time_conversion.h"
 #include "cyber/init.h"
@@ -167,6 +168,19 @@ void DisplayUsage(const std::string& binary, const std::string& command,
 }
 
 int main(int argc, char** argv) {
+  // Drop ROS 2 arguments (`--ros-args ... [--]`) before parsing the
+  // recorder's own options; the runtime reads them from the command line of
+  // the process.
+  std::vector<std::string> program_args;
+  apollo::cyber::ros2::SplitRosArguments(argc, argv, &program_args, nullptr);
+  std::vector<char*> stripped_args;
+  for (auto& arg : program_args) {
+    stripped_args.push_back(arg.data());
+  }
+  stripped_args.push_back(nullptr);
+  argc = static_cast<int>(stripped_args.size()) - 1;
+  argv = stripped_args.data();
+
   std::string binary = GetFileName(std::string(argv[0]));
   if (argc < 2) {
     DisplayUsage(binary);

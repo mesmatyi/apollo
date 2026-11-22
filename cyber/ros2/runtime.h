@@ -70,12 +70,26 @@ class Runtime {
   /// Removes a node from the background executor.
   void RemoveNode(const rclcpp::Node::SharedPtr& node);
 
-  /// A process-wide helper node spun by the background executor. Used for
-  /// service clients, standalone timers and graph queries.
+  /// The process node, spun by the background executor: used for service
+  /// clients, standalone timers and graph queries, and the ROS 2 face of the
+  /// process (its gflags as parameters, /rosout, /clock). Named
+  /// `apollo_cyber_<pid>` unless the command line has `-r __node:=<name>`.
   std::shared_ptr<NodeHandle> AuxNode();
 
-  /// Default NodeOptions applied to nodes created by the Cyber API.
+  /// NodeOptions of nodes created by the Cyber API: ordinary ROS 2 nodes
+  /// (parameter services, parameter overrides, remapping rules and namespace
+  /// from the command line of the process). A `__node:=` remap on the command
+  /// line names the process node only; it must not rename every node.
   rclcpp::NodeOptions DefaultNodeOptions() const;
+
+  /// NodeOptions of the process node (see AuxNode()).
+  rclcpp::NodeOptions ProcessNodeOptions() const;
+
+  /// The ROS 2 arguments of the process (starting with --ros-args) without
+  /// node-name remaps.
+  const std::vector<std::string>& NodeArguments() const {
+    return node_arguments_;
+  }
 
   rclcpp::Executor* Executor() { return executor_.get(); }
 
@@ -89,6 +103,7 @@ class Runtime {
 
   void StartExecutor();
   void StopExecutor();
+  void ParseProcessArguments(int argc, const char* const* argv);
 
   std::atomic<bool> initialized_{false};
   bool owns_rclcpp_ = false;
@@ -97,6 +112,10 @@ class Runtime {
   std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor_;
   std::thread spin_thread_;
   std::shared_ptr<NodeHandle> aux_node_;
+  bool arguments_parsed_ = false;
+  std::vector<std::string> ros_arguments_;    ///< as given on the command line
+  std::vector<std::string> node_arguments_;   ///< without __node remaps
+  std::string process_node_name_;
 };
 
 }  // namespace ros2

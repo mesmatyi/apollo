@@ -23,6 +23,7 @@ find_package(apollo_msgs REQUIRED)
 find_package(class_loader REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rcl_interfaces REQUIRED)
 find_package(rcpputils REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
 find_package(rosidl_typesupport_introspection_cpp REQUIRED)
@@ -154,7 +155,9 @@ set(CYBER_SRCS
   ros2/component_registry.cc
   ros2/naming.cc
   ros2/native_types.cc
+  ros2/parameters.cc
   ros2/paths.cc
+  ros2/rosout.cc
   ros2/runtime.cc
   ros2/transport.cc
   service_discovery/topology_manager.cc
@@ -197,6 +200,7 @@ target_link_libraries(cyber PRIVATE
   rcpputils::rcpputils
   rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
   ${rosgraph_msgs_TARGETS}
+  ${rcl_interfaces_TARGETS}
   nlohmann_json::nlohmann_json
   tinyxml2::tinyxml2
   uuid)
@@ -382,12 +386,25 @@ if(BUILD_TESTING)
     ros2/test/transport_test.cc
     ros2/test/component_test.cc
     ros2/test/native_types_test.cc
+    ros2/test/ros2_features_test.cc
     ${CYBER_GEN_DIR}/cyber/ros2/test/test_msgs.pb.cc
     ${CYBER_GEN_DIR}/test_protos/cyber/examples/proto/examples.pb.cc
     TIMEOUT 300)
   target_include_directories(cyber_ros2_test PRIVATE
     ${CYBER_GEN_DIR}/test_protos)
   target_link_libraries(cyber_ros2_test cyber)
+
+  # The executables as the stock `ros2` command line tools see them: typed
+  # topics and services, ROS arguments, gflags as parameters.
+  find_program(CYBER_ROS2_CLI ros2)
+  if(CYBER_ROS2_CLI AND CYBER_BUILD_EXAMPLES)
+    add_test(NAME cyber_cli_interop
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/ros2/test/cli_interop_test.sh
+              $<TARGET_FILE_DIR:mainboard>
+              ${CMAKE_CURRENT_SOURCE_DIR}/examples/common_component_example/common.dag
+              $<TARGET_FILE_DIR:common_component_example>)
+    set_tests_properties(cyber_cli_interop PROPERTIES TIMEOUT 900)
+  endif()
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

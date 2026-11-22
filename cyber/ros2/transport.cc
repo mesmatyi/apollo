@@ -37,6 +37,7 @@
 #include "cyber/common/log.h"
 #include "cyber/ros2/naming.h"
 #include "cyber/ros2/native_types.h"
+#include "cyber/ros2/parameters.h"
 #include "cyber/ros2/runtime.h"
 #include "cyber/task/task_manager.h"
 
@@ -115,18 +116,38 @@ Wire SelectWire(const std::string& channel, const TypeSupport* ts,
 }
 
 /// Protobuf type carried by a ROS 2 topic type, empty when unknown.
+void RegisterLocalTopicType(const std::string& topic,
+                            const std::string& type_name);
+bool LookupLocalTopicType(const std::string& topic, std::string* type_name);
+
+/// The ROS 2 name of a channel as `node` sees it: the node's namespace and
+/// remapping rules applied. Everything that matches readers with writers
+/// (the in-process path, graph queries) uses this name.
+std::string ResolveTopic(const std::shared_ptr<NodeHandle>& node,
+                         const std::string& channel) {
+  const std::string topic = ChannelToTopic(channel);
+  try {
+    return node->ros_node()->get_node_topics_interface()->resolve_topic_name(
+        topic);
+  } catch (const std::exception& e) {
+    ADEBUG << "cannot resolve " << topic << ": " << e.what();
+    return topic;
+  }
+}
+
 std::string ProtoTypeOf(const std::string& ros_type,
-                        const std::string& channel) {
+                        const std::string& topic) {
   if (const auto* info = NativeTypes::Instance()->FindByRosType(ros_type)) {
     return info->proto_name;
   }
   std::string type;
-  LookupLocalChannelType(channel, &type);
+  LookupLocalTopicType(topic, &type);
   return type;
 }
 
 proto::RoleAttributes ToRoleAttributes(const rclcpp::TopicEndpointInfo& info,
-                                       const std::string& channel) {
+                                       const std::string& channel,
+                                       const std::string& topic) {
   proto::RoleAttributes attr;
   std::string ns = info.node_namespace();
   std::string node = info.node_name();
@@ -135,7 +156,7 @@ proto::RoleAttributes ToRoleAttributes(const rclcpp::TopicEndpointInfo& info,
   }
   attr.set_node_name(node);
   attr.set_channel_name(channel);
-  const std::string proto_type = ProtoTypeOf(info.topic_type(), channel);
+  const std::string proto_type = ProtoTypeOf(info.topic_type(), topic);
   attr.set_message_type(proto_type.empty() ? info.topic_type() : proto_type);
   auto* qos = attr.mutable_qos_profile();
   const auto rmw = info.qos_profile().get_rmw_qos_profile();
@@ -477,11 +498,11 @@ class PublisherImpl : public PublisherEndpoint {
                 const TypeSupport* type_support)
       : node_(node),
         channel_(role_attr.channel_name()),
-        topic_(ChannelToTopic(role_attr.channel_name())),
+        topic_(ResolveTopic(node, role_attr.channel_name())),
         type_support_(type_support) {
     type_name_ = role_attr.message_type().empty() ? type_support->type_name
                                                   : role_attr.message_type();
-    RegisterLocalChannelType(channel_, type_name_);
+    RegisterLocalTopicType(topic_, type_name_);
     wire_ = SelectWire(channel_, type_support, type_name_);
     const auto& p = role_attr.qos_profile();
     transient_local_ =
@@ -495,16 +516,20 @@ class PublisherImpl : public PublisherEndpoint {
                 << "] a reader requested an incompatible QoS (policy id "
                 << info.last_policy_kind << ")";
         };
+    // rclcpp applies the node's namespace and remap rules to the name it is
+    // given, so entities are created with the plain name; `topic_` is the
+    // result, used wherever readers and writers are matched.
     const rclcpp::QoS qos = MakeQos(p, WriterDepth(p));
     if (wire_.converter != nullptr) {
       ros_type_ = wire_.converter->ros_type();
       native_publisher_ = node->ros_node()->create_generic_publisher(
-          topic_, ros_type_, qos, options);
+          ChannelToTopic(channel_), ros_type_, qos, options);
       publisher_ = native_publisher_;
     } else {
       ros_type_ = kProtoMessageType;
       proto_publisher_ =
-          node->ros_node()->create_publisher<ProtoMessage>(topic_, qos, options);
+          node->ros_node()->create_publisher<ProtoMessage>(
+              ChannelToTopic(channel_), qos, options);
       publisher_ = proto_publisher_;
     }
     latch_depth_ = p.depth() > 0 ? p.depth() : 1;
@@ -565,7 +590,7 @@ class PublisherImpl : public PublisherEndpoint {
       return;
     }
     for (auto& info : node_->ros_node()->get_subscriptions_info_by_topic(topic_)) {
-      peers->push_back(ToRoleAttributes(info, channel_));
+      peers->push_back(ToRoleAttributes(info, channel_, topic_));
     }
   }
 
@@ -640,12 +665,12 @@ class SubscriberImpl : public SubscriberEndpoint {
                  Callback callback)
       : node_(node),
         channel_(role_attr.channel_name()),
-        topic_(ChannelToTopic(role_attr.channel_name())),
+        topic_(ResolveTopic(node, role_attr.channel_name())),
         type_support_(type_support),
         callback_(std::move(callback)),
         qos_profile_(role_attr.qos_profile()),
         active_(std::make_shared<std::atomic<bool>>(true)) {
-    RegisterLocalChannelType(channel_, type_support->type_name);
+    RegisterLocalTopicType(topic_, type_support->type_name);
     depth_ = std::max<uint32_t>(pending_queue_size, 1);
     if (qos_profile_.durability() ==
         proto::QosDurabilityPolicy::DURABILITY_TRANSIENT_LOCAL) {
@@ -697,7 +722,7 @@ class SubscriberImpl : public SubscriberEndpoint {
       return;
     }
     for (auto& info : node_->ros_node()->get_publishers_info_by_topic(topic_)) {
-      peers->push_back(ToRoleAttributes(info, channel_));
+      peers->push_back(ToRoleAttributes(info, channel_, topic_));
     }
   }
 
@@ -749,7 +774,7 @@ class SubscriberImpl : public SubscriberEndpoint {
         if (info != nullptr) {
           *wire = SelectWire(channel_, type_support_, info->proto_name);
           if (wire->converter != nullptr) {
-            RegisterLocalChannelType(channel_, info->proto_name);
+            RegisterLocalTopicType(topic_, info->proto_name);
             return true;
           }
         }
@@ -760,7 +785,7 @@ class SubscriberImpl : public SubscriberEndpoint {
       }
     }
     std::string local_type;
-    if (LookupLocalChannelType(channel_, &local_type)) {
+    if (LookupLocalTopicType(topic_, &local_type)) {
       *wire = SelectWire(channel_, type_support_, local_type);
       *proto_wire = wire->converter == nullptr;
       return true;
@@ -802,7 +827,7 @@ class SubscriberImpl : public SubscriberEndpoint {
       const auto converter = wire.converter;
       const auto* descriptor = wire.descriptor;
       subscription_ = ros_node->create_generic_subscription(
-          topic_, converter->ros_type(), qos,
+          ChannelToTopic(channel_), converter->ros_type(), qos,
           [active, ts, callback, converter, descriptor, topic](
               std::shared_ptr<const rclcpp::SerializedMessage> m,
               const rclcpp::MessageInfo& info) {
@@ -840,7 +865,7 @@ class SubscriberImpl : public SubscriberEndpoint {
     auto warned = std::make_shared<std::atomic<bool>>(false);
     auto type_learned = std::make_shared<std::atomic<bool>>(false);
     subscription_ = ros_node->create_subscription<ProtoMessage>(
-        topic_, qos,
+        ChannelToTopic(channel_), qos,
         [active, warned, type_learned, ts, callback, topic, channel](
             std::shared_ptr<const ProtoMessage> m,
             const rclcpp::MessageInfo& info) {
@@ -850,7 +875,7 @@ class SubscriberImpl : public SubscriberEndpoint {
           // Raw readers (recorder, tools) learn the channel's protobuf type
           // from the first sample; the ROS 2 graph only knows ProtoMessage.
           if (ts->is_raw && !m->type.empty() && !type_learned->exchange(true)) {
-            RegisterLocalChannelType(channel, m->type);
+            RegisterLocalTopicType(topic, m->type);
           }
           if (!ts->is_raw && !m->type.empty() && m->type != ts->type_name &&
               m->type != RawTypeName()) {
@@ -1294,6 +1319,24 @@ std::shared_ptr<NodeHandle> NodeHandle::Create(const std::string& name,
   std::string ns = name_space.empty() ? "" : ChannelToTopic(name_space);
   auto node = std::make_shared<rclcpp::Node>(ToNodeName(name), ns,
                                              runtime->DefaultNodeOptions());
+  AttachNode(node);
+  std::shared_ptr<NodeHandle> handle(new NodeHandle());
+  handle->node_ = node;
+  handle->name_ = name;
+  handle->owned_ = true;
+  runtime->AddNode(node);
+  return handle;
+}
+
+std::shared_ptr<NodeHandle> NodeHandle::CreateProcessNode(
+    const std::string& name) {
+  auto runtime = Runtime::Instance();
+  if (!runtime->IsInitialized()) {
+    runtime->Init();
+  }
+  auto node = std::make_shared<rclcpp::Node>(ToNodeName(name), "",
+                                             runtime->ProcessNodeOptions());
+  AttachNode(node);
   std::shared_ptr<NodeHandle> handle(new NodeHandle());
   handle->node_ = node;
   handle->name_ = name;
@@ -1304,6 +1347,7 @@ std::shared_ptr<NodeHandle> NodeHandle::Create(const std::string& name,
 
 std::shared_ptr<NodeHandle> NodeHandle::Wrap(
     std::shared_ptr<rclcpp::Node> node) {
+  AttachNode(node);
   std::shared_ptr<NodeHandle> handle(new NodeHandle());
   handle->name_ = node->get_name();
   handle->node_ = std::move(node);
@@ -1392,19 +1436,19 @@ std::unordered_map<std::string, std::string>& ChannelTypes() {
 }
 }  // namespace
 
-void RegisterLocalChannelType(const std::string& channel,
-                              const std::string& type_name) {
+namespace {
+void RegisterLocalTopicType(const std::string& topic,
+                            const std::string& type_name) {
   if (type_name.empty() || type_name == RawTypeName()) {
     return;
   }
   std::lock_guard<std::mutex> lock(ChannelTypeMutex());
-  ChannelTypes()[ChannelToTopic(channel)] = type_name;
+  ChannelTypes()[topic] = type_name;
 }
 
-bool LookupLocalChannelType(const std::string& channel,
-                            std::string* type_name) {
+bool LookupLocalTopicType(const std::string& topic, std::string* type_name) {
   std::lock_guard<std::mutex> lock(ChannelTypeMutex());
-  auto it = ChannelTypes().find(ChannelToTopic(channel));
+  auto it = ChannelTypes().find(topic);
   if (it == ChannelTypes().end()) {
     return false;
   }
@@ -1412,6 +1456,17 @@ bool LookupLocalChannelType(const std::string& channel,
     *type_name = it->second;
   }
   return true;
+}
+}  // namespace
+
+void RegisterLocalChannelType(const std::string& channel,
+                              const std::string& type_name) {
+  RegisterLocalTopicType(ChannelToTopic(channel), type_name);
+}
+
+bool LookupLocalChannelType(const std::string& channel,
+                            std::string* type_name) {
+  return LookupLocalTopicType(ChannelToTopic(channel), type_name);
 }
 
 std::string ChannelProtoType(const std::string& channel) {
