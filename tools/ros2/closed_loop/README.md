@@ -65,6 +65,9 @@ A run passes when all of these hold:
 | `analyze_bag.py` | decodes a rosbag2 (MCAP or sqlite3) recording: message rates, path, lateral deviation, planning/control health, distance to goal |
 | `run_closed_loop.py` | orchestrates recording, simulator, stack, command, pass/fail and the reports |
 
-The recordings are ordinary rosbag2 bags: `ros2 bag info run_00/bag`,
-`ros2 bag play run_00/bag`. Use `tools/cyber_recorder/rosbag2_to_record.py`
-to turn one into a Cyber `.record` for Apollo's own tools.
+The recordings are ordinary rosbag2 bags with natively typed topics
+(`/apollo/planning` is `apollo_msgs/msg/PlanningADCTrajectory`, and so on):
+`ros2 bag info run_00/bag` and `ros2 bag play run_00/bag` work on them, as
+should any tool that reads ROS 2 bags. Use
+`cyber/tools/cyber_recorder/rosbag2_to_record.py` to turn one into a Cyber
+`.record` file.

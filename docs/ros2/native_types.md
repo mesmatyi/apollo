@@ -196,8 +196,9 @@ The `apollo_msgs` package takes about 16 minutes to build on 4 cores (about
 
 ## Recording
 
-`ros2 bag record` stores the typed messages, so bags open in standard tools
-(PlotJuggler, Foxglove, `ros2 bag play`). `cyber_recorder record` keeps
+`ros2 bag record` stores the typed messages, so the bags are ordinary ROS 2
+bags (`ros2 bag info`, `ros2 bag play`; tools that plot or visualize ROS 2
+bags were not tried here). `cyber_recorder record` keeps
 writing `.record` files with protobuf payloads and descriptors, and
 `cyber_recorder play` publishes them with the native types again.
 `record_to_rosbag2.py` and `rosbag2_to_record.py` convert between the two.

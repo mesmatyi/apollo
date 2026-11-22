@@ -140,9 +140,10 @@ and the latest results in [closed_loop_results.md](closed_loop_results.md).
 
 Apollo topics and services are natively typed
 ([native_types.md](native_types.md)): `ros2 topic echo /apollo/planning`,
-`ros2 topic pub`, `ros2 service call`, `ros2 interface show`, rqt, PlotJuggler
-and Foxglove work on them directly, and a plain rclcpp or rclpy node can
-publish to and subscribe from Apollo with the `apollo_msgs` types.
+`ros2 topic pub`, `ros2 service call`, `ros2 interface show` and `ros2 bag`
+work on them directly, as should any other tool that speaks ROS 2 messages,
+and a plain rclcpp or rclpy node can publish to and subscribe from Apollo
+with the `apollo_msgs` types.
 `cyber_channel echo` prints the same messages in protobuf text format. The
 bridge adds standard message types (`sensor_msgs`, `nav_msgs`, `/tf`).
 
