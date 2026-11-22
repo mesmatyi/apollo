@@ -5,6 +5,11 @@ on:
     branches: [master, "claude/**"]
   pull_request:
 
+# A newer push to the same branch supersedes the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04
