@@ -13,9 +13,6 @@ apollo_target(filegroup radar_detection_files
     data/hm_matcher.pb.txt
     data/preprocessor.pb.txt
     data/radar_obstacle_perception.pb.txt
-    launch/__pycache__/radar_detection.dag.launch.cpython-312.pyc
-    launch/__pycache__/radar_detection.launch.cpython-312.pyc
-    launch/__pycache__/radar_detection_front.dag.launch.cpython-312.pyc
     launch/radar_detection.dag.launch.py
     launch/radar_detection.launch
     launch/radar_detection.launch.py

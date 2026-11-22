@@ -9,8 +9,6 @@ apollo_target(filegroup traffic_light_recognition_files
     dag/traffic_light_recognition.dag
     data/efficient_net.pb.txt
     data/recognition.pb.txt
-    launch/__pycache__/traffic_light_recognition.dag.launch.cpython-312.pyc
-    launch/__pycache__/traffic_light_recognition.launch.cpython-312.pyc
     launch/traffic_light_recognition.dag.launch.py
     launch/traffic_light_recognition.launch
     launch/traffic_light_recognition.launch.py

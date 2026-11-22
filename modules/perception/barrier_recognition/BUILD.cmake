@@ -10,8 +10,6 @@ apollo_target(filegroup barrier_recognition_files
     data/barrier_bank.pb.txt
     data/barrier_tracker.pb.txt
     data/straight_pole_barrier.pb.txt
-    launch/__pycache__/barrier_recognition.dag.launch.cpython-312.pyc
-    launch/__pycache__/barrier_recognition.launch.cpython-312.pyc
     launch/barrier_recognition.dag.launch.py
     launch/barrier_recognition.launch
     launch/barrier_recognition.launch.py

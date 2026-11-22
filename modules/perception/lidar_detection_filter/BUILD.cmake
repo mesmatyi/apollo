@@ -11,8 +11,6 @@ apollo_target(filegroup lidar_detection_filter_files
     data/filter_bank.pb.txt
     data/roi_boundary_filter.pb.txt
     data/strategy_filter.pb.txt
-    launch/__pycache__/lidar_detection_filter.dag.launch.cpython-312.pyc
-    launch/__pycache__/lidar_detection_filter.launch.cpython-312.pyc
     launch/lidar_detection_filter.dag.launch.py
     launch/lidar_detection_filter.launch
     launch/lidar_detection_filter.launch.py

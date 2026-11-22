@@ -8,8 +8,6 @@ apollo_target(filegroup pointcloud_preprocess_files
     conf/pointcloud_preprocess_config.pb.txt
     dag/pointcloud_preprocess.dag
     data/pointcloud_preprocessor.pb.txt
-    launch/__pycache__/pointcloud_preprocess.dag.launch.cpython-312.pyc
-    launch/__pycache__/pointcloud_preprocess.launch.cpython-312.pyc
     launch/pointcloud_preprocess.dag.launch.py
     launch/pointcloud_preprocess.launch
     launch/pointcloud_preprocess.launch.py

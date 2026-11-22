@@ -285,6 +285,15 @@ def _glob_regex(pattern):
     return re.compile('^' + out + '$')
 
 
+# Files a glob() never matches: by-products of running the tools in the
+# source tree (Python byte code of the generated launch files, test caches,
+# editor backups). They are not part of the repository, and the generated
+# files must come out the same in every checkout.
+_IGNORED_DIRS = ('__pycache__', '.pytest_cache', '.git', '.mypy_cache',
+                 '.ipynb_checkpoints')
+_IGNORED_SUFFIXES = ('.pyc', '.pyo', '.swp', '.orig', '.rej', '~')
+
+
 class Globber(object):
     def __init__(self, root):
         self.root = root
@@ -301,6 +310,8 @@ class Globber(object):
             rel = '' if rel == '.' else rel + '/'
             keep = []
             for d in sorted(dirnames):
+                if d in _IGNORED_DIRS:
+                    continue
                 full = os.path.join(dirpath, d)
                 if os.path.exists(os.path.join(full, 'BUILD')) or \
                         os.path.exists(os.path.join(full, 'BUILD.bazel')):
@@ -309,6 +320,8 @@ class Globber(object):
                 dirs.append(rel + d)
             dirnames[:] = keep
             for f in sorted(filenames):
+                if f.endswith(_IGNORED_SUFFIXES):
+                    continue
                 files.append(rel + f)
         self.cache[pkg] = (sorted(files), sorted(dirs))
         return self.cache[pkg]

@@ -8,8 +8,6 @@ apollo_target(filegroup pointcloud_semantic_files
     conf/pointcloud_semantic.pb.txt
     dag/pointcloud_semantic.dag
     data/pointwise_unet_param.pb.txt
-    launch/__pycache__/pointcloud_semantic.dag.launch.cpython-312.pyc
-    launch/__pycache__/pointcloud_semantic.launch.cpython-312.pyc
     launch/pointcloud_semantic.dag.launch.py
     launch/pointcloud_semantic.launch
     launch/pointcloud_semantic.launch.py

@@ -6,8 +6,6 @@ apollo_target(filegroup msg_adapter_files
   TARGET perception_msg_adapter__msg_adapter_files
   SRCS
     dag/msg_adapter.dag
-    launch/__pycache__/msg_adapter.dag.launch.cpython-312.pyc
-    launch/__pycache__/msg_adapter.launch.cpython-312.pyc
     launch/msg_adapter.dag.launch.py
     launch/msg_adapter.launch
     launch/msg_adapter.launch.py

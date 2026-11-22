@@ -9,8 +9,6 @@ apollo_target(filegroup lidar_cpdet_detection_files
     dag/lidar_detection.dag
     data/cpdet_param.pb.txt
     data/plugins/pcl_down_sample.pb.txt
-    launch/__pycache__/lidar_detection.dag.launch.cpython-312.pyc
-    launch/__pycache__/lidar_detection.launch.cpython-312.pyc
     launch/lidar_detection.dag.launch.py
     launch/lidar_detection.launch
     launch/lidar_detection.launch.py

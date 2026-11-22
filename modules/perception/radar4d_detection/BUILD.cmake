@@ -21,8 +21,6 @@ apollo_target(filegroup radar4d_detection_files
     data/tracking/mrf_track_object_distance.pb.txt
     data/tracking/mrf_track_object_matcher.pb.txt
     data/tracking/mrf_tracker.pb.txt
-    launch/__pycache__/radar4d_detection.dag.launch.cpython-312.pyc
-    launch/__pycache__/radar4d_detection.launch.cpython-312.pyc
     launch/radar4d_detection.dag.launch.py
     launch/radar4d_detection.launch
     launch/radar4d_detection.launch.py

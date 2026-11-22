@@ -11,10 +11,6 @@ apollo_target(filegroup traffic_light_detection_files
     dag/traffic_light_detection_yolox.dag
     data/detection_caffe.pb.txt
     data/detection_yolox.pb.txt
-    launch/__pycache__/traffic_light_detection.dag.launch.cpython-312.pyc
-    launch/__pycache__/traffic_light_detection.launch.cpython-312.pyc
-    launch/__pycache__/traffic_light_detection_yolox.dag.launch.cpython-312.pyc
-    launch/__pycache__/traffic_light_detection_yolox.launch.cpython-312.pyc
     launch/traffic_light_detection.dag.launch.py
     launch/traffic_light_detection.launch
     launch/traffic_light_detection.launch.py

@@ -12,8 +12,6 @@ apollo_target(filegroup lane_detection_files
     data/darkscNN_postprocess_config.pb.txt
     data/denseline_postprocess_config.pb.txt
     data/lane.pb.txt
-    launch/__pycache__/lane_detection.dag.launch.cpython-312.pyc
-    launch/__pycache__/lane_detection.launch.cpython-312.pyc
     launch/lane_detection.dag.launch.py
     launch/lane_detection.launch
     launch/lane_detection.launch.py

@@ -9,8 +9,6 @@ apollo_target(filegroup pointcloud_ground_detection_files
     dag/pointcloud_ground_detection.dag
     data/ground_service_detector.pb.txt
     data/spatio_temporal_ground_detector.pb.txt
-    launch/__pycache__/pointcloud_ground_detection.dag.launch.cpython-312.pyc
-    launch/__pycache__/pointcloud_ground_detection.launch.cpython-312.pyc
     launch/pointcloud_ground_detection.dag.launch.py
     launch/pointcloud_ground_detection.launch
     launch/pointcloud_ground_detection.launch.py

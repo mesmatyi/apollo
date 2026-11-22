@@ -8,8 +8,6 @@ apollo_target(filegroup traffic_light_tracking_files
     conf/traffic_light_tracking_config.pb.txt
     dag/traffic_light_tracking.dag
     data/semantic.pb.txt
-    launch/__pycache__/traffic_light_tracking.dag.launch.cpython-312.pyc
-    launch/__pycache__/traffic_light_tracking.launch.cpython-312.pyc
     launch/traffic_light_tracking.dag.launch.py
     launch/traffic_light_tracking.launch
     launch/traffic_light_tracking.launch.py

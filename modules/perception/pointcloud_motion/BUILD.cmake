@@ -8,8 +8,6 @@ apollo_target(filegroup pointcloud_motion_files
     conf/pointcloud_motion.pb.txt
     dag/pointcloud_motion.dag
     data/pointwise_motion_unet_param.pb.txt
-    launch/__pycache__/pointcloud_motion.dag.launch.cpython-312.pyc
-    launch/__pycache__/pointcloud_motion.launch.cpython-312.pyc
     launch/pointcloud_motion.dag.launch.py
     launch/pointcloud_motion.launch
     launch/pointcloud_motion.launch.py

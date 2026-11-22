@@ -23,8 +23,6 @@ apollo_target(filegroup lidar_tracking_files
     data/tracking/mlf_type_filter.conf
     data/tracking/type_classifiers.property
     data/tracking/type_transition.property
-    launch/__pycache__/lidar_tracking.dag.launch.cpython-312.pyc
-    launch/__pycache__/lidar_tracking.launch.cpython-312.pyc
     launch/lidar_tracking.dag.launch.py
     launch/lidar_tracking.launch
     launch/lidar_tracking.launch.py

@@ -9,8 +9,6 @@ apollo_target(filegroup lidar_segmentation_files
     dag/lidar_segmentation.dag
     data/graph_segmentation.pb.txt
     data/ncut_param.pb.txt
-    launch/__pycache__/lidar_segmentation.dag.launch.cpython-312.pyc
-    launch/__pycache__/lidar_segmentation.launch.cpython-312.pyc
     launch/lidar_segmentation.dag.launch.py
     launch/lidar_segmentation.launch
     launch/lidar_segmentation.launch.py

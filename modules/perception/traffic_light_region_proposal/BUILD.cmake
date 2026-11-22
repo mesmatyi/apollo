@@ -7,8 +7,6 @@ apollo_target(filegroup traffic_light_region_proposal_files
   SRCS
     conf/traffic_light_region_proposal_config.pb.txt
     dag/traffic_light_region_proposal.dag
-    launch/__pycache__/traffic_light_region_proposal.dag.launch.cpython-312.pyc
-    launch/__pycache__/traffic_light_region_proposal.launch.cpython-312.pyc
     launch/traffic_light_region_proposal.dag.launch.py
     launch/traffic_light_region_proposal.launch
     launch/traffic_light_region_proposal.launch.py

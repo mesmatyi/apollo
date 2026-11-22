@@ -9,8 +9,6 @@ apollo_target(filegroup pointcloud_map_based_roi_files
     dag/pointcloud_map_based_roi.dag
     data/hdmap_roi_filter.pb.txt
     data/map_manager.pb.txt
-    launch/__pycache__/pointcloud_map_based_roi.dag.launch.cpython-312.pyc
-    launch/__pycache__/pointcloud_map_based_roi.launch.cpython-312.pyc
     launch/pointcloud_map_based_roi.dag.launch.py
     launch/pointcloud_map_based_roi.launch
     launch/pointcloud_map_based_roi.launch.py

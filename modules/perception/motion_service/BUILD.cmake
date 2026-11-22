@@ -7,8 +7,6 @@ apollo_target(filegroup motion_service_files
   SRCS
     conf/motion_service_config.pb.txt
     dag/motion_service.dag
-    launch/__pycache__/motion_service.dag.launch.cpython-312.pyc
-    launch/__pycache__/motion_service.launch.cpython-312.pyc
     launch/motion_service.dag.launch.py
     launch/motion_service.launch
     launch/motion_service.launch.py
