@@ -88,7 +88,7 @@ void Endpoints(const std::string& channel, bool writers, Manager::RoleAttrVec* o
     return;
   }
   auto node = GraphNode();
-  auto topic = ros2::ChannelToTopic(channel);
+  auto topic = ros2::ResolveChannel(channel);
   auto infos = writers ? node->get_publishers_info_by_topic(topic)
                        : node->get_subscriptions_info_by_topic(topic);
   for (auto& info : infos) {
@@ -233,7 +233,7 @@ void ChannelManager::GetMsgType(const std::string& channel_name,
 }
 
 bool ChannelManager::HasWriter(const std::string& channel_name) {
-  return GraphNode()->count_publishers(ros2::ChannelToTopic(channel_name)) > 0;
+  return GraphNode()->count_publishers(ros2::ResolveChannel(channel_name)) > 0;
 }
 
 void ChannelManager::GetWriters(RoleAttrVec* writers) {
@@ -260,7 +260,7 @@ void ChannelManager::GetWritersOfChannel(const std::string& channel_name,
 }
 
 bool ChannelManager::HasReader(const std::string& channel_name) {
-  return GraphNode()->count_subscribers(ros2::ChannelToTopic(channel_name)) >
+  return GraphNode()->count_subscribers(ros2::ResolveChannel(channel_name)) >
          0;
 }
 
@@ -340,7 +340,7 @@ void NodeManager::GetNodes(RoleAttrVec* nodes) {
 }
 
 bool ServiceManager::HasService(const std::string& service_name) {
-  return GraphNode()->count_services(ros2::ChannelToTopic(service_name)) > 0;
+  return GraphNode()->count_services(ros2::ResolveService(service_name)) > 0;
 }
 
 void ServiceManager::GetServers(RoleAttrVec* servers) {
@@ -364,7 +364,7 @@ void ServiceManager::GetClients(const std::string& service_name,
     return;
   }
   auto node = GraphNode();
-  const auto topic = ros2::ChannelToTopic(service_name);
+  const auto topic = ros2::ResolveService(service_name);
   for (auto& name_ns : node->get_node_graph_interface()
                            ->get_node_names_and_namespaces()) {
     auto client_services =

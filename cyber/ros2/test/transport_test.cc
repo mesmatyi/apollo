@@ -207,7 +207,10 @@ TEST(TransportTest, TopologySeesWriters) {
   EXPECT_TRUE(WaitFor([&]() { return channel_manager->HasWriter("/test/topology"); }));
   std::vector<std::string> channels;
   channel_manager->GetChannelNames(&channels);
-  EXPECT_NE(std::find(channels.begin(), channels.end(), "/test/topology"),
+  // The graph lists the channel under its ROS 2 name: the same name unless
+  // the process was started with a remapping rule for it.
+  EXPECT_NE(std::find(channels.begin(), channels.end(),
+                      ros2::ResolveChannel("/test/topology")),
             channels.end());
   std::string type;
   channel_manager->GetMsgType("/test/topology", &type);

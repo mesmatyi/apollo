@@ -1478,18 +1478,36 @@ bool LookupLocalTopicType(const std::string& topic, std::string* type_name) {
 }
 }  // namespace
 
+std::string ResolveChannel(const std::string& channel) {
+  return ResolveTopic(Runtime::Instance()->AuxNode(), channel);
+}
+
+std::string ResolveService(const std::string& service) {
+  const std::string name = ChannelToTopic(service);
+  try {
+    return Runtime::Instance()
+        ->AuxNode()
+        ->ros_node()
+        ->get_node_services_interface()
+        ->resolve_service_name(name);
+  } catch (const std::exception& e) {
+    ADEBUG << "cannot resolve " << name << ": " << e.what();
+    return name;
+  }
+}
+
 void RegisterLocalChannelType(const std::string& channel,
                               const std::string& type_name) {
-  RegisterLocalTopicType(ChannelToTopic(channel), type_name);
+  RegisterLocalTopicType(ResolveChannel(channel), type_name);
 }
 
 bool LookupLocalChannelType(const std::string& channel,
                             std::string* type_name) {
-  return LookupLocalTopicType(ChannelToTopic(channel), type_name);
+  return LookupLocalTopicType(ResolveChannel(channel), type_name);
 }
 
 std::string ChannelProtoType(const std::string& channel) {
-  const std::string topic = ChannelToTopic(channel);
+  const std::string topic = ResolveChannel(channel);
   try {
     const auto topics =
         Runtime::Instance()->AuxNode()->ros_node()->get_topic_names_and_types();
@@ -1524,7 +1542,7 @@ std::shared_ptr<NodeHandle> AuxNodeHandle() {
 }
 
 size_t LocalSubscriberCount(const std::string& topic) {
-  return IntraProcessManager::Instance()->Get(ChannelToTopic(topic)).size();
+  return IntraProcessManager::Instance()->Get(ResolveChannel(topic)).size();
 }
 
 }  // namespace ros2

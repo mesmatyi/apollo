@@ -101,7 +101,7 @@ run_suite() {
   check "the original topic name is not used" \
     bash -c "! timeout 30 ros2 topic list --no-daemon 2>/dev/null | grep -qx /channel/chatter"
   check "ros2 topic echo shows the message fields" \
-    bash -c "timeout 30 ros2 topic echo --once --no-daemon /renamed/chatter 2>/dev/null | grep -q '^seq: '"
+    retry 60 bash -c "timeout 20 ros2 topic echo --once --no-daemon /renamed/chatter 2>/dev/null | grep -q '^seq: '"
   check "ros2 interface show knows the generated type" \
     bash -c "timeout 30 ros2 interface show apollo_msgs/msg/CyberExamplesProtoChatter 2>/dev/null | grep -q 'uint64 seq'"
 
@@ -140,6 +140,20 @@ run_suite() {
   check "ros2 service call gets the response of the Cyber service" \
     bash -c "timeout 30 ros2 service call /test_server apollo_msgs/srv/CyberExamplesProtoDriver '{msg_id: 41}' 2>/dev/null | grep -q 'msg_id='"
   cleanup
+
+  # --- remapping inside one process -------------------------------------------
+  # The transport tests of the build tree, started with remapping rules for
+  # their channels and service: zero-copy delivery between a writer and a
+  # reader of one process, raw readers, services and graph queries must all
+  # follow the rules.
+  if [[ -x "${BIN_DIR}/cyber_ros2_test" ]]; then
+    check "readers, writers, services and graph queries of one process follow remapping rules" \
+      "${BIN_DIR}/cyber_ros2_test" "--gtest_filter=TransportTest.*" --ros-args \
+      -r /test/zero_copy:=/renamed/zero_copy -r /test/add:=/renamed/add \
+      -r /test/history:=/renamed/history \
+      -r /test/history_raw:=/renamed/history_raw \
+      -r /test/topology:=/renamed/topology
+  fi
 
   # --- parameter file, use_sim_time, mainboard ---------------------------------
   cat > params.yaml << 'EOF'

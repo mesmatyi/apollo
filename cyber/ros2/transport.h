@@ -250,6 +250,13 @@ void RegisterLocalChannelType(const std::string& channel,
                               const std::string& type_name);
 bool LookupLocalChannelType(const std::string& channel, std::string* type_name);
 
+/// The ROS 2 topic of a channel as this process sees it: ChannelToTopic()
+/// plus the namespace and remapping rules of the process node. Graph queries
+/// by channel name use it, so tools follow `--ros-args -r` rules.
+std::string ResolveChannel(const std::string& channel);
+/// Same for a service name.
+std::string ResolveService(const std::string& service);
+
 /// Protobuf type of a channel: from the ROS 2 graph when the channel uses a
 /// native type, else from what this process learned about it. Empty when
 /// unknown.
