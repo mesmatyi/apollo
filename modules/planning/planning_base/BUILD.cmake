@@ -830,6 +830,7 @@ apollo_target(cc_binary inference_demo
   TARGET planning_planning_base__inference_demo
   SRCS tools/inference_demo.cc
   DEPS
+    //cyber:cyber
     @com_github_gflags_gflags//:gflags
     @libtorch_cpu//:libtorch_cpu
 )

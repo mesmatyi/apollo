@@ -747,6 +747,7 @@ apollo_cc_binary(
     name = "inference_demo",
     srcs = ["tools/inference_demo.cc"],
     deps = [
+        "//cyber",
         "@com_github_gflags_gflags//:gflags",
         "@libtorch_cpu",
     ],
