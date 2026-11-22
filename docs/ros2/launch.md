@@ -79,8 +79,16 @@ at run time (see [architecture.md](architecture.md#runtime-paths)).
     `TimerComponentConfig`. This is a plain Python `str`, and launch_ros only
     YAML-parses substitutions, so it stays a string parameter.
 * `runner:=mainboard` runs `Node(package='cyber', executable='mainboard',
-  arguments=['-d', <dag path>])` instead. Note that launch_ros appends
-  `--ros-args` to every `Node` command line.
+  arguments=['-d', <dag path>])` instead. launch_ros appends `--ros-args`
+  (with `-r __node:=<name>`, remappings and parameters) to every `Node`
+  command line; Apollo executables take those arguments, see
+  [ros2_nodes.md](ros2_nodes.md).
+
+To configure a component from a launch file, add parameters next to
+`component_config`: `gflags.<flag name>` sets a gflag of the process (and
+wins over the flag file), `use_sim_time` makes Cyber's clock follow `/clock`,
+and `remappings=[('/apollo/planning', '/vehicle1/planning')]` renames a
+channel. All of it is described in [ros2_nodes.md](ros2_nodes.md).
 
 Class names are resolved with `find_registered_components()` from
 `tools/ros2/apollo_ros2_common.py` (the build generator uses the same
