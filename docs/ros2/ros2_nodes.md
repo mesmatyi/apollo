@@ -185,6 +185,7 @@ Python has no gflags, and `cyber_time.Time.now()` is the system clock as
 the above from a plain rclcpp node (parameter client, `/clock` publisher,
 `/rosout` subscription). `cyber/ros2/test/cli_interop_test.sh` does it with
 the `ros2` command line tools against `cyber_example_talker`,
-`cyber_example_listener`, `cyber_example_service`, `mainboard` and the
-transport tests started with remapping rules: 22 checks, run with Fast DDS
-and with Cyclone DDS. `cyber/python/cyber_py3/test` covers the Python side.
+`cyber_example_listener`, `cyber_example_service`, `mainboard`, the
+transport tests started with remapping rules, and an Apollo component
+launched into a standard component container with `ros2 launch`: 29 checks,
+run with Fast DDS and with Cyclone DDS. `cyber/python/cyber_py3/test` covers the Python side.

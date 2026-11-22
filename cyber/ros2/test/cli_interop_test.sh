@@ -57,7 +57,6 @@ cleanup() {
   for pid in "${PIDS[@]:-}"; do
     [[ -n "${pid}" ]] && kill -KILL -- "-${pid}" 2>/dev/null
   done
-  wait 2>/dev/null
   PIDS=()
 }
 trap 'cleanup; rm -rf "${WORK_DIR}"' EXIT
@@ -67,6 +66,7 @@ start() {  # start <log> <command...>, in a process group of its own
   shift
   setsid "$@" > "${log}" 2>&1 &
   PIDS+=("$!")
+  disown "$!"   # no job-control message when cleanup() kills it
 }
 
 # check <description> <command...>: passes when the command does. The ROS 2
