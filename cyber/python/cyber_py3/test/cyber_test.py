@@ -323,3 +323,37 @@ def test_talker_listener_across_processes(cyber_env, unique,
     response = client.send_request(Chatter(seq=40))
     assert response is not None and response.seq == 42
     assert "talker_" + unique in cyber.NodeUtils.get_nodes(0)
+
+
+def test_nodes_are_ordinary_ros_nodes(unique):
+    """Parameter services on every node, and the ROS 2 arguments of the
+    command line: remapping, parameters, the name of the process."""
+    from conftest import run_python
+    code = r'''
+import sys, time
+from cyber.python.cyber_py3 import cyber
+from cyber.proto.simple_pb2 import SimpleMessage
+cyber.init('ros_args')
+node = cyber.Node('ros_args_node')
+writer = node.create_writer('/test/ros_args/out', SimpleMessage)
+ros_node = node.get_ros_node()
+time.sleep(0.5)
+services = dict(ros_node.get_service_names_and_types())
+print(sorted(n for n in dict(ros_node.get_topic_names_and_types())
+             if 'ros_args' in n or 'renamed' in n))
+print('/ros_args_node/list_parameters' in services,
+      '/ros_args_node/set_parameters' in services)
+print(ros_node.get_parameter('answer').value,
+      ros_node.get_parameter('use_sim_time').value)
+print(cyber.graph_node().get_name(), ros_node.get_name())
+cyber.shutdown()
+'''
+    result = run_python(
+        code, '--ros-args', '-r', '/test/ros_args/out:=/test/renamed/out',
+        '-r', '__node:=py_process_' + unique, '-p', 'answer:=42')
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.strip().splitlines()
+    assert lines[0] == "['/test/renamed/out']"
+    assert lines[1] == 'True True'
+    assert lines[2] == '42 False'
+    assert lines[3] == 'py_process_%s ros_args_node' % unique

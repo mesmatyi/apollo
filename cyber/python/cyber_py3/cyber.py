@@ -183,13 +183,59 @@ def _native_converter(channel, data_type):
     return native_types.get_converter(_descriptor_of_type(data_type))
 
 
+def _split_ros_arguments(argv):
+    """The ROS 2 arguments of a command line: the `--ros-args ... [--]`
+    sections (starting with the flag), without the rules that rename the
+    node, and the node name given with `-r __node:=<name>` (or None).
+
+    A process has many nodes: the name applies to the process node only, the
+    other rules (remapping, namespace, parameters, parameter files) to every
+    node, as in the C++ runtime."""
+    ros_args = []
+    in_ros_args = False
+    for arg in argv:
+        if not in_ros_args:
+            if arg == '--ros-args':
+                in_ros_args = True
+                ros_args.append(arg)
+            continue
+        if arg == '--':
+            in_ros_args = False
+            continue
+        ros_args.append(arg)
+    node_args = []
+    node_name = None
+    index = 0
+    while index < len(ros_args):
+        arg = ros_args[index]
+        if arg in ('-r', '--remap') and index + 1 < len(ros_args):
+            rule = ros_args[index + 1]
+            for prefix in ('__node:=', '__name:='):
+                if rule.startswith(prefix):
+                    node_name = rule[len(prefix):]
+                    break
+            else:
+                node_args += [arg, rule]
+            index += 2
+            continue
+        node_args.append(arg)
+        index += 1
+    if node_args == ['--ros-args']:
+        node_args = []
+    return ros_args, node_args, node_name
+
+
 class _SpunNode(object):
-    """An rclpy node spun by its own SingleThreadedExecutor thread."""
+    """An rclpy node spun by its own SingleThreadedExecutor thread.
+
+    An ordinary ROS 2 node: parameter services, and the remapping rules,
+    namespace and parameters given on the command line of the process."""
 
     def __init__(self, ros_name, context):
-        self.node = rclpy.node.Node(ros_name, context=context,
-                                    use_global_arguments=False,
-                                    start_parameter_services=False)
+        self.node = rclpy.node.Node(
+            ros_name, context=context, use_global_arguments=False,
+            cli_args=_rt.node_args or None,
+            automatically_declare_parameters_from_overrides=True)
         self.executor = SingleThreadedExecutor(context=context)
         self.executor.add_node(self.node)
         self.queues = []
@@ -278,6 +324,10 @@ class _Runtime(object):
         self.aux = None
         self.prev_sigint = None
         self.atexit_registered = False
+        # ROS 2 arguments of the command line that apply to every node, and
+        # the name given to the process with `-r __node:=<name>`.
+        self.node_args = []
+        self.process_node_name = None
 
     def spin_node(self, ros_name):
         with self.lock:
@@ -300,7 +350,10 @@ class _Runtime(object):
             if self.state != STATE_INITIALIZED:
                 init()
             if self.aux is None:
-                self.aux = self.spin_node('_cyber_py_%d' % os.getpid())
+                # Hidden (leading underscore) unless the command line names
+                # the process with `-r __node:=<name>`, as launch_ros does.
+                self.aux = self.spin_node(
+                    self.process_node_name or '_cyber_py_%d' % os.getpid())
             return self.aux.node
 
 
@@ -365,11 +418,17 @@ def init(module_name="cyber_py"):
         kwargs = {}
         if SignalHandlerOptions is not None:
             kwargs['signal_handler_options'] = SignalHandlerOptions.NO
+        # The ROS 2 arguments of the command line (`--ros-args ...`): global
+        # ones (log level, ...) go to rclpy, the rest to every node.
+        ros_args, node_args, node_name = _split_ros_arguments(sys.argv[1:])
         try:
-            rclpy.init(context=context, **kwargs)
+            rclpy.init(args=[sys.argv[0] if sys.argv else 'cyber_py'] +
+                       ros_args, context=context, **kwargs)
         except Exception as e:  # pylint: disable=broad-except
             sys.stderr.write('cyber.init(%s) failed: %s\n' % (module_name, e))
             return False
+        _rt.node_args = node_args
+        _rt.process_node_name = node_name
         _rt.context = context
         _rt.nodes = []
         _rt.aux = None
