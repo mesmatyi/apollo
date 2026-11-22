@@ -296,7 +296,7 @@ TEST(Ros2FeaturesTest, CyberNodesHaveParameterServices) {
 /// The parameters of a Cyber ParameterServer are ROS 2 parameters of its
 /// node, in both directions, next to Cyber's own parameter protocol.
 TEST(Ros2FeaturesTest, CyberParametersAreRosParameters) {
-  auto node = CreateNode("cyber_param_node");
+  std::shared_ptr<Node> node = CreateNode("cyber_param_node");
   ASSERT_NE(node, nullptr);
   ParameterServer server(node);
   server.SetParameter(Parameter("max_speed", 12.5));
@@ -332,7 +332,7 @@ TEST(Ros2FeaturesTest, CyberParametersAreRosParameters) {
   ASSERT_NE(it, services.end());
   EXPECT_EQ((std::vector<std::string>{"apollo_msgs/srv/CyberProtoParamName"}),
             it->second);
-  auto client_node = CreateNode("cyber_param_client_node");
+  std::shared_ptr<Node> client_node = CreateNode("cyber_param_client_node");
   apollo::cyber::ParameterClient cyber_client(client_node, "cyber_param_node");
   Parameter lanes;
   ASSERT_TRUE(cyber_client.GetParameter("lanes", &lanes));
